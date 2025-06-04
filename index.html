@@ -310,7 +310,7 @@
                 type="url" 
                 id="scriptUrl" 
                 class="url-input"
-                value="https://script.google.com/macros/s/AKfycby5HVCE9HeufAd_6b1ukEoyLETBR-hvlP7Cn8p6xd3TBxMHuB53q4AlsSeQms4Mlm5FgQ/exec"
+                value="https://script.google.com/macros/s/AKfycbxKgKTd248-brxgkWsThASCC5HCM1oC0v7efr6kyK_XRhqjIno5zO0eWWK2dIBCB7hhKw/exec"
                 placeholder="Paste your Google Apps Script URL here"
             >
         </div>
@@ -537,7 +537,13 @@
                             
                             // If we can't extract the URL, show manual method
                             addLog(`✅ Payment created! Using manual method.`, 'success');
-                            addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                            
+                            // Get amount and description from URL parameters
+                            const urlParams = new URLSearchParams(requestUrl.split('?')[1]);
+                            const amount = urlParams.get('amount') || parameters.amount;
+                            const description = urlParams.get('description') || parameters.description;
+                            
+                            addSmartPaymentInterface(requestUrl, amount, description);
                         };
                         
                         // Handle script load errors
@@ -545,7 +551,13 @@
                             document.head.removeChild(script);
                             delete window[callbackName];
                             addLog(`⚠️ JSONP failed, using manual method`, 'info');
-                            addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                            
+                            // Get amount and description from URL parameters
+                            const urlParams = new URLSearchParams(requestUrl.split('?')[1]);
+                            const amount = urlParams.get('amount') || parameters.amount;
+                            const description = urlParams.get('description') || parameters.description;
+                            
+                            addSmartPaymentInterface(requestUrl, amount, description);
                         };
                         
                         // Set timeout
@@ -554,7 +566,13 @@
                                 document.head.removeChild(script);
                                 delete window[callbackName];
                                 addLog(`⚠️ Request timeout, using manual method`, 'info');
-                                addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                                
+                                // Get amount and description from URL parameters
+                                const urlParams = new URLSearchParams(requestUrl.split('?')[1]);
+                                const amount = urlParams.get('amount') || parameters.amount;
+                                const description = urlParams.get('description') || parameters.description;
+                                
+                                addSmartPaymentInterface(requestUrl, amount, description);
                             }
                         }, 15000);
                         
@@ -566,7 +584,13 @@
                         
                     } catch (error) {
                         addLog(`⚠️ JSONP setup failed: ${error.message}`, 'info');
-                        addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                        
+                        // Get amount and description from URL parameters
+                        const urlParams = new URLSearchParams(requestUrl.split('?')[1]);
+                        const amount = urlParams.get('amount') || parameters.amount;
+                        const description = urlParams.get('description') || parameters.description;
+                        
+                        addSmartPaymentInterface(requestUrl, amount, description);
                         updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
                         return;
                     }
