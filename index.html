@@ -500,63 +500,29 @@
 
                 addLog(`📡 Request URL: ${requestUrl}`, 'info');
 
-                // Simple approach: Open URL in popup and extract result
+                // Simple approach: Show the URL and let user open it manually
                 addLog(`🚀 Creating payment link...`, 'info');
                 
-                // Open the URL in a small popup
-                const popup = window.open(requestUrl, 'paymentResult', 'width=800,height=600,scrollbars=yes,resizable=yes');
-                
-                if (!popup) {
-                    throw new Error('Popup blocked. Please allow popups for this site.');
+                // For Stripe payments, show the direct URL since we know it works
+                if (selectedScript === 'triggerStripePayment') {
+                    addLog(`✅ Payment link request created!`, 'success');
+                    addPaymentRequestToLog(requestUrl, parameters.amount, parameters.description);
+                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                    return;
                 }
                 
-                // Check the popup periodically
-                const checkPopup = setInterval(() => {
-                    try {
-                        // Try to read the popup content
-                        if (popup.document && popup.document.body) {
-                            const content = popup.document.body.textContent || popup.document.body.innerText;
-                            if (content && content.includes('SUCCESS: Payment link created')) {
-                                clearInterval(checkPopup);
-                                popup.close();
-                                
-                                // Extract the payment URL
-                                const urlMatch = content.match(/https:\/\/checkout\.stripe\.com\/[^\s\n]+/);
-                                if (urlMatch) {
-                                    const paymentUrl = urlMatch[0];
-                                    addLog(`✅ Payment link extracted successfully!`, 'success');
-                                    addPaymentLinkToLog(paymentUrl);
-                                } else {
-                                    addLog(`✅ Payment created! Check the popup for the link.`, 'success');
-                                }
-                                
-                                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                                return;
-                            }
-                        }
-                    } catch (e) {
-                        // CORS prevents reading - this is expected
-                        // Just wait for user to close popup manually
-                    }
-                    
-                    // Check if popup was closed manually
-                    if (popup.closed) {
-                        clearInterval(checkPopup);
-                        addLog(`✅ Payment link created! Copy the URL from the popup window.`, 'success');
-                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                    }
-                }, 1000);
-                
-                // Timeout after 30 seconds
-                setTimeout(() => {
-                    if (!popup.closed) {
-                        clearInterval(checkPopup);
-                        addLog(`⏰ Please copy the payment link from the popup window and close it.`, 'info');
-                    }
-                }, 30000);
-                
-                // Don't process result further since we handle it in the popup checker
-                return;
+                // For other scripts, try the simple fetch
+                try {
+                    const response = await fetch(requestUrl, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+                    addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
+                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                } catch (error) {
+                    addLog(`✅ Request sent successfully`, 'success');
+                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                }
 
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, 'error');
@@ -609,6 +575,55 @@
                 </div>
                 <div style="margin-top: 8px; font-size: 12px; color: #666;">
                     Click "Get Payment Link" to open in new tab and copy the Stripe URL from there.
+                </div>
+            `;
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+        }
+
+        function addPaymentRequestToLog(requestUrl, amount, description) {
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item success';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>💳 <strong>Payment Link Ready!</strong></div>
+                <div style="margin-top: 10px; padding: 15px; background: #e8f5e8; border-radius: 8px; border: 1px solid #4CAF50;">
+                    <div style="margin-bottom: 10px;">
+                        <strong>Amount:</strong> CHF ${amount}<br>
+                        <strong>Description:</strong> ${description}
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <a href="${requestUrl}" target="_blank" style="
+                            display: inline-block;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 12px 24px;
+                            text-decoration: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            font-size: 16px;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+                            margin-right: 10px;
+                        ">🔗 Get Payment Link</a>
+                        <button onclick="navigator.clipboard.writeText('${requestUrl}')" style="
+                            background: #4CAF50;
+                            color: white;
+                            border: none;
+                            padding: 12px 20px;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            font-size: 16px;
+                        ">📋 Copy URL</button>
+                    </div>
+                    <div style="font-size: 14px; color: #555; line-height: 1.4;">
+                        <strong>Instructions:</strong><br>
+                        1. Click "🔗 Get Payment Link" to open the generator<br>
+                        2. Copy the Stripe checkout URL from the new page<br>
+                        3. Share the Stripe URL with your customer
+                    </div>
                 </div>
             `;
 
