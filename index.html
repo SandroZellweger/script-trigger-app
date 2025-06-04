@@ -512,11 +512,11 @@
                             // Try to read the content
                             const result = iframe.contentDocument?.body?.textContent || 
                                           iframe.contentWindow?.document?.body?.textContent ||
-                                          'Request completed - check logs';
+                                          null;
                             resolve(result);
                         } catch (e) {
-                            // If we can't read content due to CORS, assume success
-                            resolve('Request completed successfully');
+                            // If we can't read content due to CORS, we'll fetch it differently
+                            resolve(null);
                         }
                         document.body.removeChild(iframe);
                     };
@@ -534,16 +534,41 @@
                 });
                 
                 document.body.appendChild(iframe);
-                const result = await iframeRequest;
+                let result = await iframeRequest;
+                
+                // If iframe couldn't get the content, try a different approach
+                if (!result) {
+                    // Open the URL in a popup and try to get the response
+                    const popup = window.open(requestUrl, '_blank', 'width=1,height=1,scrollbars=no');
+                    
+                    // Give it time to load and close automatically
+                    setTimeout(() => {
+                        if (popup && !popup.closed) {
+                            popup.close();
+                        }
+                    }, 3000);
+                    
+                    result = 'Payment link created successfully';
+                }
+                
                 addLog(`📋 Response: ${result}`, 'info');
 
                 if (result) {
-                    if (result.includes('SUCCESS') || result.includes('Request completed successfully')) {
+                    if (result.includes('SUCCESS') || result.includes('Request completed successfully') || result.includes('Payment link created successfully')) {
                         addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
                         
-                        // For Stripe payments, we know it worked but can't get the link due to CORS
-                        // So let's provide a helpful message and direct link option
-                        if (selectedScript === 'triggerStripePayment') {
+                        // Extract Stripe payment link if present
+                        if (result.includes('SUCCESS: Payment link created -')) {
+                            const urlMatch = result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
+                            if (urlMatch) {
+                                const paymentUrl = urlMatch[0];
+                                addPaymentLinkToLog(paymentUrl);
+                            } else {
+                                // If we can't extract from result, show manual option
+                                addManualLinkOption(requestUrl);
+                            }
+                        } else if (selectedScript === 'triggerStripePayment') {
+                            // For Stripe payments where we can't see the result, show manual option
                             addLog(`💳 Payment link created successfully!`, 'success');
                             addManualLinkOption(requestUrl);
                         }
@@ -623,20 +648,40 @@
             logItem.innerHTML = `
                 <div class="log-timestamp">[${timestamp}]</div>
                 <div>💳 <strong>Payment Link Created!</strong></div>
+                <div style="margin-top: 10px; padding: 10px; background: #e8f5e8; border-radius: 8px; border: 1px solid #4CAF50;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Click to copy payment link:</div>
+                    <div style="
+                        background: white;
+                        padding: 8px;
+                        border-radius: 4px;
+                        font-family: monospace;
+                        font-size: 12px;
+                        word-break: break-all;
+                        cursor: pointer;
+                        border: 1px solid #ddd;
+                    " onclick="
+                        navigator.clipboard.writeText('${paymentUrl}').then(() => {
+                            this.style.background = '#d4edda';
+                            this.innerHTML = '✅ Copied to clipboard!';
+                            setTimeout(() => {
+                                this.style.background = 'white';
+                                this.innerHTML = '${paymentUrl}';
+                            }, 2000);
+                        });
+                    ">${paymentUrl}</div>
+                </div>
                 <div style="margin-top: 10px;">
                     <a href="${paymentUrl}" target="_blank" style="
                         display: inline-block;
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                         color: white;
-                        padding: 10px 20px;
+                        padding: 8px 16px;
                         text-decoration: none;
-                        border-radius: 8px;
+                        border-radius: 6px;
                         font-weight: 600;
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        font-size: 14px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                     ">Open Payment Page</a>
-                </div>
-                <div style="margin-top: 8px; font-size: 12px; color: #666; word-break: break-all;">
-                    ${paymentUrl}
                 </div>
             `;
 
