@@ -500,27 +500,52 @@
 
                 addLog(`📡 Request URL: ${requestUrl}`, 'info');
 
-                // Simple approach: Show the URL and let user open it manually
+                // Fetch the payment link directly and display it
                 addLog(`🚀 Creating payment link...`, 'info');
                 
-                // For Stripe payments, show the direct URL since we know it works
-                if (selectedScript === 'triggerStripePayment') {
-                    addLog(`✅ Payment link request created!`, 'success');
-                    addPaymentRequestToLog(requestUrl, parameters.amount, parameters.description);
-                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                    return;
-                }
-                
-                // For other scripts, try the simple fetch
                 try {
-                    const response = await fetch(requestUrl, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
-                    addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
-                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                    // Use a proxy service to fetch the content
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(requestUrl)}`;
+                    
+                    const response = await fetch(proxyUrl);
+                    const data = await response.json();
+                    
+                    if (data.contents) {
+                        const result = data.contents;
+                        addLog(`📋 Response: ${result}`, 'info');
+                        
+                        if (result.includes('SUCCESS: Payment link created')) {
+                            // Extract the Stripe payment URL
+                            const urlMatch = result.match(/https:\/\/checkout\.stripe\.com\/[^\s\n]+/);
+                            if (urlMatch) {
+                                const paymentUrl = urlMatch[0];
+                                addLog(`✅ Payment link created successfully!`, 'success');
+                                addDirectPaymentLink(paymentUrl, parameters.amount, parameters.description);
+                                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                                return;
+                            }
+                        } else if (result.includes('ERROR')) {
+                            addLog(`❌ ${result}`, 'error');
+                            return;
+                        }
+                    }
+                    
+                    // If proxy didn't work, fall back to manual method
+                    throw new Error('Could not fetch payment link automatically');
+                    
                 } catch (error) {
-                    addLog(`✅ Request sent successfully`, 'success');
+                    addLog(`⚠️ Auto-fetch failed, using manual method`, 'info');
+                    
+                    // Fallback to manual method
+                    if (selectedScript === 'triggerStripePayment') {
+                        addLog(`✅ Payment link request created!`, 'success');
+                        addPaymentRequestToLog(requestUrl, parameters.amount, parameters.description);
+                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                        return;
+                    }
+                    
+                    // For other scripts, just show success
+                    addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
                     updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
                 }
 
@@ -575,6 +600,79 @@
                 </div>
                 <div style="margin-top: 8px; font-size: 12px; color: #666;">
                     Click "Get Payment Link" to open in new tab and copy the Stripe URL from there.
+                </div>
+            `;
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+        }
+
+        function addDirectPaymentLink(paymentUrl, amount, description) {
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item success';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>💳 <strong>Payment Link Created!</strong></div>
+                <div style="margin-top: 10px; padding: 15px; background: #e8f5e8; border-radius: 8px; border: 1px solid #4CAF50;">
+                    <div style="margin-bottom: 15px;">
+                        <strong>💰 Amount:</strong> CHF ${amount}<br>
+                        <strong>📝 Description:</strong> ${description}
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                            <strong>🔗 Payment Link (click to copy):</strong>
+                        </div>
+                        <div style="
+                            background: white;
+                            padding: 12px;
+                            border-radius: 8px;
+                            border: 2px solid #4CAF50;
+                            font-family: monospace;
+                            font-size: 12px;
+                            word-break: break-all;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        " onclick="
+                            navigator.clipboard.writeText('${paymentUrl}').then(() => {
+                                this.style.background = '#d4edda';
+                                this.style.borderColor = '#28a745';
+                                const originalText = this.innerHTML;
+                                this.innerHTML = '✅ COPIED TO CLIPBOARD!';
+                                setTimeout(() => {
+                                    this.style.background = 'white';
+                                    this.style.borderColor = '#4CAF50';
+                                    this.innerHTML = originalText;
+                                }, 2000);
+                            }).catch(() => {
+                                alert('Could not copy to clipboard. Please select and copy manually.');
+                            });
+                        " onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='white';">
+                            ${paymentUrl}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <a href="${paymentUrl}" target="_blank" style="
+                            display: inline-block;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 12px 24px;
+                            text-decoration: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            font-size: 16px;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+                            transition: transform 0.2s ease;
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            🚀 Open Payment Page
+                        </a>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center;">
+                        Ready to share! Just copy the link above and send it to your customer.
+                    </div>
                 </div>
             `;
 
