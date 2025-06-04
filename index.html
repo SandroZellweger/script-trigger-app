@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Script Trigger">
     <title>Google Apps Script Trigger</title>
+    <!-- Google Fonts: Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,7 +17,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background-color: #f5f5f5;
             color: #333;
             line-height: 1.6;
@@ -35,10 +37,15 @@
             text-align: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
             border-radius: 15px;
             color: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .header img.logo {
+            max-height: 50px;
+            margin-bottom: 10px;
         }
 
         .header h1 {
@@ -52,103 +59,61 @@
             opacity: 0.9;
         }
 
-        .url-section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .url-section label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
+        .scripts-section h2 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 15px;
             color: #333;
         }
 
-        .url-input {
+        .script-button {
+            display: block;
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            background-color: #fafafa;
-            transition: border-color 0.3s ease;
-        }
-
-        .url-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .url-input:invalid {
-            border-color: #f44336;
-        }
-
-        .test-url-btn {
-            margin-top: 10px;
-            padding: 10px;
-            background: #2196F3;
+            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .test-url-btn:hover {
-            background: #1976D2;
-        }
-
-        .scripts-section h2 {
-            font-size: 18px;
-            font-weight: 600;
+            padding: 15px;
             margin-bottom: 15px;
-            color: #333;
-        }
-
-        .script-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             touch-action: manipulation;
         }
 
-        .script-card:hover {
+        .script-button:hover {
+            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         }
 
-        .script-card.selected {
-            border-color: #667eea;
-            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+        .script-button:focus {
+            outline: none;
+            border: 2px solid #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
         }
 
-        .script-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
+        .script-button.selected {
+            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
+            border: 2px solid #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
         }
 
         .script-description {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 10px;
-            line-height: 1.4;
+            font-size: 12px;
+            color: #777;
+            margin-top: 5px;
+            text-align: center;
         }
 
         .script-status {
-            font-size: 12px;
-            color: #666;
+            font-size: 11px;
+            color: #999;
             font-style: italic;
+            text-align: center;
+            display: block;
+            margin-top: 3px;
         }
 
         .parameter-inputs {
@@ -161,7 +126,7 @@
 
         .parameter-inputs h3 {
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 500;
             margin-bottom: 15px;
             color: #333;
         }
@@ -189,7 +154,7 @@
 
         .input-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
         }
 
         .button-row {
@@ -204,7 +169,7 @@
             border: none;
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
@@ -212,13 +177,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
             color: white;
         }
 
         .btn-primary:hover:not(:disabled) {
+            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
             transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            box-shadow: 0 4px 15px rgba(30, 136, 229, 0.3); /* Adjust shadow color if primary changes */
         }
 
         .btn-primary:disabled {
@@ -227,12 +193,12 @@
         }
 
         .btn-secondary {
-            background: #f44336;
+            background: #D32F2F; /* Error color - Replace with your error brand color (e.g., #DC3545) */
             color: white;
         }
 
         .btn-secondary:hover {
-            background: #d32f2f;
+            background: #B71C1C; /* Darker error - Replace with a darker shade of your error color (e.g., #C82333) */
             transform: translateY(-1px);
         }
 
@@ -278,7 +244,7 @@
 
         .logs-section h3 {
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 500;
             margin-bottom: 15px;
             color: #333;
         }
@@ -293,12 +259,12 @@
         }
 
         .log-item.success {
-            border-left-color: #4CAF50;
-            background: #f1f8e9;
+            border-left-color: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
+            background: #e3f2fd; /* Light primary - Replace with a light shade of your primary color (e.g., #FFF3E0) */
         }
 
         .log-item.error {
-            border-left-color: #f44336;
+            border-left-color: #D32F2F; /* Error color - Replace with your error brand color (e.g., #DC3545) */
             background: #ffebee;
         }
 
@@ -363,12 +329,12 @@
         }
 
         .pwa-install-btn {
-            background: #4CAF50;
+            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
             color: white;
         }
 
         .pwa-cancel-btn {
-            background: #f44336;
+            background: #D32F2F; /* Error color - Replace with your error brand color (e.g., #DC3545) */
             color: white;
         }
 
@@ -376,7 +342,7 @@
             margin-top: 10px;
             display: inline-block;
             padding: 8px 16px;
-            background: #4CAF50;
+            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
             color: white;
             text-decoration: none;
             border-radius: 6px;
@@ -385,15 +351,15 @@
         }
 
         .stripe-link:hover {
-            background: #45a049;
+            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
         }
 
         .copy-btn {
             margin-top: 10px;
             margin-left: 10px;
             padding: 8px 16px;
-            background: #2196F3;
-            color: white;
+            background: #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
+            color: #333;
             border: none;
             border-radius: 6px;
             font-size: 14px;
@@ -402,7 +368,7 @@
         }
 
         .copy-btn:hover {
-            background: #1976D2;
+            background: #F9A825; /* Darker secondary - Replace with a darker shade of your secondary color (e.g., #218838) */
         }
 
         @media (max-width: 480px) {
@@ -437,6 +403,19 @@
                 margin-left: 0;
                 margin-top: 5px;
             }
+
+            .script-button {
+                font-size: 14px;
+                padding: 12px;
+            }
+
+            .script-description {
+                font-size: 11px;
+            }
+
+            .script-status {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -454,53 +433,39 @@
 
     <div class="container">
         <div class="header">
+            <img src="https://raw.githubusercontent.com/SandroZellweger/script-trigger-app/refs/heads/main/NOL_Noleggio-semplice_Visto_RGB_1500px.jpg" alt="Company Logo" class="logo">
+            <!-- Replace the src above with your logo URL, e.g., https://sandrozellweger.github.io/script-trigger-app/script-trigger-app
+/NOL_Noleggio-semplice_Visto_RGB_1500px.jpg -->
             <h1>🚀 Script Trigger</h1>
             <p>Trigger your Google Apps Scripts from anywhere</p>
-        </div>
-
-        <div class="url-section">
-            <label for="scriptUrl">Google Apps Script URL:</label>
-            <input 
-                type="url" 
-                id="scriptUrl" 
-                class="url-input"
-                value="https://script.google.com/macros/s/AKfycbwnRZPNwsZ6ogyoobm3lBCvfANmX6B8qlLOpTlmfuurJaxnrXQnyGVfQiTtfviHLqZupA/exec"
-                placeholder="Paste your Google Apps Script URL here"
-                aria-describedby="scriptUrlHelp"
-                required
-            >
-            <div id="scriptUrlHelp" class="script-description">
-                Enter the URL of your Google Apps Script web app (e.g., https://script.google.com/macros/s/.../exec)
-            </div>
-            <button class="test-url-btn" id="testUrlBtn" aria-label="Test Script URL">Test URL</button>
         </div>
 
         <div class="scripts-section">
             <h2>📋 Available Scripts</h2>
             
-            <div class="script-card" data-script="triggerDailyReport" role="button" tabindex="0">
-                <div class="script-name">Generate Daily KM Report</div>
-                <div class="script-description">Generates comprehensive daily report with vehicle data, revenue, and Stripe balance</div>
-                <div class="script-status">Ready to execute</div>
-            </div>
+            <button class="script-button" data-script="triggerDailyReport" role="button" tabindex="0">
+                Generate Daily KM Report
+                <span class="script-description">Generates comprehensive daily report with vehicle data, revenue, and Stripe balance</span>
+                <span class="script-status">Ready to execute</span>
+            </button>
 
-            <div class="script-card" data-script="triggerCustomDateReport" role="button" tabindex="0">
-                <div class="script-name">Generate Report for Custom Date</div>
-                <div class="script-description">Generates daily report for a specific date/time</div>
-                <div class="script-status">Requires date input</div>
-            </div>
+            <button class="script-button" data-script="triggerCustomDateReport" role="button" tabindex="0">
+                Generate Report for Custom Date
+                <span class="script-description">Generates daily report for a specific date/time</span>
+                <span class="script-status">Requires date input</span>
+            </button>
 
-            <div class="script-card" data-script="triggerHardcodedReport" role="button" tabindex="0">
-                <div class="script-name">Run Hardcoded Date Report</div>
-                <div class="script-description">Runs report for hardcoded date (2025-05-25)</div>
-                <div class="script-status">Ready to execute</div>
-            </div>
+            <button class="script-button" data-script="triggerHardcodedReport" role="button" tabindex="0">
+                Run Hardcoded Date Report
+                <span class="script-description">Runs report for hardcoded date (2025-05-25)</span>
+                <span class="script-status">Ready to execute</span>
+            </button>
 
-            <div class="script-card" data-script="triggerStripePayment" role="button" tabindex="0">
-                <div class="script-name">💳 Create Stripe Payment Link</div>
-                <div class="script-description">Creates a custom payment link with your specified amount and description</div>
-                <div class="script-status">Requires amount and description</div>
-            </div>
+            <button class="script-button" data-script="triggerStripePayment" role="button" tabindex="0">
+                💳 Create Stripe Payment Link
+                <span class="script-description">Creates a custom payment link with your specified amount and description</span>
+                <span class="script-status">Requires amount and description</span>
+            </button>
         </div>
 
         <div id="parameterInputs" class="parameter-inputs hidden">
@@ -527,8 +492,8 @@
 
     <script>
         // Configuration
-        const AUTH_TOKEN = "myAppToken2025"; // INSERT YOUR AUTH_TOKEN HERE (must match backend, e.g., myAppToken2025)
-        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // INSERT YOUR DEPLOYED /exec WEB APP URL HERE
+        const AUTH_TOKEN = "myAppToken2025"; // Matches backend
+        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnRZPNwsZ6ogyoobm3lBCvfANmX6B8qlLOpTlmfuurJaxnrXQnyGVfQiTtfviHLqZupA/exec"; // Hardcoded script URL
 
         const scripts = {
             triggerDailyReport: {
@@ -555,15 +520,12 @@
         let deferredPrompt = null;
 
         // DOM elements
-        const scriptCards = document.querySelectorAll(".script-card");
+        const scriptButtons = document.querySelectorAll(".script-button");
         const parameterInputs = document.getElementById("parameterInputs");
         const inputFields = document.getElementById("inputFields");
         const executeBtn = document.getElementById("executeBtn");
         const cancelBtn = document.getElementById("cancelBtn");
         const logsList = document.getElementById("logsList");
-        const scriptUrlInput = document.getElementById("scriptUrl");
-        const testUrlBtn = document.getElementById("testUrlBtn");
-        const clearLogsBtn = document.getElementById("clearLogsBtn");
         const loadingOverlay = document.getElementById("loadingOverlay");
         const pwaPrompt = document.getElementById("pwaPrompt");
         const installBtn = document.getElementById("installBtn");
@@ -573,21 +535,18 @@
         let logs = JSON.parse(localStorage.getItem("scriptTriggerLogs")) || [];
         renderLogs();
 
-        // Check HTTPS and /dev URL on load
+        // Check HTTPS on load (no /dev check since URL is hardcoded)
         if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
             addLog("⚠️ This app must be served over HTTPS for mobile compatibility. Host on a secure server (e.g., Netlify, GitHub Pages).", "error");
         }
-        if (scriptUrlInput.value.includes("/dev")) {
-            addLog("⚠️ Invalid URL: Use the /exec URL from a deployed web app, not /dev.", "error");
-        }
 
         // Event listeners
-        scriptCards.forEach((card) => {
-            card.addEventListener("click", () => selectScript(card.dataset.script));
-            card.addEventListener("touchstart", () => selectScript(card.dataset.script), { passive: true });
-            card.addEventListener("keydown", (e) => {
+        scriptButtons.forEach((button) => {
+            button.addEventListener("click", () => selectScript(button.dataset.script));
+            button.addEventListener("touchstart", () => selectScript(button.dataset.script), { passive: true });
+            button.addEventListener("keydown", (e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                    selectScript(card.dataset.script);
+                    selectScript(button.dataset.script);
                 }
             });
         });
@@ -595,8 +554,6 @@
         executeBtn.addEventListener("click", executeScript);
         executeBtn.addEventListener("touchstart", executeScript, { passive: true });
         cancelBtn.addEventListener("click", cancelSelection);
-        testUrlBtn.addEventListener("click", testScriptUrl);
-        testUrlBtn.addEventListener("touchstart", testScriptUrl, { passive: true });
         clearLogsBtn.addEventListener("click", clearLogs);
         installBtn.addEventListener("click", installPWA);
         cancelPromptBtn.addEventListener("click", () => pwaPrompt.classList.remove("active"));
@@ -610,13 +567,6 @@
             };
         }
 
-        // Validate URL format
-        function validateScriptUrl(url) {
-            const regex = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
-            return regex.test(url);
-        }
-
-        // Sanitize input to prevent XSS
         function sanitizeInput(input) {
             const div = document.createElement("div");
             div.textContent = input;
@@ -627,9 +577,9 @@
             selectedScript = scriptName;
             parameters = {};
 
-            scriptCards.forEach((card) => {
-                card.classList.toggle("selected", card.dataset.script === scriptName);
-                card.setAttribute("aria-selected", card.dataset.script === scriptName);
+            scriptButtons.forEach((button) => {
+                button.classList.toggle("selected", button.dataset.script === scriptName);
+                button.setAttribute("aria-selected", button.dataset.script === scriptName);
             });
 
             const script = scripts[scriptName];
@@ -695,45 +645,12 @@
         function cancelSelection() {
             selectedScript = null;
             parameters = {};
-            scriptCards.forEach((card) => {
-                card.classList.remove("selected");
-                card.setAttribute("aria-selected", "false");
+            scriptButtons.forEach((button) => {
+                button.classList.remove("selected");
+                button.setAttribute("aria-selected", "false");
             });
             parameterInputs.classList.add("hidden");
             parameterInputs.setAttribute("aria-hidden", "true");
-        }
-
-        async function testScriptUrl() {
-            const scriptUrl = scriptUrlInput.value.trim();
-            if (!scriptUrl) {
-                addLog("Error: Please enter a Google Apps Script URL", "error");
-                return;
-            }
-            if (!validateScriptUrl(scriptUrl)) {
-                addLog("Error: Invalid Google Apps Script URL format. Use /exec, not /dev.", "error");
-                return;
-            }
-
-            try {
-                loadingOverlay.classList.add("active");
-                const response = await fetch(`${scriptUrl}?function=ping&authToken=${AUTH_TOKEN}`);
-                const data = await response.json();
-                if (data.result) {
-                    addLog("✅ Script URL is valid", "success");
-                } else {
-                    addLog(`❌ Error: ${data.error}`, "error");
-                    if (data.error.includes("Unauthorized")) {
-                        addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
-                    } else if (data.error.includes("login")) {
-                        addLog("🔐 Sign-in page detected. Use a deployed /exec URL with 'Anyone' access.", "error");
-                    }
-                }
-            } catch (error) {
-                addLog(`❌ Network Error: ${error.message}`, "error");
-                addLog("ℹ️ Ensure the app is served over HTTPS and the URL uses /exec.", "error");
-            } finally {
-                loadingOverlay.classList.remove("active");
-            }
         }
 
         async function executeScript() {
@@ -744,15 +661,8 @@
             executeBtn.innerHTML = '<span class="loading"></span> Executing...';
             loadingOverlay.classList.add("active");
 
-            const scriptUrl = scriptUrlInput.value.trim();
-            if (!scriptUrl || !validateScriptUrl(scriptUrl)) {
-                addLog("Error: Invalid Google Apps Script URL format. Use /exec, not /dev.", "error");
-                resetExecuteButton();
-                return;
-            }
-
             try {
-                let requestUrl = `${scriptUrl}?function=${selectedScript}&authToken=${AUTH_TOKEN}`;
+                let requestUrl = `${DEFAULT_SCRIPT_URL}?function=${selectedScript}&authToken=${AUTH_TOKEN}`;
                 if (parameters.customDate) {
                     const dateValue = new Date(parameters.customDate);
                     requestUrl += `&customDateString=${encodeURIComponent(dateValue.toISOString())}`;
@@ -789,12 +699,12 @@
                     if (data.error.includes("Unauthorized")) {
                         addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
                     } else if (data.error.includes("login")) {
-                        addLog("🔐 Sign-in page detected. Use a deployed /exec URL with 'Anyone' access.", "error");
+                        addLog("🔐 Sign-in page detected. Ensure the script is deployed with 'Anyone' access.", "error");
                     }
                 }
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, "error");
-                addLog("ℹ️ Ensure the app is served over HTTPS and the URL uses /exec.", "error");
+                addLog("ℹ️ Ensure the app is served over HTTPS.", "error");
             } finally {
                 resetExecuteButton();
             }
@@ -817,7 +727,7 @@
             logItem.innerHTML = `
                 <div class="log-timestamp">[${timestamp}]</div>
                 <div>💳 <strong>Payment Link Generated</strong></div>
-                <div style="margin-top: 10px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
+                <div style="margin-top: 10px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
                     <div style="margin-bottom: 10px;">
                         <strong>Amount:</strong> CHF ${sanitizeInput(amount)}<br>
                         <strong>Description:</strong> ${sanitizeInput(description)}
@@ -895,8 +805,8 @@
         }
 
         function updateScriptStatus(scriptName, status) {
-            const card = document.querySelector(`[data-script="${scriptName}"]`);
-            const statusElement = card.querySelector(".script-status");
+            const button = document.querySelector(`[data-script="${scriptName}"]`);
+            const statusElement = button.querySelector(".script-status");
             statusElement.textContent = status;
         }
 
