@@ -500,54 +500,20 @@
 
                 addLog(`📡 Request URL: ${requestUrl}`, 'info');
 
-                // Fetch the payment link directly and display it
+                // Enhanced manual method with better UX
                 addLog(`🚀 Creating payment link...`, 'info');
                 
-                try {
-                    // Use a proxy service to fetch the content
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(requestUrl)}`;
-                    
-                    const response = await fetch(proxyUrl);
-                    const data = await response.json();
-                    
-                    if (data.contents) {
-                        const result = data.contents;
-                        addLog(`📋 Response: ${result}`, 'info');
-                        
-                        if (result.includes('SUCCESS: Payment link created')) {
-                            // Extract the Stripe payment URL
-                            const urlMatch = result.match(/https:\/\/checkout\.stripe\.com\/[^\s\n]+/);
-                            if (urlMatch) {
-                                const paymentUrl = urlMatch[0];
-                                addLog(`✅ Payment link created successfully!`, 'success');
-                                addDirectPaymentLink(paymentUrl, parameters.amount, parameters.description);
-                                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                                return;
-                            }
-                        } else if (result.includes('ERROR')) {
-                            addLog(`❌ ${result}`, 'error');
-                            return;
-                        }
-                    }
-                    
-                    // If proxy didn't work, fall back to manual method
-                    throw new Error('Could not fetch payment link automatically');
-                    
-                } catch (error) {
-                    addLog(`⚠️ Auto-fetch failed, using manual method`, 'info');
-                    
-                    // Fallback to manual method
-                    if (selectedScript === 'triggerStripePayment') {
-                        addLog(`✅ Payment link request created!`, 'success');
-                        addPaymentRequestToLog(requestUrl, parameters.amount, parameters.description);
-                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                        return;
-                    }
-                    
-                    // For other scripts, just show success
-                    addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
+                if (selectedScript === 'triggerStripePayment') {
+                    addLog(`✅ Payment link generator ready!`, 'success');
+                    addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
                     updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                    return;
                 }
+                
+                // For other scripts, just show success
+                addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
+                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
 
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, 'error');
@@ -600,6 +566,130 @@
                 </div>
                 <div style="margin-top: 8px; font-size: 12px; color: #666;">
                     Click "Get Payment Link" to open in new tab and copy the Stripe URL from there.
+                </div>
+            `;
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+        }
+
+        function addSmartPaymentInterface(requestUrl, amount, description) {
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item success';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>💳 <strong>Payment Link Generator</strong></div>
+                <div style="margin-top: 15px; padding: 20px; background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); border-radius: 12px; border: 2px solid #4CAF50;">
+                    
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">CHF ${amount}</div>
+                        <div style="font-size: 16px; color: #555; margin-top: 5px;">${description}</div>
+                    </div>
+                    
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 10px;">📋 Quick Copy - Generator URL:</div>
+                        <div style="
+                            background: #f8f9fa;
+                            padding: 10px;
+                            border-radius: 6px;
+                            font-family: monospace;
+                            font-size: 11px;
+                            word-break: break-all;
+                            cursor: pointer;
+                            border: 1px solid #dee2e6;
+                        " onclick="
+                            navigator.clipboard.writeText('${requestUrl}').then(() => {
+                                this.style.background = '#d1ecf1';
+                                this.style.color = '#0c5460';
+                                const original = this.innerHTML;
+                                this.innerHTML = '✅ COPIED! Paste this URL in any browser to get your payment link';
+                                setTimeout(() => {
+                                    this.style.background = '#f8f9fa';
+                                    this.style.color = 'inherit';
+                                    this.innerHTML = original;
+                                }, 3000);
+                            });
+                        ">${requestUrl}</div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <a href="${requestUrl}" target="_blank" style="
+                            display: inline-block;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 15px 30px;
+                            text-decoration: none;
+                            border-radius: 10px;
+                            font-weight: 700;
+                            font-size: 18px;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                            transition: transform 0.2s ease;
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            🚀 Generate Payment Link
+                        </a>
+                    </div>
+                    
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 8px; font-size: 14px;">
+                        <div style="font-weight: 600; color: #856404; margin-bottom: 8px;">💡 Instructions:</div>
+                        <ol style="margin: 0; padding-left: 20px; color: #856404;">
+                            <li>Click "🚀 Generate Payment Link" (opens new tab)</li>
+                            <li>Copy the <strong>https://checkout.stripe.com/...</strong> URL</li>
+                            <li>Share that Stripe URL with your customer</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="pasteArea_${timestamp.replace(/:/g, '')}" style="
+                        margin-top: 15px;
+                        padding: 15px;
+                        background: white;
+                        border: 2px dashed #ccc;
+                        border-radius: 8px;
+                        text-align: center;
+                        display: none;
+                    ">
+                        <div style="font-weight: 600; margin-bottom: 10px;">📎 Paste your Stripe link here:</div>
+                        <input type="text" placeholder="Paste the https://checkout.stripe.com/... link here" style="
+                            width: 100%;
+                            padding: 10px;
+                            border: 1px solid #ddd;
+                            border-radius: 6px;
+                            font-size: 14px;
+                        " onpaste="
+                            setTimeout(() => {
+                                const url = this.value;
+                                if (url.includes('checkout.stripe.com')) {
+                                    const container = this.parentElement.parentElement;
+                                    container.innerHTML = container.innerHTML + 
+                                    '<div style=\\'margin-top: 15px; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px;\\'>' +
+                                    '<div style=\\'font-weight: 600; color: #155724; margin-bottom: 10px;\\'>✅ Payment Link Ready!</div>' +
+                                    '<div style=\\'font-family: monospace; font-size: 12px; word-break: break-all; background: white; padding: 8px; border-radius: 4px; cursor: pointer;\\' onclick=\\'navigator.clipboard.writeText(\\'' + url + '\\'); alert(\\'Copied to clipboard!\\');\\'>\\' + url + \\'</div>' +
+                                    '</div>';
+                                }
+                            }, 100);
+                        ">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button onclick="
+                            const pasteArea = document.getElementById('pasteArea_${timestamp.replace(/:/g, '')}');
+                            if (pasteArea.style.display === 'none') {
+                                pasteArea.style.display = 'block';
+                                this.innerHTML = '🔼 Hide Paste Area';
+                            } else {
+                                pasteArea.style.display = 'none';
+                                this.innerHTML = '📋 Show Paste Area';
+                            }
+                        " style="
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 12px;
+                        ">📋 Show Paste Area</button>
+                    </div>
                 </div>
             `;
 
