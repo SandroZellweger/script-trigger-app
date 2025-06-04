@@ -372,21 +372,6 @@
             color: white;
         }
 
-        .retry-btn {
-            margin-top: 10px;
-            padding: 8px 16px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .retry-btn:hover {
-            background: #1976D2;
-        }
-
         .stripe-link {
             margin-top: 10px;
             display: inline-block;
@@ -401,6 +386,23 @@
 
         .stripe-link:hover {
             background: #45a049;
+        }
+
+        .copy-btn {
+            margin-top: 10px;
+            margin-left: 10px;
+            padding: 8px 16px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .copy-btn:hover {
+            background: #1976D2;
         }
 
         @media (max-width: 480px) {
@@ -429,6 +431,11 @@
 
             .log-item {
                 font-size: 13px;
+            }
+
+            .copy-btn {
+                margin-left: 0;
+                margin-top: 5px;
             }
         }
     </style>
@@ -568,7 +575,7 @@
 
         // Check HTTPS and /dev URL on load
         if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
-            addLog("⚠️ This app must be served over HTTPS for mobile compatibility. Host on a secure server (e.g., Netlify).", "error");
+            addLog("⚠️ This app must be served over HTTPS for mobile compatibility. Host on a secure server (e.g., Netlify, GitHub Pages).", "error");
         }
         if (scriptUrlInput.value.includes("/dev")) {
             addLog("⚠️ Invalid URL: Use the /exec URL from a deployed web app, not /dev.", "error");
@@ -764,8 +771,15 @@
                     if (selectedScript === "triggerStripePayment") {
                         const amount = parameters.amount || "0.00";
                         const description = parameters.description || "Payment";
-                        addLog(`✅ Stripe Payment Link Generated`, "success");
-                        addStripeLink(amount, description, data.result);
+                        // Extract the URL from the result (remove "Payment link created: ")
+                        const paymentUrlMatch = data.result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
+                        if (paymentUrlMatch) {
+                            const paymentUrl = paymentUrlMatch[0];
+                            addLog(`✅ Stripe Payment Link Generated`, "success");
+                            addStripeLink(amount, description, paymentUrl);
+                        } else {
+                            addLog("❌ Error: Could not extract Stripe URL from response.", "error");
+                        }
                     } else {
                         addLog(`✅ ${scripts[selectedScript].name}: ${data.result}`, "success");
                         updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
@@ -796,8 +810,10 @@
 
         function addStripeLink(amount, description, paymentUrl) {
             const timestamp = new Date().toLocaleTimeString();
+            const logId = `log_${timestamp.replace(/:/g, "")}`;
             const logItem = document.createElement("div");
             logItem.className = "log-item success";
+            logItem.id = logId;
             logItem.innerHTML = `
                 <div class="log-timestamp">[${timestamp}]</div>
                 <div>💳 <strong>Payment Link Generated</strong></div>
@@ -809,15 +825,22 @@
                     <div style="font-family: monospace; font-size: 12px; word-break: break-all; margin-bottom: 10px;">
                         ${sanitizeInput(paymentUrl)}
                     </div>
-                    <a href="${sanitizeInput(paymentUrl)}" target="_blank" class="stripe-link">Open Payment Page</a>
+                    <a href="${paymentUrl}" target="_blank" class="stripe-link">Open Payment Page</a>
+                    <button class="copy-btn" data-url="${paymentUrl}">Copy Link</button>
                 </div>
             `;
             logsList.insertBefore(logItem, logsList.firstChild);
             saveLogs();
 
-            // Attempt to copy the URL to clipboard
-            navigator.clipboard.writeText(paymentUrl).catch(() => {
-                addLog("⚠️ Clipboard access denied. Manually copy the URL.", "error");
+            // Add event listener for copy button
+            const copyBtn = logItem.querySelector(".copy-btn");
+            copyBtn.addEventListener("click", () => {
+                const url = copyBtn.getAttribute("data-url");
+                navigator.clipboard.writeText(url).then(() => {
+                    addLog("✅ URL copied to clipboard", "success");
+                }).catch(() => {
+                    addLog("⚠️ Clipboard access denied. Select and copy the URL manually.", "error");
+                });
             });
         }
 
