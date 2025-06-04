@@ -304,8 +304,8 @@
             <p>Trigger your Google Apps Scripts from anywhere</p>
             <div class="script-card" data-script="triggerStripePayment">
                 <div class="script-name">💳 Create Stripe Payment Link</div>
-                <div class="script-description">Creates a CHF 100 payment link for "Noleggio Furgone"</div>
-                <div class="script-status">Ready to execute</div>
+                <div class="script-description">Creates a custom payment link with your specified amount and description</div>
+                <div class="script-status">Requires amount and description</div>
             </div>
         </div>
 
@@ -379,7 +379,7 @@
             },
             triggerStripePayment: {
                 name: 'Create Stripe Payment Link',
-                parameters: []
+                parameters: ['amount', 'description']
             }
         };
 
@@ -431,11 +431,20 @@
                     inputGroup.className = 'input-group';
                     
                     const label = document.createElement('label');
-                    label.textContent = param === 'customDate' ? 'Date/Time (YYYY-MM-DD HH:MM):' : `${param}:`;
+                    label.textContent = param === 'customDate' ? 'Date/Time (YYYY-MM-DD HH:MM):' :
+                                       param === 'amount' ? 'Amount (CHF):' :
+                                       param === 'description' ? 'Description/Reason:' :
+                                       `${param}:`;
                     
                     const input = document.createElement('input');
-                    input.type = param === 'customDate' ? 'datetime-local' : 'text';
-                    input.placeholder = param === 'customDate' ? 'Select date and time' : `Enter ${param}`;
+                    input.type = param === 'customDate' ? 'datetime-local' : 
+                                param === 'amount' ? 'number' : 'text';
+                    input.step = param === 'amount' ? '0.01' : undefined;
+                    input.min = param === 'amount' ? '0.01' : undefined;
+                    input.placeholder = param === 'customDate' ? 'Select date and time' :
+                                       param === 'amount' ? 'Enter amount in CHF (e.g., 150.00)' :
+                                       param === 'description' ? 'Enter payment description (e.g., Noleggio Furgone - 3 giorni)' :
+                                       `Enter ${param}`;
                     input.addEventListener('input', (e) => {
                         parameters[param] = e.target.value;
                     });
@@ -480,6 +489,12 @@
                 if (parameters.customDate) {
                     const dateValue = new Date(parameters.customDate);
                     requestUrl += `&customDateString=${encodeURIComponent(dateValue.toISOString())}`;
+                }
+                if (parameters.amount) {
+                    requestUrl += `&amount=${encodeURIComponent(parameters.amount)}`;
+                }
+                if (parameters.description) {
+                    requestUrl += `&description=${encodeURIComponent(parameters.description)}`;
                 }
 
                 // Make request
@@ -588,19 +603,4 @@
             statusElement.textContent = status;
         }
 
-        // Add to home screen prompt
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // Show install prompt after a short delay
-            setTimeout(() => {
-                if (confirm('Add this app to your home screen for quick access?')) {
-                    deferredPrompt.prompt();
-                }
-            }, 3000);
-        });
-    </script>
-</body>
-</html>
+     
