@@ -302,11 +302,6 @@
         <div class="header">
             <h1>🚀 Script Trigger</h1>
             <p>Trigger your Google Apps Scripts from anywhere</p>
-            <div class="script-card" data-script="triggerStripePayment">
-                <div class="script-name">💳 Create Stripe Payment Link</div>
-                <div class="script-description">Creates a custom payment link with your specified amount and description</div>
-                <div class="script-status">Requires amount and description</div>
-            </div>
         </div>
 
         <div class="url-section">
@@ -315,7 +310,7 @@
                 type="url" 
                 id="scriptUrl" 
                 class="url-input"
-                value="https://script.google.com/macros/s/AKfycbxpJ17NZo5hSj-lDOy8rBxL_IoGQm_sxwIpd3iSG91vYCOtr2eg1TLjYXDaSvZmGO4bsA/exec"
+                value="https://script.google.com/macros/s/AKfycbwtplr7yESvcpsJkEUO9WmxFNDGLE-ebX8RSOsjZdczPmhXAPF-07GPXZ23AU3Zr6R3zw/exec"
                 placeholder="Paste your Google Apps Script URL here"
             >
         </div>
@@ -339,6 +334,12 @@
                 <div class="script-name">Run Hardcoded Date Report</div>
                 <div class="script-description">Runs report for hardcoded date (2025-05-25)</div>
                 <div class="script-status">Ready to execute</div>
+            </div>
+
+            <div class="script-card" data-script="triggerStripePayment">
+                <div class="script-name">💳 Create Stripe Payment Link</div>
+                <div class="script-description">Creates a custom payment link with your specified amount and description</div>
+                <div class="script-status">Requires amount and description</div>
             </div>
         </div>
 
@@ -596,4 +597,38 @@
 
             // Remove "no logs" message if it exists
             const noLogs = logsList.querySelector('.no-logs');
-            i
+            if (noLogs) {
+                noLogs.remove();
+            }
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+
+            // Keep only last 10 logs
+            const logs = logsList.querySelectorAll('.log-item');
+            if (logs.length > 10) {
+                logs[logs.length - 1].remove();
+            }
+        }
+
+        function updateScriptStatus(scriptName, status) {
+            const card = document.querySelector(`[data-script="${scriptName}"]`);
+            const statusElement = card.querySelector('.script-status');
+            statusElement.textContent = status;
+        }
+
+        // Add to home screen prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install prompt after a short delay
+            setTimeout(() => {
+                if (confirm('Add this app to your home screen for quick access?')) {
+                    deferredPrompt.prompt();
+                }
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
