@@ -497,15 +497,22 @@
                     requestUrl += `&description=${encodeURIComponent(parameters.description)}`;
                 }
 
+                addLog(`📡 Request URL: ${requestUrl}`, 'info');
+
                 // Make request
                 const response = await fetch(requestUrl, {
                     method: 'GET',
                     headers: {
                         'Accept': 'text/plain',
+                        'Cache-Control': 'no-cache',
                     },
+                    mode: 'cors'
                 });
 
+                addLog(`📊 Response status: ${response.status} ${response.statusText}`, 'info');
+
                 const result = await response.text();
+                addLog(`📋 Response: ${result}`, 'info');
 
                 if (response.ok) {
                     if (result.includes('SUCCESS')) {
@@ -531,7 +538,12 @@
                 }
 
             } catch (error) {
-                addLog(`❌ Error: ${error.message}`, 'error');
+                addLog(`❌ Network Error: ${error.message}`, 'error');
+                
+                // Additional troubleshooting info
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    addLog(`🔧 This might be a CORS or network issue. Try testing the URL directly in your browser.`, 'error');
+                }
             } finally {
                 resetExecuteButton();
                 cancelSelection();
@@ -584,23 +596,4 @@
 
             // Remove "no logs" message if it exists
             const noLogs = logsList.querySelector('.no-logs');
-            if (noLogs) {
-                noLogs.remove();
-            }
-
-            logsList.insertBefore(logItem, logsList.firstChild);
-
-            // Keep only last 10 logs
-            const logs = logsList.querySelectorAll('.log-item');
-            if (logs.length > 10) {
-                logs[logs.length - 1].remove();
-            }
-        }
-
-        function updateScriptStatus(scriptName, status) {
-            const card = document.querySelector(`[data-script="${scriptName}"]`);
-            const statusElement = card.querySelector('.script-status');
-            statusElement.textContent = status;
-        }
-
-     
+            i
