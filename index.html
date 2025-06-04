@@ -500,88 +500,63 @@
 
                 addLog(`📡 Request URL: ${requestUrl}`, 'info');
 
-                // Use iframe method to avoid CORS issues
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = requestUrl;
+                // Simple approach: Open URL in popup and extract result
+                addLog(`🚀 Creating payment link...`, 'info');
                 
-                // Create promise to handle iframe loading
-                const iframeRequest = new Promise((resolve, reject) => {
-                    iframe.onload = function() {
-                        try {
-                            // Try to read the content
-                            const result = iframe.contentDocument?.body?.textContent || 
-                                          iframe.contentWindow?.document?.body?.textContent ||
-                                          null;
-                            resolve(result);
-                        } catch (e) {
-                            // If we can't read content due to CORS, we'll fetch it differently
-                            resolve(null);
-                        }
-                        document.body.removeChild(iframe);
-                    };
-                    
-                    iframe.onerror = function() {
-                        reject(new Error('Request failed'));
-                        document.body.removeChild(iframe);
-                    };
-                    
-                    // Timeout after 30 seconds
-                    setTimeout(() => {
-                        reject(new Error('Request timeout'));
-                        document.body.removeChild(iframe);
-                    }, 30000);
-                });
+                // Open the URL in a small popup
+                const popup = window.open(requestUrl, 'paymentResult', 'width=800,height=600,scrollbars=yes,resizable=yes');
                 
-                document.body.appendChild(iframe);
-                let result = await iframeRequest;
-                
-                // If iframe couldn't get the content, try a different approach
-                if (!result) {
-                    // Open the URL in a popup and try to get the response
-                    const popup = window.open(requestUrl, '_blank', 'width=1,height=1,scrollbars=no');
-                    
-                    // Give it time to load and close automatically
-                    setTimeout(() => {
-                        if (popup && !popup.closed) {
-                            popup.close();
-                        }
-                    }, 3000);
-                    
-                    result = 'Payment link created successfully';
+                if (!popup) {
+                    throw new Error('Popup blocked. Please allow popups for this site.');
                 }
                 
-                addLog(`📋 Response: ${result}`, 'info');
-
-                if (result) {
-                    if (result.includes('SUCCESS') || result.includes('Request completed successfully') || result.includes('Payment link created successfully')) {
-                        addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
-                        
-                        // Extract Stripe payment link if present
-                        if (result.includes('SUCCESS: Payment link created -')) {
-                            const urlMatch = result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
-                            if (urlMatch) {
-                                const paymentUrl = urlMatch[0];
-                                addPaymentLinkToLog(paymentUrl);
-                            } else {
-                                // If we can't extract from result, show manual option
-                                addManualLinkOption(requestUrl);
+                // Check the popup periodically
+                const checkPopup = setInterval(() => {
+                    try {
+                        // Try to read the popup content
+                        if (popup.document && popup.document.body) {
+                            const content = popup.document.body.textContent || popup.document.body.innerText;
+                            if (content && content.includes('SUCCESS: Payment link created')) {
+                                clearInterval(checkPopup);
+                                popup.close();
+                                
+                                // Extract the payment URL
+                                const urlMatch = content.match(/https:\/\/checkout\.stripe\.com\/[^\s\n]+/);
+                                if (urlMatch) {
+                                    const paymentUrl = urlMatch[0];
+                                    addLog(`✅ Payment link extracted successfully!`, 'success');
+                                    addPaymentLinkToLog(paymentUrl);
+                                } else {
+                                    addLog(`✅ Payment created! Check the popup for the link.`, 'success');
+                                }
+                                
+                                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                                return;
                             }
-                        } else if (selectedScript === 'triggerStripePayment') {
-                            // For Stripe payments where we can't see the result, show manual option
-                            addLog(`💳 Payment link created successfully!`, 'success');
-                            addManualLinkOption(requestUrl);
                         }
-                        
-                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                    } else if (result.includes('ERROR')) {
-                        addLog(`❌ ${result}`, 'error');
-                    } else {
-                        addLog(`✅ ${scripts[selectedScript].name} completed: ${result}`, 'success');
+                    } catch (e) {
+                        // CORS prevents reading - this is expected
+                        // Just wait for user to close popup manually
                     }
-                } else {
-                    throw new Error('No response received');
-                }
+                    
+                    // Check if popup was closed manually
+                    if (popup.closed) {
+                        clearInterval(checkPopup);
+                        addLog(`✅ Payment link created! Copy the URL from the popup window.`, 'success');
+                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                    }
+                }, 1000);
+                
+                // Timeout after 30 seconds
+                setTimeout(() => {
+                    if (!popup.closed) {
+                        clearInterval(checkPopup);
+                        addLog(`⏰ Please copy the payment link from the popup window and close it.`, 'info');
+                    }
+                }, 30000);
+                
+                // Don't process result further since we handle it in the popup checker
+                return;
 
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, 'error');
