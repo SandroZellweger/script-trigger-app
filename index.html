@@ -302,6 +302,11 @@
         <div class="header">
             <h1>🚀 Script Trigger</h1>
             <p>Trigger your Google Apps Scripts from anywhere</p>
+            <div class="script-card" data-script="triggerStripePayment">
+                <div class="script-name">💳 Create Stripe Payment Link</div>
+                <div class="script-description">Creates a CHF 100 payment link for "Noleggio Furgone"</div>
+                <div class="script-status">Ready to execute</div>
+            </div>
         </div>
 
         <div class="url-section">
@@ -370,6 +375,10 @@
             },
             triggerHardcodedReport: {
                 name: 'Run Hardcoded Date Report',
+                parameters: []
+            },
+            triggerStripePayment: {
+                name: 'Create Stripe Payment Link',
                 parameters: []
             }
         };
@@ -486,6 +495,16 @@
                 if (response.ok) {
                     if (result.includes('SUCCESS')) {
                         addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
+                        
+                        // Special handling for Stripe payment links
+                        if (result.includes('Payment link created')) {
+                            const urlMatch = result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
+                            if (urlMatch) {
+                                const paymentUrl = urlMatch[0];
+                                addPaymentLinkToLog(paymentUrl);
+                            }
+                        }
+                        
                         updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
                     } else if (result.includes('ERROR')) {
                         addLog(`❌ ${result}`, 'error');
@@ -508,6 +527,34 @@
             isLoading = false;
             executeBtn.disabled = false;
             executeBtn.innerHTML = 'Execute Script';
+        }
+
+        function addPaymentLinkToLog(paymentUrl) {
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item success';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>💳 <strong>Payment Link Created!</strong></div>
+                <div style="margin-top: 10px;">
+                    <a href="${paymentUrl}" target="_blank" style="
+                        display: inline-block;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 10px 20px;
+                        text-decoration: none;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    ">Open Payment Page</a>
+                </div>
+                <div style="margin-top: 8px; font-size: 12px; color: #666; word-break: break-all;">
+                    ${paymentUrl}
+                </div>
+            `;
+
+            logsList.insertBefore(logItem, logsList.firstChild);
         }
 
         function addLog(message, type = 'info') {
