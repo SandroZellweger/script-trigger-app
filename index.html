@@ -20,6 +20,8 @@
             color: #333;
             line-height: 1.6;
             overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .container {
@@ -93,6 +95,7 @@
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .test-url-btn:hover {
@@ -115,6 +118,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+            touch-action: manipulation;
         }
 
         .script-card:hover {
@@ -180,6 +184,7 @@
             border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.3s ease;
+            touch-action: manipulation;
         }
 
         .input-group input:focus {
@@ -319,6 +324,7 @@
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .clear-logs-btn:hover {
@@ -353,6 +359,7 @@
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .pwa-install-btn {
@@ -373,10 +380,27 @@
             border: none;
             border-radius: 6px;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .retry-btn:hover {
             background: #1976D2;
+        }
+
+        .manual-link {
+            margin-top: 10px;
+            display: inline-block;
+            padding: 8px 16px;
+            background: #ff9800;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            touch-action: manipulation;
+        }
+
+        .manual-link:hover {
+            background: #f57c00;
         }
 
         @media (max-width: 480px) {
@@ -396,6 +420,15 @@
                 margin-bottom: 10px;
                 padding: 10px;
                 font-size: 12px;
+            }
+
+            .input-group input {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .log-item {
+                font-size: 13px;
             }
         }
     </style>
@@ -487,8 +520,8 @@
 
     <script>
         // Configuration
-        const AUTH_TOKEN = "mySecret1234"; // INSERT YOUR AUTH_TOKEN HERE (must match backend, e.g., myAppToken2025)
-        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // INSERT YOUR DEPLOYED WEB APP URL HERE
+        const AUTH_TOKEN = "myAppToken2025"; // INSERT YOUR AUTH_TOKEN HERE (must match backend, e.g., myAppToken2025)
+        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // INSERT YOUR DEPLOYED /exec WEB APP URL HERE
 
         const scripts = {
             triggerDailyReport: {
@@ -533,9 +566,18 @@
         let logs = JSON.parse(localStorage.getItem("scriptTriggerLogs")) || [];
         renderLogs();
 
+        // Check HTTPS and /dev URL on load
+        if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+            addLog("⚠️ This app must be served over HTTPS for mobile compatibility. Host on a secure server (e.g., Netlify).", "error");
+        }
+        if (scriptUrlInput.value.includes("/dev")) {
+            addLog("⚠️ Invalid URL: Use the /exec URL from a deployed web app, not /dev.", "error");
+        }
+
         // Event listeners
         scriptCards.forEach((card) => {
             card.addEventListener("click", () => selectScript(card.dataset.script));
+            card.addEventListener("touchstart", () => selectScript(card.dataset.script), { passive: true });
             card.addEventListener("keydown", (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                     selectScript(card.dataset.script);
@@ -544,8 +586,10 @@
         });
 
         executeBtn.addEventListener("click", executeScript);
+        executeBtn.addEventListener("touchstart", executeScript, { passive: true });
         cancelBtn.addEventListener("click", cancelSelection);
         testUrlBtn.addEventListener("click", testScriptUrl);
+        testUrlBtn.addEventListener("touchstart", testScriptUrl, { passive: true });
         clearLogsBtn.addEventListener("click", clearLogs);
         installBtn.addEventListener("click", installPWA);
         cancelPromptBtn.addEventListener("click", () => pwaPrompt.classList.remove("active"));
@@ -659,7 +703,7 @@
                 return;
             }
             if (!validateScriptUrl(scriptUrl)) {
-                addLog("Error: Invalid Google Apps Script URL format", "error");
+                addLog("Error: Invalid Google Apps Script URL format. Use /exec, not /dev.", "error");
                 return;
             }
 
@@ -673,10 +717,13 @@
                     addLog(`❌ Error: ${data.error}`, "error");
                     if (data.error.includes("Unauthorized")) {
                         addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
+                    } else if (data.error.includes("login")) {
+                        addLog("🔐 Sign-in page detected. Use a deployed /exec URL with 'Anyone' access.", "error");
                     }
                 }
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, "error");
+                addLog("ℹ️ Check if the app is served over HTTPS, pop-ups are allowed, and the URL uses /exec.", "error");
             } finally {
                 loadingOverlay.classList.remove("active");
             }
@@ -692,7 +739,7 @@
 
             const scriptUrl = scriptUrlInput.value.trim();
             if (!scriptUrl || !validateScriptUrl(scriptUrl)) {
-                addLog("Error: Please enter a valid Google Apps Script URL", "error");
+                addLog("Error: Invalid Google Apps Script URL format. Use /exec, not /dev.", "error");
                 resetExecuteButton();
                 return;
             }
@@ -714,8 +761,18 @@
                     const amount = parameters.amount || "0.00";
                     const description = parameters.description || "Payment";
                     addLog(`💳 Opening payment link generator...`, "info");
-                    window.open(requestUrl, "_blank");
-                    addPasteArea(amount, description, requestUrl);
+                    try {
+                        const newWindow = window.open(requestUrl, "_blank");
+                        if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+                            addLog("⚠️ Pop-up blocked. Use the manual link below or allow pop-ups in your browser settings.", "error");
+                            addPasteArea(amount, description, requestUrl, true);
+                        } else {
+                            addPasteArea(amount, description, requestUrl);
+                        }
+                    } catch (error) {
+                        addLog(`❌ Pop-up error: ${error.message}. Use the manual link below.`, "error");
+                        addPasteArea(amount, description, requestUrl, true);
+                    }
                 } else {
                     const response = await fetch(requestUrl);
                     const data = await response.json();
@@ -726,11 +783,14 @@
                         addLog(`❌ Error: ${data.error}`, "error");
                         if (data.error.includes("Unauthorized")) {
                             addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
+                        } else if (data.error.includes("login")) {
+                            addLog("🔐 Sign-in page detected. Use a deployed /exec URL with 'Anyone' access.", "error");
                         }
                     }
                 }
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, "error");
+                addLog("ℹ️ Check if the app is served over HTTPS, pop-ups are allowed, and the URL uses /exec.", "error");
             } finally {
                 resetExecuteButton();
             }
@@ -744,7 +804,7 @@
             cancelSelection();
         }
 
-        function addPasteArea(amount, description, requestUrl) {
+        function addPasteArea(amount, description, requestUrl, popUpBlocked = false) {
             const timestamp = new Date().toLocaleTimeString();
             const pasteId = `pasteArea_${timestamp.replace(/:/g, "")}`;
             const logItem = document.createElement("div");
@@ -759,7 +819,7 @@
                     </div>
                     <div style="margin-bottom: 10px; font-size: 14px; color: #333;">
                         <strong>Instructions:</strong><br>
-                        1. Check the new tab for a JSON response like <code>{"result":"Payment link created: https://checkout.stripe.com/..."}</code><br>
+                        1. ${popUpBlocked ? 'Click the "Manual Link" below' : 'Check the new tab'} for a JSON response like <code>{"result":"Payment link created: https://checkout.stripe.com/..."}</code><br>
                         2. Copy the URL starting with <code>https://checkout.stripe.com/</code><br>
                         3. Paste it below within 30 seconds
                     </div>
@@ -772,6 +832,7 @@
                             margin-top: 10px; padding: 8px 16px; background: #2196F3; color: white;
                             border: none; border-radius: 6px; cursor: pointer;
                         ">Retry (Open Link Again)</button>
+                        ${popUpBlocked ? `<a href="${requestUrl}" target="_blank" class="manual-link">Manual Link (Open in New Tab)</a>` : ''}
                     </div>
                 </div>
             `;
@@ -785,7 +846,14 @@
             // Retry button
             retryBtn.addEventListener("click", () => {
                 addLog("🔄 Retrying payment link generation...", "info");
-                window.open(requestUrl, "_blank");
+                try {
+                    const newWindow = window.open(requestUrl, "_blank");
+                    if (!newWindow) {
+                        addLog("⚠️ Pop-up blocked. Use the manual link or allow pop-ups.", "error");
+                    }
+                } catch (error) {
+                    addLog(`❌ Retry error: ${error.message}. Use the manual link.`, "error");
+                }
             });
 
             // Paste handler
@@ -794,7 +862,9 @@
                     try {
                         const url = sanitizeInput(input.value);
                         if (url.includes("checkout.stripe.com")) {
-                            navigator.clipboard.writeText(url);
+                            navigator.clipboard.writeText(url).catch(() => {
+                                addLog("⚠️ Clipboard access denied. Manually copy the URL.", "error");
+                            });
                             pasteArea.innerHTML = `
                                 <div style="padding: 10px; background: #d4edda; border-radius: 8px;">
                                     <div style="font-weight: 600; color: #155724; margin-bottom: 10px;">✅ Payment Link Copied!</div>
@@ -814,6 +884,7 @@
                     }
                 }, 100);
             });
+            input.addEventListener("touchstart", () => input.focus(), { passive: true });
 
             // Timeout warning
             setTimeout(() => {
