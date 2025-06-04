@@ -500,19 +500,80 @@
 
                 addLog(`📡 Request URL: ${requestUrl}`, 'info');
 
-                // Enhanced manual method with better UX
+                // Use JSONP to get the payment link directly
                 addLog(`🚀 Creating payment link...`, 'info');
                 
                 if (selectedScript === 'triggerStripePayment') {
-                    addLog(`✅ Payment link generator ready!`, 'success');
-                    addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
-                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                    return;
+                    try {
+                        // Create a unique callback name
+                        const callbackName = 'paymentCallback_' + Date.now();
+                        
+                        // Create the JSONP request
+                        const script = document.createElement('script');
+                        const jsonpUrl = requestUrl + '&callback=' + callbackName;
+                        
+                        // Set up the callback function
+                        window[callbackName] = function(response) {
+                            // Clean up
+                            document.head.removeChild(script);
+                            delete window[callbackName];
+                            
+                            if (response.error) {
+                                addLog(`❌ Error: ${response.error}`, 'error');
+                                return;
+                            }
+                            
+                            if (response.result && response.result.includes('SUCCESS: Payment link created')) {
+                                // Extract the Stripe URL
+                                const urlMatch = response.result.match(/https:\/\/checkout\.stripe\.com\/[^\s\n\r"'<>]+/);
+                                if (urlMatch) {
+                                    const paymentUrl = urlMatch[0];
+                                    addLog(`✅ Payment link created successfully!`, 'success');
+                                    addDirectPaymentLink(paymentUrl, parameters.amount, parameters.description);
+                                    updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                                    return;
+                                }
+                            }
+                            
+                            // If we can't extract the URL, show manual method
+                            addLog(`✅ Payment created! Using manual method.`, 'success');
+                            addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                        };
+                        
+                        // Handle script load errors
+                        script.onerror = function() {
+                            document.head.removeChild(script);
+                            delete window[callbackName];
+                            addLog(`⚠️ JSONP failed, using manual method`, 'info');
+                            addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                        };
+                        
+                        // Set timeout
+                        setTimeout(() => {
+                            if (window[callbackName]) {
+                                document.head.removeChild(script);
+                                delete window[callbackName];
+                                addLog(`⚠️ Request timeout, using manual method`, 'info');
+                                addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                            }
+                        }, 15000);
+                        
+                        script.src = jsonpUrl;
+                        document.head.appendChild(script);
+                        
+                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                        return;
+                        
+                    } catch (error) {
+                        addLog(`⚠️ JSONP setup failed: ${error.message}`, 'info');
+                        addSmartPaymentInterface(requestUrl, parameters.amount, parameters.description);
+                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
+                        return;
+                    }
                 }
                 
                 // For other scripts, just show success
                 addLog(`✅ ${scripts[selectedScript].name} executed successfully`, 'success');
-                updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
                 updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
 
             } catch (error) {
