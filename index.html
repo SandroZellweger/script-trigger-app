@@ -387,11 +387,11 @@
             background: #1976D2;
         }
 
-        .manual-link {
+        .stripe-link {
             margin-top: 10px;
             display: inline-block;
             padding: 8px 16px;
-            background: #ff9800;
+            background: #4CAF50;
             color: white;
             text-decoration: none;
             border-radius: 6px;
@@ -399,8 +399,8 @@
             touch-action: manipulation;
         }
 
-        .manual-link:hover {
-            background: #f57c00;
+        .stripe-link:hover {
+            background: #45a049;
         }
 
         @media (max-width: 480px) {
@@ -723,7 +723,7 @@
                 }
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, "error");
-                addLog("ℹ️ Check if the app is served over HTTPS, pop-ups are allowed, and the URL uses /exec.", "error");
+                addLog("ℹ️ Ensure the app is served over HTTPS and the URL uses /exec.", "error");
             } finally {
                 loadingOverlay.classList.remove("active");
             }
@@ -757,40 +757,30 @@
                     requestUrl += `&description=${encodeURIComponent(parameters.description)}`;
                 }
 
-                if (selectedScript === "triggerStripePayment") {
-                    const amount = parameters.amount || "0.00";
-                    const description = parameters.description || "Payment";
-                    addLog(`💳 Opening payment link generator...`, "info");
-                    try {
-                        const newWindow = window.open(requestUrl, "_blank");
-                        if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
-                            addLog("⚠️ Pop-up blocked. Use the manual link below or allow pop-ups in your browser settings.", "error");
-                            addPasteArea(amount, description, requestUrl, true);
-                        } else {
-                            addPasteArea(amount, description, requestUrl);
-                        }
-                    } catch (error) {
-                        addLog(`❌ Pop-up error: ${error.message}. Use the manual link below.`, "error");
-                        addPasteArea(amount, description, requestUrl, true);
-                    }
-                } else {
-                    const response = await fetch(requestUrl);
-                    const data = await response.json();
-                    if (data.result) {
+                const response = await fetch(requestUrl);
+                const data = await response.json();
+
+                if (data.result) {
+                    if (selectedScript === "triggerStripePayment") {
+                        const amount = parameters.amount || "0.00";
+                        const description = parameters.description || "Payment";
+                        addLog(`✅ Stripe Payment Link Generated`, "success");
+                        addStripeLink(amount, description, data.result);
+                    } else {
                         addLog(`✅ ${scripts[selectedScript].name}: ${data.result}`, "success");
                         updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                    } else {
-                        addLog(`❌ Error: ${data.error}`, "error");
-                        if (data.error.includes("Unauthorized")) {
-                            addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
-                        } else if (data.error.includes("login")) {
-                            addLog("🔐 Sign-in page detected. Use a deployed /exec URL with 'Anyone' access.", "error");
-                        }
+                    }
+                } else {
+                    addLog(`❌ Error: ${data.error}`, "error");
+                    if (data.error.includes("Unauthorized")) {
+                        addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
+                    } else if (data.error.includes("login")) {
+                        addLog("🔐 Sign-in page detected. Use a deployed /exec URL with 'Anyone' access.", "error");
                     }
                 }
             } catch (error) {
                 addLog(`❌ Network Error: ${error.message}`, "error");
-                addLog("ℹ️ Check if the app is served over HTTPS, pop-ups are allowed, and the URL uses /exec.", "error");
+                addLog("ℹ️ Ensure the app is served over HTTPS and the URL uses /exec.", "error");
             } finally {
                 resetExecuteButton();
             }
@@ -804,94 +794,31 @@
             cancelSelection();
         }
 
-        function addPasteArea(amount, description, requestUrl, popUpBlocked = false) {
+        function addStripeLink(amount, description, paymentUrl) {
             const timestamp = new Date().toLocaleTimeString();
-            const pasteId = `pasteArea_${timestamp.replace(/:/g, "")}`;
             const logItem = document.createElement("div");
             logItem.className = "log-item success";
             logItem.innerHTML = `
                 <div class="log-timestamp">[${timestamp}]</div>
-                <div>💳 <strong>Payment Link Generator</strong></div>
+                <div>💳 <strong>Payment Link Generated</strong></div>
                 <div style="margin-top: 10px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
                     <div style="margin-bottom: 10px;">
                         <strong>Amount:</strong> CHF ${sanitizeInput(amount)}<br>
                         <strong>Description:</strong> ${sanitizeInput(description)}
                     </div>
-                    <div style="margin-bottom: 10px; font-size: 14px; color: #333;">
-                        <strong>Instructions:</strong><br>
-                        1. ${popUpBlocked ? 'Click the "Manual Link" below' : 'Check the new tab'} for a JSON response like <code>{"result":"Payment link created: https://checkout.stripe.com/..."}</code><br>
-                        2. Copy the URL starting with <code>https://checkout.stripe.com/</code><br>
-                        3. Paste it below within 30 seconds
+                    <div style="font-family: monospace; font-size: 12px; word-break: break-all; margin-bottom: 10px;">
+                        ${sanitizeInput(paymentUrl)}
                     </div>
-                    <div id="${pasteId}" style="padding: 10px; background: white; border: 2px dashed #ccc; border-radius: 8px;">
-                        <div style="font-weight: 600; margin-bottom: 10px;">📎 Paste your Stripe link here:</div>
-                        <input type="text" placeholder="Paste the https://checkout.stripe.com/... link here" style="
-                            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
-                        " aria-label="Paste Stripe Payment Link">
-                        <button class="retry-btn" style="
-                            margin-top: 10px; padding: 8px 16px; background: #2196F3; color: white;
-                            border: none; border-radius: 6px; cursor: pointer;
-                        ">Retry (Open Link Again)</button>
-                        ${popUpBlocked ? `<a href="${requestUrl}" target="_blank" class="manual-link">Manual Link (Open in New Tab)</a>` : ''}
-                    </div>
+                    <a href="${sanitizeInput(paymentUrl)}" target="_blank" class="stripe-link">Open Payment Page</a>
                 </div>
             `;
             logsList.insertBefore(logItem, logsList.firstChild);
             saveLogs();
 
-            const input = logItem.querySelector("input");
-            const retryBtn = logItem.querySelector(".retry-btn");
-            const pasteArea = logItem.querySelector(`#${pasteId}`);
-
-            // Retry button
-            retryBtn.addEventListener("click", () => {
-                addLog("🔄 Retrying payment link generation...", "info");
-                try {
-                    const newWindow = window.open(requestUrl, "_blank");
-                    if (!newWindow) {
-                        addLog("⚠️ Pop-up blocked. Use the manual link or allow pop-ups.", "error");
-                    }
-                } catch (error) {
-                    addLog(`❌ Retry error: ${error.message}. Use the manual link.`, "error");
-                }
+            // Attempt to copy the URL to clipboard
+            navigator.clipboard.writeText(paymentUrl).catch(() => {
+                addLog("⚠️ Clipboard access denied. Manually copy the URL.", "error");
             });
-
-            // Paste handler
-            input.addEventListener("paste", () => {
-                setTimeout(() => {
-                    try {
-                        const url = sanitizeInput(input.value);
-                        if (url.includes("checkout.stripe.com")) {
-                            navigator.clipboard.writeText(url).catch(() => {
-                                addLog("⚠️ Clipboard access denied. Manually copy the URL.", "error");
-                            });
-                            pasteArea.innerHTML = `
-                                <div style="padding: 10px; background: #d4edda; border-radius: 8px;">
-                                    <div style="font-weight: 600; color: #155724; margin-bottom: 10px;">✅ Payment Link Copied!</div>
-                                    <div style="font-family: monospace; font-size: 12px; word-break: break-all;">${url}</div>
-                                    <a href="${url}" target="_blank" style="
-                                        display: inline-block; background: #4CAF50; color: white; padding: 8px 16px;
-                                        text-decoration: none; border-radius: 6px; margin-top: 10px;
-                                    ">Open Payment Page</a>
-                                </div>
-                            `;
-                            saveLogs();
-                        } else {
-                            addLog("❌ Invalid Stripe URL. Must start with https://checkout.stripe.com/", "error");
-                        }
-                    } catch (error) {
-                        addLog(`❌ Paste error: ${error.message}`, "error");
-                    }
-                }, 100);
-            });
-            input.addEventListener("touchstart", () => input.focus(), { passive: true });
-
-            // Timeout warning
-            setTimeout(() => {
-                if (pasteArea.querySelector("input")) {
-                    addLog("⚠️ Please paste the Stripe URL within 30 seconds", "error");
-                }
-            }, 30000);
         }
 
         function addLog(message, type = "info") {
