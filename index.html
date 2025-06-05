@@ -6,8 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Script Trigger">
-    <title>Google Apps Script Trigger</title>
-    <!-- Google Fonts: Roboto -->
+    <title>Script Trigger - Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -18,9 +17,9 @@
 
         body {
             font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
-            line-height: 1.6;
+            min-height: 100vh;
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
@@ -30,1268 +29,295 @@
             max-width: 100%;
             min-height: 100vh;
             padding: 20px;
-            padding-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            border-radius: 15px;
-            color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            color: #333;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            max-width: 400px;
         }
 
         .header img.logo {
-            max-height: 50px;
-            margin-bottom: 10px;
+            max-height: 60px;
+            margin-bottom: 15px;
         }
 
         .header h1 {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            color: #333;
         }
 
         .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .scripts-section h2 {
-            font-size: 18px;
-            font-weight: 500;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .script-button, .expense-button, .view-expenses-button {
-            display: block;
-            width: 100%;
-            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
             font-size: 16px;
-            font-weight: 500;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            touch-action: manipulation;
-        }
-
-        .expense-button {
-            background: #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
-            color: #333;
-        }
-
-        .view-expenses-button {
-            background: #6c757d; /* Neutral color - Can replace with another brand color if desired */
-            color: white;
-        }
-
-        .script-button:hover, .expense-button:hover, .view-expenses-button:hover {
-            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
-
-        .expense-button:hover {
-            background: #F9A825; /* Darker secondary - Replace with a darker shade of your secondary color (e.g., #218838) */
-        }
-
-        .view-expenses-button:hover {
-            background: #5c636a;
-        }
-
-        .script-button:focus, .expense-button:focus, .view-expenses-button:focus {
-            outline: none;
-            border: 2px solid #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
-        }
-
-        .script-button.selected {
-            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
-            border: 2px solid #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
-        }
-
-        .script-description {
-            font-size: 12px;
-            color: #777;
-            margin-top: 5px;
-            text-align: center;
-        }
-
-        .script-status {
-            font-size: 11px;
-            color: #999;
-            font-style: italic;
-            text-align: center;
-            display: block;
-            margin-top: 3px;
-        }
-
-        .parameter-inputs, .expense-inputs {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .parameter-inputs h3, .expense-inputs h3 {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-            touch-action: manipulation;
-        }
-
-        .input-group input:focus, .input-group select:focus {
-            outline: none;
-            border-color: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-        }
-
-        .button-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            touch-action: manipulation;
-        }
-
-        .btn-primary {
-            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(30, 136, 229, 0.3); /* Adjust shadow color if primary changes */
-        }
-
-        .btn-primary:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #D32F2F; /* Error color - Replace with your error brand color (e.g., #DC3545) */
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #B71C1C; /* Darker error - Replace with a darker shade of your error color (e.g., #C82333) */
-            transform: translateY(-1px);
-        }
-
-        .expenses-section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .expenses-section h3 {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .expenses-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        .expenses-table th, .expenses-table td {
-            padding: 8px;
-            border-bottom: 1px solid #e1e5e9;
-            text-align: left;
-            word-break: break-word;
-        }
-
-        .expenses-table th {
-            background: #f9f9f9;
-            font-weight: 500;
-        }
-
-        .expenses-table td a {
-            color: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            text-decoration: none;
-        }
-
-        .expenses-table td a:hover {
-            text-decoration: underline;
-        }
-
-        .edit-btn {
-            padding: 5px 10px;
-            background: #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
-            color: #333;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .edit-btn:hover {
-            background: #F9A825; /* Darker secondary - Replace with a darker shade of your secondary color (e.g., #218838) */
-        }
-
-        .no-expenses {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 20px;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            display: none;
-        }
-
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        .logs-section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .logs-section h3 {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .log-item {
-            padding: 10px;
-            border-left: 3px solid #e1e5e9;
-            margin-bottom: 10px;
-            background: #f9f9f9;
-            border-radius: 0 8px 8px 0;
-            font-size: 14px;
-        }
-
-        .log-item.success {
-            border-left-color: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            background: #e3f2fd; /* Light primary - Replace with a light shade of your primary color (e.g., #FFF3E0) */
-        }
-
-        .log-item.error {
-            border-left-color: #D32F2F; /* Error color - Replace with your error brand color (e.g., #DC3545) */
-            background: #ffebee;
-        }
-
-        .log-timestamp {
-            font-size: 12px;
+            opacity: 0.8;
             color: #555;
-            font-weight: 500;
         }
 
-        .no-logs {
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 30px;
+        }
+
+        .menu-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 30px;
             text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 20px;
-        }
-
-        .clear-logs-btn {
-            margin-top: 10px;
-            padding: 10px;
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
             cursor: pointer;
-            touch-action: manipulation;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
         }
 
-        .clear-logs-btn:hover {
-            background: #5c636a;
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            border-color: #667eea;
         }
 
-        .hidden {
-            display: none;
+        .menu-card:active {
+            transform: translateY(-2px);
         }
 
-        .pwa-prompt {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: none;
-        }
-
-        .pwa-prompt.active {
+        .menu-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
             display: block;
         }
 
-        .pwa-prompt button {
-            padding: 10px;
-            margin: 5px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .pwa-install-btn {
-            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            color: white;
-        }
-
-        .pwa-cancel-btn {
-            background: #D32F2F; /* Error color - Replace with your error brand color (e.g., #DC3545) */
-            color: white;
-        }
-
-        .stripe-link {
-            margin-top: 10px;
-            display: inline-block;
-            padding: 8px 16px;
-            background: #1E88E5; /* Primary color - Replace with your primary brand color (e.g., #FF5733) */
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 14px;
-            touch-action: manipulation;
-        }
-
-        .stripe-link:hover {
-            background: #1565C0; /* Darker primary - Replace with a darker shade of your primary color (e.g., #E64A19) */
-        }
-
-        .copy-btn {
-            margin-top: 10px;
-            margin-left: 10px;
-            padding: 8px 16px;
-            background: #FBC02D; /* Secondary color - Replace with your secondary brand color (e.g., #28A745) */
+        .menu-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
             color: #333;
-            border: none;
-            border-radius: 6px;
+        }
+
+        .menu-description {
             font-size: 14px;
-            cursor: pointer;
-            touch-action: manipulation;
+            color: #666;
+            line-height: 1.4;
         }
 
-        .copy-btn:hover {
-            background: #F9A825; /* Darker secondary - Replace with a darker shade of your secondary color (e.g., #218838) */
+        .status-bar {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 15px 20px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
         }
 
-        @media (max-width: 480px) {
+        .status-item {
+            display: inline-block;
+            margin: 0 15px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .online {
+            background: #4CAF50;
+        }
+
+        .version {
+            color: #888;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
             .container {
                 padding: 15px;
             }
-           
+            
+            .header {
+                padding: 20px;
+                margin-bottom: 30px;
+            }
+            
             .header h1 {
-                font-size: 20px;
+                font-size: 24px;
             }
-           
-            .button-row {
-                flex-direction: column;
+            
+            .menu-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
             }
-           
-            .btn {
-                margin-bottom: 10px;
-                padding: 10px;
-                font-size: 12px;
+            
+            .menu-card {
+                padding: 25px;
             }
-
-            .input-group input, .input-group select {
-                font-size: 14px;
-                padding: 10px;
+            
+            .menu-icon {
+                font-size: 40px;
             }
-
-            .log-item, .expenses-table th, .expenses-table td {
-                font-size: 13px;
-            }
-
-            .copy-btn, .edit-btn {
-                margin-left: 0;
-                margin-top: 5px;
-            }
-
-            .script-button, .expense-button, .view-expenses-button {
-                font-size: 14px;
-                padding: 12px;
-            }
-
-            .script-description {
-                font-size: 11px;
-            }
-
-            .script-status {
-                font-size: 10px;
-            }
-
-            .expenses-table {
-                font-size: 12px;
-            }
-
-            .expenses-table th, .expenses-table td {
-                padding: 6px;
+            
+            .menu-title {
+                font-size: 18px;
             }
         }
+
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .menu-card:nth-child(1) { animation-delay: 0.1s; }
+        .menu-card:nth-child(2) { animation-delay: 0.2s; }
+        .menu-card:nth-child(3) { animation-delay: 0.3s; }
+        .menu-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading"></div>
-    </div>
-   
-    <div class="pwa-prompt" id="pwaPrompt">
-        <h3>Add to Home Screen</h3>
-        <p>Install this app for quick access!</p>
-        <button class="pwa-install-btn" id="installBtn">Install</button>
-        <button class="pwa-cancel-btn" id="cancelPromptBtn">Not Now</button>
-    </div>
-
     <div class="container">
-        <div class="header">
-            <img src="https://via.placeholder.com/150x50.png?text=Your+Logo" alt="Company Logo" class="logo">
-            <!-- Replace the src above with your logo URL, e.g., https://sandrozellweger.github.io/script-trigger-app/company-logo.png -->
+        <div class="header animate-in">
+            <img src="https://via.placeholder.com/150x60.png?text=Your+Logo" alt="Company Logo" class="logo">
             <h1>🚀 Script Trigger</h1>
-            <p>Trigger your Google Apps Scripts and track expenses</p>
+            <p>Your Business Automation Hub</p>
         </div>
 
-        <div class="scripts-section">
-            <h2>📋 Available Scripts</h2>
-           
-            <button class="script-button" data-script="triggerDailyReport" role="button" tabindex="0">
-                Generate Daily KM Report
-                <span class="script-description">Generates comprehensive daily report with vehicle data, revenue, and Stripe balance</span>
-                <span class="script-status">Ready to execute</span>
-            </button>
+        <div class="menu-grid">
+            <a href="reports.html" class="menu-card animate-in">
+                <div class="menu-icon">📊</div>
+                <div class="menu-title">Reports</div>
+                <div class="menu-description">Generate daily reports, custom date reports, and analytics</div>
+            </a>
 
-            <button class="script-button" data-script="triggerCustomDateReport" role="button" tabindex="0">
-                Generate Report for Custom Date
-                <span class="script-description">Generates daily report for a specific date/time</span>
-                <span class="script-status">Requires date input</span>
-            </button>
+            <a href="payments.html" class="menu-card animate-in">
+                <div class="menu-icon">💳</div>
+                <div class="menu-title">Payments</div>
+                <div class="menu-description">Create Stripe payment links and manage transactions</div>
+            </a>
 
-            <button class="script-button" data-script="triggerHardcodedReport" role="button" tabindex="0">
-                Run Hardcoded Date Report
-                <span class="script-description">Runs report for hardcoded date (2025-05-25)</span>
-                <span class="script-status">Ready to execute</span>
-            </button>
+            <a href="expenses.html" class="menu-card animate-in">
+                <div class="menu-icon">💰</div>
+                <div class="menu-title">Expenses</div>
+                <div class="menu-description">Track business expenses and upload receipts</div>
+            </a>
 
-            <button class="script-button" data-script="triggerStripePayment" role="button" tabindex="0">
-                💳 Create Stripe Payment Link
-                <span class="script-description">Creates a custom payment link with your specified amount and description</span>
-                <span class="script-status">Requires amount and description</span>
-            </button>
-
-            <button class="expense-button" id="newExpenseBtn" role="button" tabindex="0">
-                New Expense
-                <span class="script-description">Log a new business expense with receipt</span>
-            </button>
-
-            <button class="view-expenses-button" id="viewExpensesBtn" role="button" tabindex="0">
-                View Expenses
-                <span class="script-description">See past expenses and edit them</span>
-            </button>
+            <a href="settings.html" class="menu-card animate-in">
+                <div class="menu-icon">⚙️</div>
+                <div class="menu-title">Settings</div>
+                <div class="menu-description">App configuration and script management</div>
+            </a>
         </div>
 
-        <div id="parameterInputs" class="parameter-inputs hidden">
-            <h3>📝 Parameters</h3>
-            <div id="inputFields"></div>
-            <div class="button-row">
-                <button id="executeBtn" class="btn btn-primary" aria-label="Execute Script">
-                    Execute Script
-                </button>
-                <button id="cancelBtn" class="btn btn-secondary" aria-label="Cancel Selection">
-                    Cancel
-                </button>
+        <div class="status-bar animate-in">
+            <div class="status-item">
+                <span class="status-indicator online"></span>
+                Online
             </div>
-        </div>
-
-        <div id="expenseInputs" class="expense-inputs hidden">
-            <h3 id="expenseFormTitle">💰 New Expense</h3>
-            <div id="expenseFields">
-                <input type="hidden" id="expenseRowNumber">
-                <div class="input-group">
-                    <label for="expenseDate">Date of Purchase:</label>
-                    <input type="date" id="expenseDate" required>
-                </div>
-                <div class="input-group">
-                    <label for="expenseMethod">Method of Purchase:</label>
-                    <select id="expenseMethod" required>
-                        <option value="Cash">Cash</option>
-                        <option value="Card">Card</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="expensePaidBy">Paid By:</label>
-                    <select id="expensePaidBy" required>
-                        <option value="Company">Company</option>
-                        <option value="Private Sandro">Private Sandro</option>
-                        <option value="Private Alessandro">Private Alessandro</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="expenseCategory">Category:</label>
-                    <input type="text" id="expenseCategory">
-                </div>
-                <div class="input-group">
-                    <label for="expenseAmount">Amount (CHF):</label>
-                    <input type="number" id="expenseAmount" step="0.01" min="0.01" required>
-                </div>
-                <div class="input-group">
-                    <label for="expenseVehicle">Vehicle:</label>
-                    <select id="expenseVehicle" required>
-                        <option value="All">All</option>
-                        <option value="N1">N1</option>
-                        <option value="N2">N2</option>
-                        <option value="N3">N3</option>
-                        <option value="N4">N4</option>
-                        <option value="N5">N5</option>
-                        <option value="N6">N6</option>
-                        <option value="N7">N7</option>
-                        <option value="N8">N8</option>
-                        <option value="N9">N9</option>
-                        <option value="N10">N10</option>
-                        <option value="N11">N11</option>
-                        <option value="None">None</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="expenseProfiteur">Profiteur:</label>
-                    <select id="expenseProfiteur" required>
-                        <option value="Sandro">Sandro</option>
-                        <option value="Alessandro">Alessandro</option>
-                        <option value="None">None</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="expenseFile">Add File or Take Picture:</label>
-                    <input type="file" id="expenseFile" accept="image/*" capture="camera">
-                    <div id="currentImage" class="hidden">
-                        <small>Current Image: <a id="currentImageLink" target="_blank"></a></small>
-                    </div>
-                </div>
+            <div class="status-item">
+                <span class="status-indicator online"></span>
+                Scripts Ready
             </div>
-            <div class="button-row">
-                <button id="submitExpenseBtn" class="btn btn-primary" aria-label="Submit Expense">
-                    Submit Expense
-                </button>
-                <button id="cancelExpenseBtn" class="btn btn-secondary" aria-label="Cancel">
-                    Cancel
-                </button>
+            <div class="status-item version">
+                v2.0
             </div>
-        </div>
-
-        <div id="expensesSection" class="expenses-section hidden">
-            <h3>📋 Past Expenses</h3>
-            <div id="expensesList">
-                <div class="no-expenses">No expenses yet</div>
-            </div>
-        </div>
-
-        <div class="logs-section">
-            <h3>📊 Execution Logs</h3>
-            <div id="logsList">
-                <div class="no-logs">No logs yet</div>
-            </div>
-            <button class="clear-logs-btn" id="clearLogsBtn" aria-label="Clear Logs">Clear Logs</button>
         </div>
     </div>
 
     <script>
-        // Configuration
-        const AUTH_TOKEN = "myAppToken2025"; // Matches backend
-        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec"; // Hardcoded script URL
-
-        const scripts = {
-            triggerDailyReport: {
-                name: "Generate Daily KM Report",
-                parameters: [],
-            },
-            triggerCustomDateReport: {
-                name: "Generate Report for Custom Date",
-                parameters: ["customDate"],
-            },
-            triggerHardcodedReport: {
-                name: "Run Hardcoded Date Report",
-                parameters: [],
-            },
-            triggerStripePayment: {
-                name: "Create Stripe Payment Link",
-                parameters: ["amount", "description"],
-            },
-        };
-
-        let selectedScript = null;
-        let parameters = {};
-        let isLoading = false;
-        let deferredPrompt = null;
-        let editingExpenseRow = null;
-
-        // DOM elements
-        const scriptButtons = document.querySelectorAll(".script-button");
-        const newExpenseBtn = document.getElementById("newExpenseBtn");
-        const viewExpensesBtn = document.getElementById("viewExpensesBtn");
-        const parameterInputs = document.getElementById("parameterInputs");
-        const expenseInputs = document.getElementById("expenseInputs");
-        const expensesSection = document.getElementById("expensesSection");
-        const inputFields = document.getElementById("inputFields");
-        const expensesList = document.getElementById("expensesList");
-        const expenseFormTitle = document.getElementById("expenseFormTitle");
-        const expenseRowNumber = document.getElementById("expenseRowNumber");
-        const expenseDate = document.getElementById("expenseDate");
-        const expenseMethod = document.getElementById("expenseMethod");
-        const expensePaidBy = document.getElementById("expensePaidBy");
-        const expenseCategory = document.getElementById("expenseCategory");
-        const expenseAmount = document.getElementById("expenseAmount");
-        const expenseVehicle = document.getElementById("expenseVehicle");
-        const expenseProfiteur = document.getElementById("expenseProfiteur");
-        const expenseFile = document.getElementById("expenseFile");
-        const currentImage = document.getElementById("currentImage");
-        const currentImageLink = document.getElementById("currentImageLink");
-        const executeBtn = document.getElementById("executeBtn");
-        const cancelBtn = document.getElementById("cancelBtn");
-        const submitExpenseBtn = document.getElementById("submitExpenseBtn");
-        const cancelExpenseBtn = document.getElementById("cancelExpenseBtn");
-        const logsList = document.getElementById("logsList");
-        const loadingOverlay = document.getElementById("loadingOverlay");
-        const pwaPrompt = document.getElementById("pwaPrompt");
-        const installBtn = document.getElementById("installBtn");
-        const cancelPromptBtn = document.getElementById("cancelPromptBtn");
-
-        // Load logs from localStorage
-        let logs = JSON.parse(localStorage.getItem("scriptTriggerLogs")) || [];
-        renderLogs();
-
-        // Check HTTPS on load
-        if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
-            addLog("⚠️ This app must be served over HTTPS for mobile compatibility. Host on a secure server (e.g., Netlify, GitHub Pages).", "error");
-        }
-
-        // Event listeners
-        scriptButtons.forEach((button) => {
-            button.addEventListener("click", () => selectScript(button.dataset.script));
-            button.addEventListener("touchstart", () => selectScript(button.dataset.script), { passive: true });
-            button.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                    selectScript(button.dataset.script);
+        // Check script status on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Ping the Google Apps Script to check if it's online
+                const scriptUrl = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+                const response = await fetch(`${scriptUrl}?function=ping&authToken=myAppToken2025`);
+                const data = await response.json();
+                
+                if (data.result) {
+                    console.log('✅ Google Apps Script is online');
+                } else {
+                    console.log('⚠️ Google Apps Script might be offline');
                 }
+            } catch (error) {
+                console.log('⚠️ Could not reach Google Apps Script');
+            }
+        });
+
+        // Add ripple effect to cards
+        document.querySelectorAll('.menu-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                const ripple = document.createElement('div');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    border-radius: 50%;
+                    background: rgba(102, 126, 234, 0.3);
+                    transform: scale(0);
+                    animation: ripple 0.6s linear;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    pointer-events: none;
+                `;
+                
+                this.style.position = 'relative';
+                this.style.overflow = 'hidden';
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
             });
         });
 
-        newExpenseBtn.addEventListener("click", showNewExpenseForm);
-        newExpenseBtn.addEventListener("touchstart", showNewExpenseForm, { passive: true });
-        viewExpensesBtn.addEventListener("click", viewExpenses);
-        viewExpensesBtn.addEventListener("touchstart", viewExpenses, { passive: true });
-        executeBtn.addEventListener("click", executeScript);
-        executeBtn.addEventListener("touchstart", executeScript, { passive: true });
-        cancelBtn.addEventListener("click", cancelSelection);
-        submitExpenseBtn.addEventListener("click", submitExpense);
-        submitExpenseBtn.addEventListener("touchstart", submitExpense, { passive: true });
-        cancelExpenseBtn.addEventListener("click", cancelExpenseForm);
-        cancelExpenseBtn.addEventListener("touchstart", cancelExpenseForm, { passive: true });
-        clearLogsBtn.addEventListener("click", clearLogs);
-        installBtn.addEventListener("click", installPWA);
-        cancelPromptBtn.addEventListener("click", () => pwaPrompt.classList.remove("active"));
-
-        // Debounce input handler
-        function debounce(fn, delay) {
-            let timeout;
-            return function (...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => fn(...args), delay);
-            };
-        }
-
-        function sanitizeInput(input) {
-            const div = document.createElement("div");
-            div.textContent = input;
-            return div.innerHTML;
-        }
-
-        function selectScript(scriptName) {
-            selectedScript = scriptName;
-            parameters = {};
-
-            scriptButtons.forEach((button) => {
-                button.classList.toggle("selected", button.dataset.script === scriptName);
-                button.setAttribute("aria-selected", button.dataset.script === scriptName);
-            });
-
-            const script = scripts[scriptName];
-            showParameterInputs(script, script.parameters.length === 0);
-            expenseInputs.classList.add("hidden");
-            expenseInputs.setAttribute("aria-hidden", "true");
-            expensesSection.classList.add("hidden");
-            expensesSection.setAttribute("aria-hidden", "true");
-        }
-
-        function showParameterInputs(script, noParams = false) {
-            inputFields.innerHTML = "";
-
-            if (!noParams) {
-                script.parameters.forEach((param) => {
-                    const inputGroup = document.createElement("div");
-                    inputGroup.className = "input-group";
-
-                    const label = document.createElement("label");
-                    label.textContent =
-                        param === "customDate"
-                            ? "Date/Time (YYYY-MM-DD HH:MM):"
-                            : param === "amount"
-                            ? "Amount (CHF):"
-                            : param === "description"
-                            ? "Description/Reason:"
-                            : `${param}:`;
-                    label.setAttribute("for", `param-${param}`);
-
-                    const input = document.createElement("input");
-                    input.id = `param-${param}`;
-                    input.type =
-                        param === "customDate"
-                            ? "datetime-local"
-                            : param === "amount"
-                            ? "number"
-                            : "text";
-                    input.step = param === "amount" ? "0.01" : undefined;
-                    input.min = param === "amount" ? "0.01" : undefined;
-                    input.placeholder =
-                        param === "customDate"
-                            ? "Select date and time"
-                            : param === "amount"
-                            ? "Enter amount in CHF (e.g., 150.00)"
-                            : param === "description"
-                            ? "Enter payment description (e.g., Noleggio Furgone - 3 giorni)"
-                            : `Enter ${param}`;
-                    input.setAttribute("aria-required", "true");
-
-                    input.addEventListener(
-                        "input",
-                        debounce((e) => {
-                            parameters[param] = sanitizeInput(e.target.value);
-                        }, 300)
-                    );
-
-                    inputGroup.appendChild(label);
-                    inputGroup.appendChild(input);
-                    inputFields.appendChild(inputGroup);
-                });
-            }
-
-            parameterInputs.classList.remove("hidden");
-            parameterInputs.setAttribute("aria-hidden", "false");
-        }
-
-        function cancelSelection() {
-            selectedScript = null;
-            parameters = {};
-            scriptButtons.forEach((button) => {
-                button.classList.remove("selected");
-                button.setAttribute("aria-selected", "false");
-            });
-            parameterInputs.classList.add("hidden");
-            parameterInputs.setAttribute("aria-hidden", "true");
-        }
-
-        function showNewExpenseForm() {
-            editingExpenseRow = null;
-            expenseFormTitle.textContent = "💰 New Expense";
-            expenseRowNumber.value = "";
-            expenseDate.value = "";
-            expenseMethod.value = "Cash";
-            expensePaidBy.value = "Company";
-            expenseCategory.value = "";
-            expenseAmount.value = "";
-            expenseVehicle.value = "All";
-            expenseProfiteur.value = "Sandro";
-            expenseFile.value = "";
-            currentImage.classList.add("hidden");
-            expenseFile.required = true;
-
-            scriptButtons.forEach((button) => {
-                button.classList.remove("selected");
-                button.setAttribute("aria-selected", "false");
-            });
-            parameterInputs.classList.add("hidden");
-            parameterInputs.setAttribute("aria-hidden", "true");
-            expensesSection.classList.add("hidden");
-            expensesSection.setAttribute("aria-hidden", "true");
-            expenseInputs.classList.remove("hidden");
-            expenseInputs.setAttribute("aria-hidden", "false");
-        }
-
-        function showEditExpenseForm(rowNumber, expense) {
-            editingExpenseRow = rowNumber;
-            expenseFormTitle.textContent = "✏️ Edit Expense";
-            expenseRowNumber.value = rowNumber;
-            expenseDate.value = expense.date;
-            expenseMethod.value = expense.method;
-            expensePaidBy.value = expense.paidBy;
-            expenseCategory.value = expense.category;
-            expenseAmount.value = expense.amount;
-            expenseVehicle.value = expense.vehicle;
-            expenseProfiteur.value = expense.profiteur;
-            expenseFile.value = "";
-            if (expense.imageUrl) {
-                currentImageLink.href = expense.imageUrl;
-                currentImageLink.textContent = expense.imageUrl;
-                currentImage.classList.remove("hidden");
-            } else {
-                currentImage.classList.add("hidden");
-            }
-            expenseFile.required = false;
-
-            expenseInputs.classList.remove("hidden");
-            expenseInputs.setAttribute("aria-hidden", "false");
-        }
-
-        function cancelExpenseForm() {
-            editingExpenseRow = null;
-            expenseInputs.classList.add("hidden");
-            expenseInputs.setAttribute("aria-hidden", "true");
-            expenseFormTitle.textContent = "💰 New Expense";
-            expenseRowNumber.value = "";
-            expenseDate.value = "";
-            expenseMethod.value = "Cash";
-            expensePaidBy.value = "Company";
-            expenseCategory.value = "";
-            expenseAmount.value = "";
-            expenseVehicle.value = "All";
-            expenseProfiteur.value = "Sandro";
-            expenseFile.value = "";
-            currentImage.classList.add("hidden");
-        }
-
-        async function viewExpenses() {
-            if (isLoading) return;
-
-            isLoading = true;
-            loadingOverlay.classList.add("active");
-
-            try {
-                const response = await fetch(`${DEFAULT_SCRIPT_URL}?function=getExpenses&authToken=${AUTH_TOKEN}`);
-                const data = await response.json();
-
-                if (data.result) {
-                    renderExpenses(data.result);
-                    scriptButtons.forEach((button) => {
-                        button.classList.remove("selected");
-                        button.setAttribute("aria-selected", "false");
-                    });
-                    parameterInputs.classList.add("hidden");
-                    parameterInputs.setAttribute("aria-hidden", "true");
-                    expenseInputs.classList.add("hidden");
-                    expenseInputs.setAttribute("aria-hidden", "true");
-                    expensesSection.classList.remove("hidden");
-                    expensesSection.setAttribute("aria-hidden", "false");
-                } else {
-                    addLog(`❌ Error: ${data.error}`, "error");
+        // Add ripple animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
                 }
-            } catch (error) {
-                addLog(`❌ Network Error: ${error.message}`, "error");
-            } finally {
-                isLoading = false;
-                loadingOverlay.classList.remove("active");
             }
-        }
-
-        function renderExpenses(expenses) {
-            expensesList.innerHTML = "";
-            if (expenses.length === 0) {
-                expensesList.innerHTML = '<div class="no-expenses">No expenses yet</div>';
-                return;
-            }
-
-            const table = document.createElement("table");
-            table.className = "expenses-table";
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Method</th>
-                        <th>Paid By</th>
-                        <th>Category</th>
-                        <th>Amount (CHF)</th>
-                        <th>Vehicle</th>
-                        <th>Profiteur</th>
-                        <th>Image</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            `;
-
-            const tbody = table.querySelector("tbody");
-            expenses.forEach((expense, index) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${sanitizeInput(expense.date)}</td>
-                    <td>${sanitizeInput(expense.method)}</td>
-                    <td>${sanitizeInput(expense.paidBy)}</td>
-                    <td>${sanitizeInput(expense.category)}</td>
-                    <td>${sanitizeInput(expense.amount)}</td>
-                    <td>${sanitizeInput(expense.vehicle)}</td>
-                    <td>${sanitizeInput(expense.profiteur)}</td>
-                    <td><a href="${sanitizeInput(expense.imageUrl)}" target="_blank">View</a></td>
-                    <td><button class="edit-btn" data-index="${index + 2}">Edit</button></td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            expensesList.appendChild(table);
-
-            // Add event listeners for edit buttons
-            const editButtons = expensesList.querySelectorAll(".edit-btn");
-            editButtons.forEach((button) => {
-                button.addEventListener("click", () => {
-                    const rowNumber = button.dataset.index;
-                    const expense = expenses[rowNumber - 2];
-                    showEditExpenseForm(rowNumber, expense);
-                });
-            });
-        }
-
-        async function submitExpense() {
-            if (isLoading) return;
-
-            isLoading = true;
-            submitExpenseBtn.disabled = true;
-            submitExpenseBtn.innerHTML = '<span class="loading"></span> Submitting...';
-            loadingOverlay.classList.add("active");
-
-            try {
-                const rowNumber = expenseRowNumber.value;
-                const date = expenseDate.value;
-                const method = expenseMethod.value;
-                const paidBy = expensePaidBy.value;
-                const category = expenseCategory.value;
-                const amount = expenseAmount.value;
-                const vehicle = expenseVehicle.value;
-                const profiteur = expenseProfiteur.value;
-                const file = expenseFile.files[0];
-
-                if (!date || !method || !paidBy || !amount || !vehicle || !profiteur) {
-                    addLog("❌ Error: All fields except Category and File are required.", "error");
-                    resetExpenseButton();
-                    return;
-                }
-
-                if (!rowNumber && !file) {
-                    addLog("❌ Error: A file upload is required for new expenses.", "error");
-                    resetExpenseButton();
-                    return;
-                }
-
-                let base64Image = null;
-                let imageName = null;
-                if (file) {
-                    const reader = new FileReader();
-                    base64Image = await new Promise((resolve, reject) => {
-                        reader.onload = () => resolve(reader.result.split(",")[1]); // Remove data URL prefix
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                    imageName = file.name;
-                }
-
-                const payload = {
-                    rowNumber: rowNumber || null,
-                    date: date,
-                    method: method,
-                    paidBy: paidBy,
-                    category: category,
-                    amount: parseFloat(amount),
-                    vehicle: vehicle,
-                    profiteur: profiteur,
-                    image: base64Image,
-                    imageName: imageName,
-                    authToken: AUTH_TOKEN
-                };
-
-                const functionName = rowNumber ? "editExpense" : "logExpense";
-                const response = await fetch(`${DEFAULT_SCRIPT_URL}?function=${functionName}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-                if (data.result) {
-                    if (rowNumber) {
-                        addLog(`✅ Expense edited successfully: CHF ${amount} (${category || "No category"}) on ${date}`, "success");
-                    } else {
-                        addLog(`✅ Expense logged successfully: CHF ${amount} (${category || "No category"}) on ${date}`, "success");
-                    }
-                } else {
-                    addLog(`❌ Error: ${data.error}`, "error");
-                    if (data.error.includes("Unauthorized")) {
-                        addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
-                    } else if (data.error.includes("login")) {
-                        addLog("🔐 Sign-in page detected. Ensure the script is deployed with 'Anyone' access.", "error");
-                    }
-                }
-            } catch (error) {
-                addLog(`❌ Network Error: ${error.message}`, "error");
-                addLog("ℹ️ Ensure the app is served over HTTPS.", "error");
-            } finally {
-                resetExpenseButton();
-            }
-        }
-
-        function resetExpenseButton() {
-            isLoading = false;
-            submitExpenseBtn.disabled = false;
-            submitExpenseBtn.innerHTML = "Submit Expense";
-            loadingOverlay.classList.remove("active");
-            cancelExpenseForm();
-        }
-
-        async function executeScript() {
-            if (!selectedScript || isLoading) return;
-
-            isLoading = true;
-            executeBtn.disabled = true;
-            executeBtn.innerHTML = '<span class="loading"></span> Executing...';
-            loadingOverlay.classList.add("active");
-
-            try {
-                let requestUrl = `${DEFAULT_SCRIPT_URL}?function=${selectedScript}&authToken=${AUTH_TOKEN}`;
-                if (parameters.customDate) {
-                    const dateValue = new Date(parameters.customDate);
-                    requestUrl += `&customDateString=${encodeURIComponent(dateValue.toISOString())}`;
-                }
-                if (parameters.amount) {
-                    requestUrl += `&amount=${encodeURIComponent(parameters.amount)}`;
-                }
-                if (parameters.description) {
-                    requestUrl += `&description=${encodeURIComponent(parameters.description)}`;
-                }
-
-                const response = await fetch(requestUrl);
-                const data = await response.json();
-
-                if (data.result) {
-                    if (selectedScript === "triggerStripePayment") {
-                        const amount = parameters.amount || "0.00";
-                        const description = parameters.description || "Payment";
-                        const paymentUrlMatch = data.result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
-                        if (paymentUrlMatch) {
-                            const paymentUrl = paymentUrlMatch[0];
-                            addLog(`✅ Stripe Payment Link Generated`, "success");
-                            addStripeLink(amount, description, paymentUrl);
-                        } else {
-                            addLog("❌ Error: Could not extract Stripe URL from response.", "error");
-                        }
-                    } else {
-                        addLog(`✅ ${scripts[selectedScript].name}: ${data.result}`, "success");
-                        updateScriptStatus(selectedScript, `Last run: ${new Date().toLocaleTimeString()}`);
-                    }
-                } else {
-                    addLog(`❌ Error: ${data.error}`, "error");
-                    if (data.error.includes("Unauthorized")) {
-                        addLog("🔑 Authentication failed. Ensure AUTH_TOKEN matches the backend.", "error");
-                    } else if (data.error.includes("login")) {
-                        addLog("🔐 Sign-in page detected. Ensure the script is deployed with 'Anyone' access.", "error");
-                    }
-                }
-            } catch (error) {
-                addLog(`❌ Network Error: ${error.message}`, "error");
-                addLog("ℹ️ Ensure the app is served over HTTPS.", "error");
-            } finally {
-                resetExecuteButton();
-            }
-        }
-
-        function resetExecuteButton() {
-            isLoading = false;
-            executeBtn.disabled = false;
-            executeBtn.innerHTML = "Execute Script";
-            loadingOverlay.classList.remove("active");
-            cancelSelection();
-        }
-
-        function addStripeLink(amount, description, paymentUrl) {
-            const timestamp = new Date().toLocaleTimeString();
-            const logId = `log_${timestamp.replace(/:/g, "")}`;
-            const logItem = document.createElement("div");
-            logItem.className = "log-item success";
-            logItem.id = logId;
-            logItem.innerHTML = `
-                <div class="log-timestamp">[${timestamp}]</div>
-                <div>💳 <strong>Payment Link Generated</strong></div>
-                <div style="margin-top: 10px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                    <div style="margin-bottom: 10px;">
-                        <strong>Amount:</strong> CHF ${sanitizeInput(amount)}<br>
-                        <strong>Description:</strong> ${sanitizeInput(description)}
-                    </div>
-                    <div style="font-family: monospace; font-size: 12px; word-break: break-all; margin-bottom: 10px;">
-                        ${sanitizeInput(paymentUrl)}
-                    </div>
-                    <a href="${paymentUrl}" target="_blank" class="stripe-link">Open Payment Page</a>
-                    <button class="copy-btn" data-url="${paymentUrl}">Copy Link</button>
-                </div>
-            `;
-            logsList.insertBefore(logItem, logsList.firstChild);
-            saveLogs();
-
-            const copyBtn = logItem.querySelector(".copy-btn");
-            copyBtn.addEventListener("click", () => {
-                const url = copyBtn.getAttribute("data-url");
-                navigator.clipboard.writeText(url).then(() => {
-                    addLog("✅ URL copied to clipboard", "success");
-                }).catch(() => {
-                    addLog("⚠️ Clipboard access denied. Select and copy the URL manually.", "error");
-                });
-            });
-        }
-
-        function addLog(message, type = "info") {
-            const logItem = document.createElement("div");
-            logItem.className = `log-item ${type}`;
-            const timestamp = new Date().toLocaleTimeString();
-            logItem.innerHTML = `
-                <div class="log-timestamp">[${timestamp}]</div>
-                <div>${sanitizeInput(message)}</div>
-            `;
-
-            const noLogs = logsList.querySelector(".no-logs");
-            if (noLogs) {
-                noLogs.remove();
-            }
-
-            logsList.insertBefore(logItem, logsList.firstChild);
-            logs.push({ message, type, timestamp });
-            if (logs.length > 10) {
-                logs.shift();
-                logsList.lastChild.remove();
-            }
-            saveLogs();
-        }
-
-        function renderLogs() {
-            logsList.innerHTML = "";
-            if (logs.length === 0) {
-                logsList.innerHTML = '<div class="no-logs">No logs yet</div>';
-                return;
-            }
-            logs.forEach(({ message, type, timestamp }) => {
-                const logItem = document.createElement("div");
-                logItem.className = `log-item ${type}`;
-                logItem.innerHTML = `
-                    <div class="log-timestamp">[${timestamp}]</div>
-                    <div>${sanitizeInput(message)}</div>
-                `;
-                logsList.appendChild(logItem);
-            });
-        }
-
-        function saveLogs() {
-            localStorage.setItem("scriptTriggerLogs", JSON.stringify(logs));
-        }
-
-        function clearLogs() {
-            logs = [];
-            logsList.innerHTML = '<div class="no-logs">No logs yet</div>';
-            saveLogs();
-        }
-
-        function updateScriptStatus(scriptName, status) {
-            const button = document.querySelector(`[data-script="${scriptName}"]`);
-            const statusElement = button.querySelector(".script-status");
-            statusElement.textContent = status;
-        }
-
-        // PWA installation prompt
-        window.addEventListener("beforeinstallprompt", (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            setTimeout(() => {
-                pwaPrompt.classList.add("active");
-            }, 3000);
-        });
-
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt = null;
-                pwaPrompt.classList.remove("active");
-            }
-        }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
