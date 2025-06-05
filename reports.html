@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Reports">
+    <title>Reports - Script Trigger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .report-options {
+            margin-bottom: 20px;
+        }
+
+        .report-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .report-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .report-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .report-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .report-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .report-status {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+        }
+
+        .parameter-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .parameter-form.show {
+            display: block;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .parameter-form h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logs-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .logs-section h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .log-item {
+            padding: 12px;
+            border-left: 3px solid #e1e5e9;
+            margin-bottom: 10px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+
+        .log-item.success {
+            border-left-color: #4CAF50;
+            background: rgba(212, 237, 218, 0.8);
+        }
+
+        .log-item.error {
+            border-left-color: #f44336;
+            background: rgba(248, 215, 218, 0.8);
+        }
+
+        .log-item.info {
+            border-left-color: #2196F3;
+            background: rgba(227, 242, 253, 0.8);
+        }
+
+        .log-timestamp {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .no-logs {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .clear-logs-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .clear-logs-btn:hover {
+            background: #5a6268;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .report-card, .parameter-form, .logs-section {
+                padding: 18px;
+            }
+            
+            .button-row {
+                flex-direction: column;
+            }
+            
+            .btn {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back to Home">
+        ←
+    </button>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Reports</h1>
+            <p>Generate business reports and analytics</p>
+        </div>
+
+        <div class="report-options">
+            <div class="report-card" data-script="triggerDailyReport" onclick="selectReport('triggerDailyReport')">
+                <span class="report-icon">📈</span>
+                <div class="report-title">Daily KM Report</div>
+                <div class="report-description">Generates comprehensive daily report with vehicle data, revenue, and Stripe balance</div>
+                <div class="report-status">Ready to execute</div>
+            </div>
+
+            <div class="report-card" data-script="triggerCustomDateReport" onclick="selectReport('triggerCustomDateReport')">
+                <span class="report-icon">📅</span>
+                <div class="report-title">Custom Date Report</div>
+                <div class="report-description">Generates daily report for a specific date and time</div>
+                <div class="report-status">Requires date input</div>
+            </div>
+
+            <div class="report-card" data-script="triggerHardcodedReport" onclick="selectReport('triggerHardcodedReport')">
+                <span class="report-icon">🔄</span>
+                <div class="report-title">Hardcoded Date Report</div>
+                <div class="report-description">Runs report for hardcoded date (2025-05-25)</div>
+                <div class="report-status">Ready to execute</div>
+            </div>
+        </div>
+
+        <div class="parameter-form" id="parameterForm">
+            <h3 id="formTitle">Report Parameters</h3>
+            <div id="inputFields"></div>
+            <div class="button-row">
+                <button class="btn btn-primary" id="generateBtn" onclick="generateReport()">
+                    Generate Report
+                </button>
+                <button class="btn btn-secondary" onclick="cancelSelection()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <h3>📋 Report History</h3>
+            <div id="logsList">
+                <div class="no-logs">No reports generated yet</div>
+            </div>
+            <button class="clear-logs-btn" onclick="clearLogs()">Clear History</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const AUTH_TOKEN = "myAppToken2025";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+
+        const reports = {
+            triggerDailyReport: {
+                name: 'Daily KM Report',
+                parameters: []
+            },
+            triggerCustomDateReport: {
+                name: 'Custom Date Report',
+                parameters: ['customDate']
+            },
+            triggerHardcodedReport: {
+                name: 'Hardcoded Date Report',
+                parameters: []
+            }
+        };
+
+        let selectedReport = null;
+        let parameters = {};
+        let isLoading = false;
+
+        // Load logs from localStorage
+        let logs = JSON.parse(localStorage.getItem('reportLogs')) || [];
+        renderLogs();
+
+        function selectReport(reportName) {
+            selectedReport = reportName;
+            parameters = {};
+
+            // Update UI
+            document.querySelectorAll('.report-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.script === reportName);
+            });
+
+            const report = reports[reportName];
+            showParameterForm(report);
+        }
+
+        function showParameterForm(report) {
+            const formTitle = document.getElementById('formTitle');
+            const inputFields = document.getElementById('inputFields');
+            const parameterForm = document.getElementById('parameterForm');
+
+            formTitle.textContent = `${report.name} Parameters`;
+            inputFields.innerHTML = '';
+
+            if (report.parameters.length > 0) {
+                report.parameters.forEach(param => {
+                    const inputGroup = document.createElement('div');
+                    inputGroup.className = 'input-group';
+
+                    const label = document.createElement('label');
+                    label.textContent = param === 'customDate' ? 'Date/Time:' : `${param}:`;
+                    label.setAttribute('for', `param-${param}`);
+
+                    const input = document.createElement('input');
+                    input.id = `param-${param}`;
+                    input.type = param === 'customDate' ? 'datetime-local' : 'text';
+                    input.placeholder = param === 'customDate' ? 'Select date and time' : `Enter ${param}`;
+                    input.required = true;
+
+                    input.addEventListener('input', (e) => {
+                        parameters[param] = e.target.value;
+                    });
+
+                    inputGroup.appendChild(label);
+                    inputGroup.appendChild(input);
+                    inputFields.appendChild(inputGroup);
+                });
+            } else {
+                inputFields.innerHTML = '<p style="color: #666; text-align: center; margin: 10px 0;">No additional parameters required.</p>';
+            }
+
+            parameterForm.classList.add('show');
+            
+            // Scroll to form
+            parameterForm.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }
+
+        function cancelSelection() {
+            selectedReport = null;
+            parameters = {};
+            
+            document.querySelectorAll('.report-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            document.getElementById('parameterForm').classList.remove('show');
+        }
+
+        async function generateReport() {
+            if (!selectedReport || isLoading) return;
+
+            // Validate required parameters
+            const report = reports[selectedReport];
+            for (const param of report.parameters) {
+                if (!parameters[param]) {
+                    addLog(`❌ Please fill in the ${param} field`, 'error');
+                    return;
+                }
+            }
+
+            isLoading = true;
+            const generateBtn = document.getElementById('generateBtn');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="loading"></span> Generating...';
+
+            try {
+                addLog(`🚀 Generating ${report.name}...`, 'info');
+
+                let requestUrl = `${SCRIPT_URL}?function=${selectedReport}&authToken=${AUTH_TOKEN}`;
+                
+                // Add parameters to URL
+                if (parameters.customDate) {
+                    const dateValue = new Date(parameters.customDate);
+                    requestUrl += `&customDateString=${encodeURIComponent(dateValue.toISOString())}`;
+                }
+
+                const response = await fetch(requestUrl);
+                const data = await response.json();
+
+                if (data.result) {
+                    addLog(`✅ ${report.name} generated successfully!`, 'success');
+                    updateReportStatus(selectedReport, `Last run: ${new Date().toLocaleTimeString()}`);
+                    
+                    // Show success details
+                    addLog(`📊 Report details: ${data.result}`, 'info');
+                } else {
+                    throw new Error(data.error || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+                
+                if (error.message.includes('Unauthorized')) {
+                    addLog('🔑 Authentication failed. Please check your credentials.', 'error');
+                } else if (error.message.includes('login')) {
+                    addLog('🔐 Script access issue. Ensure proper deployment settings.', 'error');
+                }
+            } finally {
+                isLoading = false;
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = 'Generate Report';
+                cancelSelection();
+            }
+        }
+
+        function updateReportStatus(reportName, status) {
+            const card = document.querySelector(`[data-script="${reportName}"]`);
+            const statusElement = card.querySelector('.report-status');
+            statusElement.textContent = status;
+        }
+
+        function addLog(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>${sanitizeInput(message)}</div>
+            `;
+
+            const logsList = document.getElementById('logsList');
+            const noLogs = logsList.querySelector('.no-logs');
+            if (noLogs) {
+                noLogs.remove();
+            }
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+            
+            // Keep only last 10 logs
+            logs.unshift({ message, type, timestamp });
+            if (logs.length > 10) {
+                logs = logs.slice(0, 10);
+                const logItems = logsList.querySelectorAll('.log-item');
+                if (logItems.length > 10) {
+                    logItems[logItems.length - 1].remove();
+                }
+            }
+            
+            saveLogs();
+        }
+
+        function renderLogs() {
+            const logsList = document.getElementById('logsList');
+            logsList.innerHTML = '';
+            
+            if (logs.length === 0) {
+                logsList.innerHTML = '<div class="no-logs">No reports generated yet</div>';
+                return;
+            }
+            
+            logs.forEach(({ message, type, timestamp }) => {
+                const logItem = document.createElement('div');
+                logItem.className = `log-item ${type}`;
+                logItem.innerHTML = `
+                    <div class="log-timestamp">[${timestamp}]</div>
+                    <div>${sanitizeInput(message)}</div>
+                `;
+                logsList.appendChild(logItem);
+            });
+        }
+
+        function saveLogs() {
+            localStorage.setItem('reportLogs', JSON.stringify(logs));
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('logsList').innerHTML = '<div class="no-logs">No reports generated yet</div>';
+            saveLogs();
+        }
+
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+
+        // Auto-focus on first input when form is shown
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.classList.contains('parameter-form') && 
+                    mutation.target.classList.contains('show')) {
+                    const firstInput = mutation.target.querySelector('input');
+                    if (firstInput) {
+                        setTimeout(() => firstInput.focus(), 100);
+                    }
+                }
+            });
+        });
+
+        observer.observe(document.getElementById('parameterForm'), {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    </script>
+</body>
+</html>
