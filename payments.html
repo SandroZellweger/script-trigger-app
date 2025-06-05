@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Payments">
+    <title>Payments - Script Trigger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .payment-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .create-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+        }
+
+        .create-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .create-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .payment-details {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .amount-display {
+            font-size: 36px;
+            font-weight: 700;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+
+        .description-display {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .payment-link {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .payment-link:hover {
+            background: #e9ecef;
+        }
+
+        .payment-link.copied {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .logs-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .logs-section h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .log-item {
+            padding: 10px;
+            border-left: 3px solid #e1e5e9;
+            margin-bottom: 10px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+
+        .log-item.success {
+            border-left-color: #4CAF50;
+            background: rgba(212, 237, 218, 0.8);
+        }
+
+        .log-item.error {
+            border-left-color: #f44336;
+            background: rgba(248, 215, 218, 0.8);
+        }
+
+        .log-timestamp {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .no-logs {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .payment-form, .result-section, .logs-section {
+                padding: 20px;
+            }
+            
+            .amount-display {
+                font-size: 28px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back to Home">
+        ←
+    </button>
+
+    <div class="container">
+        <div class="header">
+            <h1>💳 Payment Links</h1>
+            <p>Create Stripe payment links instantly</p>
+        </div>
+
+        <div class="payment-form">
+            <div class="input-group">
+                <label for="amount">Amount (CHF):</label>
+                <input type="number" id="amount" step="0.01" min="0.01" placeholder="150.00" required>
+            </div>
+
+            <div class="input-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" placeholder="Noleggio Furgone - 3 giorni" required>
+            </div>
+
+            <button class="create-btn" id="createBtn" onclick="createPaymentLink()">
+                Create Payment Link
+            </button>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="payment-details">
+                <div class="amount-display" id="resultAmount">CHF 0.00</div>
+                <div class="description-display" id="resultDescription">Description</div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong>Payment Link:</strong>
+            </div>
+            <div class="payment-link" id="paymentLink" onclick="copyToClipboard()">
+                <!-- Payment link will appear here -->
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openPaymentPage()">
+                    🚀 Open Payment Page
+                </button>
+                <button class="btn btn-secondary" onclick="copyToClipboard()">
+                    📋 Copy Link
+                </button>
+                <button class="btn btn-secondary" onclick="createNew()">
+                    ➕ Create New
+                </button>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <h3>📊 Recent Activity</h3>
+            <div id="logsList">
+                <div class="no-logs">No activity yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const AUTH_TOKEN = "myAppToken2025";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+
+        let currentPaymentLink = '';
+        let isLoading = false;
+
+        // Load logs from localStorage
+        let logs = JSON.parse(localStorage.getItem('paymentLogs')) || [];
+        renderLogs();
+
+        async function createPaymentLink() {
+            if (isLoading) return;
+
+            const amount = document.getElementById('amount').value;
+            const description = document.getElementById('description').value;
+
+            if (!amount || !description) {
+                addLog('❌ Please fill in all fields', 'error');
+                return;
+            }
+
+            if (parseFloat(amount) <= 0) {
+                addLog('❌ Amount must be greater than 0', 'error');
+                return;
+            }
+
+            isLoading = true;
+            const createBtn = document.getElementById('createBtn');
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<span class="loading"></span> Creating...';
+
+            try {
+                addLog(`🚀 Creating payment link for CHF ${amount}...`, 'info');
+
+                const requestUrl = `${SCRIPT_URL}?function=triggerStripePayment&authToken=${AUTH_TOKEN}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
+
+                const response = await fetch(requestUrl);
+                const data = await response.json();
+
+                if (data.result) {
+                    // Extract the Stripe URL from the response
+                    const urlMatch = data.result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
+                    if (urlMatch) {
+                        currentPaymentLink = urlMatch[0];
+                        showPaymentResult(amount, description, currentPaymentLink);
+                        addLog(`✅ Payment link created successfully!`, 'success');
+                    } else {
+                        throw new Error('Could not extract payment URL from response');
+                    }
+                } else {
+                    throw new Error(data.error || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                createBtn.disabled = false;
+                createBtn.innerHTML = 'Create Payment Link';
+            }
+        }
+
+        function showPaymentResult(amount, description, paymentUrl) {
+            document.getElementById('resultAmount').textContent = `CHF ${amount}`;
+            document.getElementById('resultDescription').textContent = description;
+            document.getElementById('paymentLink').textContent = paymentUrl;
+            document.getElementById('resultSection').classList.add('show');
+
+            // Scroll to result
+            document.getElementById('resultSection').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }
+
+        function copyToClipboard() {
+            if (!currentPaymentLink) return;
+
+            navigator.clipboard.writeText(currentPaymentLink).then(() => {
+                const linkElement = document.getElementById('paymentLink');
+                linkElement.classList.add('copied');
+                linkElement.textContent = '✅ Copied to clipboard!';
+                
+                setTimeout(() => {
+                    linkElement.classList.remove('copied');
+                    linkElement.textContent = currentPaymentLink;
+                }, 2000);
+
+                addLog('✅ Payment link copied to clipboard', 'success');
+            }).catch(() => {
+                addLog('⚠️ Could not copy to clipboard', 'error');
+            });
+        }
+
+        function openPaymentPage() {
+            if (currentPaymentLink) {
+                window.open(currentPaymentLink, '_blank');
+                addLog('🚀 Payment page opened in new tab', 'info');
+            }
+        }
+
+        function createNew() {
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('resultSection').classList.remove('show');
+            currentPaymentLink = '';
+            
+            // Focus on amount field
+            document.getElementById('amount').focus();
+        }
+
+        function addLog(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>${sanitizeInput(message)}</div>
+            `;
+
+            const logsList = document.getElementById('logsList');
+            const noLogs = logsList.querySelector('.no-logs');
+            if (noLogs) {
+                noLogs.remove();
+            }
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+            
+            // Keep only last 5 logs
+            logs.unshift({ message, type, timestamp });
+            if (logs.length > 5) {
+                logs = logs.slice(0, 5);
+                const logItems = logsList.querySelectorAll('.log-item');
+                if (logItems.length > 5) {
+                    logItems[logItems.length - 1].remove();
+                }
+            }
+            
+            saveLogs();
+        }
+
+        function renderLogs() {
+            const logsList = document.getElementById('logsList');
+            logsList.innerHTML = '';
+            
+            if (logs.length === 0) {
+                logsList.innerHTML = '<div class="no-logs">No activity yet</div>';
+                return;
+            }
+            
+            logs.forEach(({ message, type, timestamp }) => {
+                const logItem = document.createElement('div');
+                logItem.className = `log-item ${type}`;
+                logItem.innerHTML = `
+                    <div class="log-timestamp">[${timestamp}]</div>
+                    <div>${sanitizeInput(message)}</div>
+                `;
+                logsList.appendChild(logItem);
+            });
+        }
+
+        function saveLogs() {
+            localStorage.setItem('paymentLogs', JSON.stringify(logs));
+        }
+
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+
+        // Enter key support
+        document.getElementById('amount').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('description').focus();
+            }
+        });
+
+        document.getElementById('description').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                createPaymentLink();
+            }
+        });
+
+        // Auto-focus on amount field
+        document.getElementById('amount').focus();
+    </script>
+</body>
+</html>
