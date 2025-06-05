@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Settings">
+    <title>Settings - Script Trigger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .settings-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            font-family: monospace;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .toggle-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .toggle-group:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .toggle-info {
+            flex: 1;
+        }
+
+        .toggle-title {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .toggle-description {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(24px);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-test {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-test:hover {
+            background: #1976D2;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #4CAF50;
+        }
+
+        .status-offline {
+            background: #f44336;
+        }
+
+        .status-testing {
+            background: #FF9800;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .success-message, .error-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #5a6fd8;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .settings-section {
+                padding: 20px;
+            }
+            
+            .button-row {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back to Home">
+        ←
+    </button>
+
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Settings</h1>
+            <p>Configure your app preferences</p>
+        </div>
+
+        <!-- Core Configuration -->
+        <div class="settings-section">
+            <div class="section-title">
+                🔧 Core Configuration
+            </div>
+            
+            <div class="input-group">
+                <label for="scriptUrl">Google Apps Script URL:</label>
+                <textarea id="scriptUrl" placeholder="https://script.google.com/macros/s/..."></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label for="authToken">Authentication Token:</label>
+                <input type="text" id="authToken" placeholder="myAppToken2025">
+            </div>
+            
+            <div class="button-row">
+                <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                <button class="btn btn-test" onclick="testConnection()">
+                    <span id="connectionStatus" class="status-indicator status-offline"></span>
+                    Test Connection
+                </button>
+            </div>
+            
+            <div id="connectionMessage"></div>
+        </div>
+
+        <!-- Default Values -->
+        <div class="settings-section">
+            <div class="section-title">
+                📋 Default Values
+            </div>
+            
+            <div class="input-group">
+                <label for="defaultAmount">Default Payment Amount (CHF):</label>
+                <input type="number" id="defaultAmount" step="0.01" min="0" placeholder="100.00">
+            </div>
+            
+            <div class="input-group">
+                <label for="defaultDescription">Default Payment Description:</label>
+                <input type="text" id="defaultDescription" placeholder="Noleggio Furgone">
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveDefaults()">💾 Save Defaults</button>
+        </div>
+
+        <!-- App Preferences -->
+        <div class="settings-section">
+            <div class="section-title">
+                📱 App Preferences
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-info">
+                    <div class="toggle-title">Sound Notifications</div>
+                    <div class="toggle-description">Play sounds for success/error messages</div>
+                </div>
+                <div class="toggle-switch" onclick="toggleSetting('soundEnabled')">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-info">
+                    <div class="toggle-title">Auto-clear Logs</div>
+                    <div class="toggle-description">Automatically clear old logs (keep last 10)</div>
+                </div>
+                <div class="toggle-switch" onclick="toggleSetting('autoClearLogs')">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-info">
+                    <div class="toggle-title">Vibration Feedback</div>
+                    <div class="toggle-description">Vibrate on button presses (mobile)</div>
+                </div>
+                <div class="toggle-switch" onclick="toggleSetting('vibrationEnabled')">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="settings-section">
+            <div class="section-title">
+                💾 Data Management
+            </div>
+            
+            <div class="button-row">
+                <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
+                <div class="file-input-wrapper">
+                    <input type="file" id="importFile" accept=".json" onchange="importData(this)">
+                    <label for="importFile" class="file-input-label">📥 Import Data</label>
+                </div>
+            </div>
+            
+            <div class="button-row">
+                <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Clear All Logs</button>
+                <button class="btn btn-danger" onclick="resetApp()">⚠️ Reset App</button>
+            </div>
+            
+            <div id="dataMessage"></div>
+        </div>
+
+        <!-- App Info -->
+        <div class="settings-section">
+            <div class="section-title">
+                ℹ️ App Information
+            </div>
+            
+            <div style="color: #666; font-size: 14px; line-height: 1.6;">
+                <div><strong>Version:</strong> 2.0.0</div>
+                <div><strong>Last Updated:</strong> <span id="lastUpdated"></span></div>
+                <div><strong>Storage Used:</strong> <span id="storageUsed"></span></div>
+                <div><strong>Total Scripts Run:</strong> <span id="scriptsRun"></span></div>
+            </div>
+            
+            <div class="button-row">
+                <button class="btn btn-secondary" onclick="showAbout()">📖 About</button>
+                <button class="btn btn-secondary" onclick="installPWA()">📱 Install App</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default settings
+        const defaultSettings = {
+            scriptUrl: 'https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec',
+            authToken: 'myAppToken2025',
+            defaultAmount: '100.00',
+            defaultDescription: 'Noleggio Furgone',
+            soundEnabled: true,
+            autoClearLogs: true,
+            vibrationEnabled: true
+        };
+
+        let settings = { ...defaultSettings };
+
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            updateAppInfo();
+        });
+
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('appSettings');
+            if (savedSettings) {
+                settings = { ...defaultSettings, ...JSON.parse(savedSettings) };
+            }
+
+            // Populate form fields
+            document.getElementById('scriptUrl').value = settings.scriptUrl;
+            document.getElementById('authToken').value = settings.authToken;
+            document.getElementById('defaultAmount').value = settings.defaultAmount;
+            document.getElementById('defaultDescription').value = settings.defaultDescription;
+
+            // Update toggles
+            updateToggle('soundEnabled', settings.soundEnabled);
+            updateToggle('autoClearLogs', settings.autoClearLogs);
+            updateToggle('vibrationEnabled', settings.vibrationEnabled);
+        }
+
+        function saveSettings() {
+            settings.scriptUrl = document.getElementById('scriptUrl').value.trim();
+            settings.authToken = document.getElementById('authToken').value.trim();
+
+            if (!settings.scriptUrl || !settings.authToken) {
+                showMessage('connectionMessage', 'Please fill in all required fields', 'error');
+                return;
+            }
+
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+            showMessage('connectionMessage', 'Settings saved successfully!', 'success');
+            vibrate();
+        }
+
+        function saveDefaults() {
+            settings.defaultAmount = document.getElementById('defaultAmount').value;
+            settings.defaultDescription = document.getElementById('defaultDescription').value;
+            
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+            showMessage('connectionMessage', 'Default values saved!', 'success');
+            vibrate();
+        }
+
+        async function testConnection() {
+            const statusIndicator = document.getElementById('connectionStatus');
+            statusIndicator.className = 'status-indicator status-testing';
+            
+            try {
+                const response = await fetch(`${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
+                const data = await response.json();
+                
+                if (data.result) {
+                    statusIndicator.className = 'status-indicator status-online';
+                    showMessage('connectionMessage', '✅ Connection successful! Google Apps Script is online.', 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (error) {
+                statusIndicator.className = 'status-indicator status-offline';
+                showMessage('connectionMessage', `❌ Connection failed: ${error.message}`, 'error');
+            }
+            vibrate();
+        }
+
+        function toggleSetting(setting) {
+            settings[setting] = !settings[setting];
+            updateToggle(setting, settings[setting]);
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+            vibrate();
+        }
+
+        function updateToggle(setting, value) {
+            const toggles = document.querySelectorAll('.toggle-switch');
+            const settingNames = ['soundEnabled', 'autoClearLogs', 'vibrationEnabled'];
+            const index = settingNames.indexOf(setting);
+            
+            if (index !== -1) {
+                toggles[index].classList.toggle('active', value);
+            }
+        }
+
+        function exportData() {
+            const data = {
+                settings: settings,
+                paymentLogs: JSON.parse(localStorage.getItem('paymentLogs') || '[]'),
+                reportLogs: JSON.parse(localStorage.getItem('reportLogs') || '[]'),
+                expenseLogs: JSON.parse(localStorage.getItem('expenseLogs') || '[]'),
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `script-trigger-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showMessage('dataMessage', '📤 Data exported successfully!', 'success');
+            vibrate();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.settings) {
+                        settings = { ...defaultSettings, ...data.settings };
+                        localStorage.setItem('appSettings', JSON.stringify(settings));
+                        loadSettings();
+                    }
+                    
+                    if (data.paymentLogs) {
+                        localStorage.setItem('paymentLogs', JSON.stringify(data.paymentLogs));
+                    }
+                    
+                    if (data.reportLogs) {
+                        localStorage.setItem('reportLogs', JSON.stringify(data.reportLogs));
+                    }
+                    
+                    showMessage('dataMessage', '📥 Data imported successfully!', 'success');
+                } catch (error) {
+                    showMessage('dataMessage', '❌ Invalid backup file', 'error');
+                }
+            };
+            reader.readAsText(file);
+            vibrate();
+        }
+
+        function clearLogs() {
+            if (confirm('Clear all logs? This cannot be undone.')) {
+                localStorage.removeItem('paymentLogs');
+                localStorage.removeItem('reportLogs');
+                localStorage.removeItem('expenseLogs');
+                showMessage('dataMessage', '🗑️ All logs cleared', 'success');
+                updateAppInfo();
+                vibrate();
+            }
+        }
+
+        function resetApp() {
+            if (confirm('Reset entire app? This will clear all settings and data.')) {
+                localStorage.clear();
+                settings = { ...defaultSettings };
+                loadSettings();
+                showMessage('dataMessage', '⚠️ App reset to defaults', 'success');
+                updateAppInfo();
+                vibrate();
+            }
+        }
+
+        function updateAppInfo() {
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString();
+            
+            // Calculate storage usage
+            let totalSize = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    totalSize += localStorage[key].length;
+                }
+            }
+            document.getElementById('storageUsed').textContent = `${Math.round(totalSize / 1024)} KB`;
+            
+            // Count scripts run
+            const paymentLogs = JSON.parse(localStorage.getItem('paymentLogs') || '[]');
+            const reportLogs = JSON.parse(localStorage.getItem('reportLogs') || '[]');
+            document.getElementById('scriptsRun').textContent = paymentLogs.length + reportLogs.length;
+        }
+
+        function showAbout() {
+            alert(`Script Trigger App v2.0.0
+
+A mobile-optimized business automation tool for:
+• Generating reports
+• Creating payment links  
+• Managing expenses
+• Script automation
+
+Built with modern web technologies for maximum compatibility and performance.`);
+        }
+
+        function installPWA() {
+            if ('serviceWorker' in navigator) {
+                alert('To install this app:\n\n1. Tap the browser menu\n2. Select "Add to Home Screen"\n3. Tap "Add"\n\nThe app will then work like a native mobile app!');
+            } else {
+                alert('PWA installation not supported on this device.');
+            }
+        }
+
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type === 'error' ? 'error-message' : 'success-message'}">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 5000);
+        }
+
+        function vibrate() {
+            if (settings.vibrationEnabled && 'vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
+        }
+
+        // Sound notification function
+        function playSound(type) {
+            if (!settings.soundEnabled) return;
+            
+            // Create audio context for sound feedback
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                oscillator.frequency.value = type === 'success' ? 800 : 400;
+                oscillator.type = 'sine';
+                
+                gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                // Audio not supported
+            }
+        }
+    </script>
+</body>
+</html>
