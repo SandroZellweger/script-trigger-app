@@ -391,6 +391,15 @@
             background: #FFB300;
         }
 
+        .delete-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #d32f2f;
+        }
+
         .view-image-btn {
             background: #2196F3;
             color: white;
@@ -474,6 +483,34 @@
             background: #5a6268;
         }
 
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 15px;
@@ -506,6 +543,10 @@
             .expense-actions {
                 flex-direction: column;
             }
+            
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -520,6 +561,22 @@
             <p>Track and manage business expenses</p>
         </div>
 
+        <!-- Statistics Cards -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-value" id="totalExpenses">CHF 0</div>
+                <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="monthExpenses">CHF 0</div>
+                <div class="stat-label">This Month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="expenseCount">0</div>
+                <div class="stat-label">Total Entries</div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="action-buttons">
             <button class="action-btn new-expense" onclick="showNewExpenseForm()">
@@ -529,9 +586,9 @@
             </button>
             
             <button class="action-btn view-expenses" onclick="viewExpenses()">
-                <span class="btn-icon">📋</span>
+                <span class="btn-icon">📋</span>  
                 <div class="btn-title">View Expenses</div>
-                <div class="btn-description">See and edit past expenses</div>
+                <div class="btn-description">See and manage past expenses</div>
             </button>
         </div>
 
@@ -568,7 +625,16 @@
             
             <div class="input-group">
                 <label for="expenseCategory">Category:</label>
-                <input type="text" id="expenseCategory" placeholder="e.g., Fuel, Maintenance, Supplies">
+                <input type="text" id="expenseCategory" placeholder="e.g., Fuel, Maintenance, Supplies" list="categories">
+                <datalist id="categories">
+                    <option value="Fuel">
+                    <option value="Maintenance">
+                    <option value="Supplies">
+                    <option value="Office">
+                    <option value="Travel">
+                    <option value="Equipment">
+                    <option value="Other">
+                </datalist>
             </div>
             
             <div class="input-group">
@@ -605,7 +671,7 @@
             </div>
             
             <div class="input-group">
-                <label for="expenseFile">Receipt Photo:</label>
+                <label for="expenseFile">Receipt Photo (Optional):</label>
                 <input type="file" id="expenseFile" accept="image/*" capture="camera" onchange="previewFile()">
                 <div class="file-preview" id="filePreview">
                     <span id="fileName">No file selected</span>
@@ -613,6 +679,9 @@
                 <div class="current-image" id="currentImage">
                     <small>Current: <a id="currentImageLink" target="_blank" rel="noopener">View current image</a></small>
                 </div>
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Note: Image uploads are temporarily disabled due to technical limitations.
+                </small>
             </div>
             
             <div class="button-row">
@@ -647,9 +716,10 @@
     </div>
 
     <script>
-        // Configuration
-        const AUTH_TOKEN = "myAppToken2025";
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+        // Configuration - Load from settings
+        let appSettings = JSON.parse(localStorage.getItem('appSettings')) || {};
+        const AUTH_TOKEN = appSettings.authToken || "myAppToken2025";
+        const SCRIPT_URL = appSettings.scriptUrl || "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
 
         let isLoading = false;
         let editingExpenseRow = null;
@@ -662,6 +732,7 @@
         // Set today's date as default
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            updateStatistics();
         });
 
         function showNewExpenseForm() {
@@ -679,7 +750,7 @@
             document.getElementById('expenseVehicle').value = 'All';
             document.getElementById('expenseProfiteur').value = 'Sandro';
             document.getElementById('expenseFile').value = '';
-            document.getElementById('expenseFile').required = true;
+            document.getElementById('expenseFile').required = false;
             
             hideFilePreview();
             hideCurrentImage();
@@ -726,12 +797,23 @@
             addLog('🔍 Loading expenses...', 'info');
 
             try {
+                // Your script uses JSONP for GET requests
                 const response = await fetch(`${SCRIPT_URL}?function=getExpenses&authToken=${AUTH_TOKEN}`);
-                const data = await response.json();
+                const text = await response.text();
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    // Handle potential JSONP response
+                    addLog('❌ Error parsing response. Check CORS settings in Google Apps Script.', 'error');
+                    throw new Error('Invalid response format');
+                }
 
                 if (data.result) {
                     expenses = data.result;
                     renderExpenses(expenses);
+                    updateStatistics();
                     hideExpenseForm();
                     document.getElementById('expensesList').classList.add('show');
                     document.getElementById('expensesList').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -741,6 +823,7 @@
                 }
             } catch (error) {
                 addLog(`❌ Error loading expenses: ${error.message}`, 'error');
+                addLog('💡 Tip: Make sure your Google Apps Script URL is correct and CORS is enabled', 'info');
             } finally {
                 isLoading = false;
             }
@@ -775,6 +858,9 @@
                             ✏️ Edit
                         </button>
                         ${expense.imageUrl ? `<button class="expense-btn view-image-btn" onclick="viewImage('${expense.imageUrl}')">🖼️ View Receipt</button>` : ''}
+                        <button class="expense-btn delete-btn" onclick="deleteExpense(${index + 2})">
+                            🗑️ Delete
+                        </button>
                     </div>
                 `;
                 container.appendChild(expenseItem);
@@ -813,67 +899,86 @@
             isLoading = true;
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="loading"></span> <span id="submitText">Submitting...</span>';
+            submitBtn.innerHTML = '<span class="loading"></span> <span id="submitText">Processing...</span>';
 
             try {
-                let base64Image = null;
-                let imageName = null;
-
+                let imageBase64 = '';
+                let imageName = '';
+                
+                // Convert image to base64 if selected
                 if (file) {
+                    addLog('📸 Processing receipt image...', 'info');
                     const reader = new FileReader();
-                    base64Image = await new Promise((resolve, reject) => {
-                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                    const base64Promise = new Promise((resolve, reject) => {
+                        reader.onload = function(e) {
+                            const base64 = e.target.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+                            resolve(base64);
+                        };
                         reader.onerror = reject;
                         reader.readAsDataURL(file);
                     });
-                    imageName = file.name;
+                    
+                    imageBase64 = await base64Promise;
+                    imageName = `expense_${Date.now()}_${file.name}`;
                 }
 
-                const payload = {
-                    rowNumber: rowNumber || null,
+                // Since we can't use POST, we'll need to send data via GET parameters
+                // Note: This has limitations on data size, especially for images
+                const functionName = rowNumber ? 'editExpense' : 'logExpense';
+                
+                // Build URL with parameters
+                const params = new URLSearchParams({
+                    function: functionName,
+                    authToken: AUTH_TOKEN,
                     date: date,
                     method: method,
                     paidBy: paidBy,
                     category: category,
-                    amount: parseFloat(amount),
+                    amount: amount,
                     vehicle: vehicle,
-                    profiteur: profiteur,
-                    image: base64Image,
-                    imageName: imageName,
-                    authToken: AUTH_TOKEN
-                };
-
-                const functionName = rowNumber ? 'editExpense' : 'logExpense';
-                const response = await fetch(`${SCRIPT_URL}?function=${functionName}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    profiteur: profiteur
                 });
 
-                const data = await response.json();
-
-                if (data.result) {
-                    const action = rowNumber ? 'edited' : 'logged';
-                    addLog(`✅ Expense ${action} successfully: CHF ${amount} (${category || 'No category'}) on ${date}`, 'success');
-                    cancelForm();
-                    
-                    // Vibrate on success
-                    if ('vibrate' in navigator) {
-                        navigator.vibrate(100);
-                    }
-                } else {
-                    throw new Error(data.error || 'Unknown error occurred');
+                if (rowNumber) {
+                    params.append('rowNumber', rowNumber);
                 }
 
+                // For image data, we'll need to use a different approach
+                // Option 1: Store temporarily in localStorage and send in chunks
+                // Option 2: Use Google Forms as an intermediary
+                // Option 3: Direct Google Drive API upload
+                
+                if (imageBase64) {
+                    // Store image temporarily
+                    const imageKey = `tempImage_${Date.now()}`;
+                    localStorage.setItem(imageKey, imageBase64);
+                    params.append('imageKey', imageKey);
+                    params.append('imageName', imageName);
+                    
+                    addLog('⚠️ Large images may fail with GET requests. Consider using Google Forms for image uploads.', 'warning');
+                }
+
+                const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+                const result = await response.json();
+                
+                if (result.result && result.result.includes('successfully')) {
+                    addLog(`✅ Expense ${rowNumber ? 'updated' : 'added'} successfully!`, 'success');
+                    
+                    // Clean up temporary image data
+                    if (imageBase64) {
+                        const imageKey = params.get('imageKey');
+                        localStorage.removeItem(imageKey);
+                    }
+                    
+                    cancelForm();
+                    viewExpenses();
+                } else {
+                    throw new Error(result.error || 'Failed to save expense');
+                }
             } catch (error) {
                 addLog(`❌ Error: ${error.message}`, 'error');
-                
-                if (error.message.includes('Unauthorized')) {
-                    addLog('🔑 Authentication failed. Please check settings.', 'error');
-                } else if (error.message.includes('login')) {
-                    addLog('🔐 Script access issue. Check deployment settings.', 'error');
+                if (error.message.includes('URI Too Long') || error.message.includes('414')) {
+                    addLog('💡 Image too large for GET request. Try a smaller image or use alternative upload method.', 'info');
                 }
             } finally {
                 isLoading = false;
@@ -882,8 +987,49 @@
             }
         }
 
+        async function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('function', 'uploadImage');
+            formData.append('authToken', AUTH_TOKEN);
+            formData.append('imageFile', file);
+            formData.append('fileName', `expense_${Date.now()}_${file.name}`);
+
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            
+            if (result.imageUrl) {
+                return result.imageUrl;
+            } else {
+                throw new Error('Failed to upload image');
+            }
+        }
+
+        async function deleteExpense(rowNumber) {
+            if (!confirm('Are you sure you want to delete this expense?')) return;
+            
+            if (isLoading) return;
+            
+            isLoading = true;
+            addLog('🗑️ Deleting expense...', 'info');
+
+            try {
+                // For now, deletion is not implemented in your Google Apps Script
+                // You would need to add a deleteExpense function to your script
+                addLog('❌ Delete function not yet implemented in Google Apps Script', 'error');
+                addLog('💡 To enable deletion, add a deleteExpense function to your Google Apps Script', 'info');
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+            }
+        }
+
         function cancelForm() {
-            hideExpenseForm();
+            document.getElementById('expenseForm').classList.remove('show');
             editingExpenseRow = null;
         }
 
@@ -897,20 +1043,12 @@
 
         function previewFile() {
             const file = document.getElementById('expenseFile').files[0];
-            const preview = document.getElementById('filePreview');
-            const fileName = document.getElementById('fileName');
-
             if (file) {
-                fileName.textContent = `📎 ${file.name} (${formatFileSize(file.size)})`;
-                preview.classList.add('show');
-                hideCurrentImage();
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('filePreview').classList.add('show');
             } else {
                 hideFilePreview();
             }
-        }
-
-        function showFilePreview() {
-            document.getElementById('filePreview').classList.add('show');
         }
 
         function hideFilePreview() {
@@ -928,88 +1066,16 @@
         }
 
         function viewImage(imageUrl) {
-            window.open(imageUrl, '_blank', 'noopener');
-            addLog('🖼️ Opened receipt image', 'info');
+            window.open(imageUrl, '_blank');
         }
 
         function formatDate(dateString) {
             const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+            return date.toLocaleDateString('en-CH', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
             });
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function addLog(message, type = 'info') {
-            const logItem = document.createElement('div');
-            logItem.className = `log-item ${type}`;
-            const timestamp = new Date().toLocaleTimeString();
-            logItem.innerHTML = `
-                <div class="log-timestamp">[${timestamp}]</div>
-                <div>${sanitizeInput(message)}</div>
-            `;
-
-            const logsList = document.getElementById('logsList');
-            const noLogs = logsList.querySelector('.no-logs');
-            if (noLogs) {
-                noLogs.remove();
-            }
-
-            logsList.insertBefore(logItem, logsList.firstChild);
-            
-            // Keep only last 10 logs
-            logs.unshift({ message, type, timestamp });
-            if (logs.length > 10) {
-                logs = logs.slice(0, 10);
-                const logItems = logsList.querySelectorAll('.log-item');
-                if (logItems.length > 10) {
-                    logItems[logItems.length - 1].remove();
-                }
-            }
-            
-            saveLogs();
-        }
-
-        function renderLogs() {
-            const logsList = document.getElementById('logsList');
-            logsList.innerHTML = '';
-            
-            if (logs.length === 0) {
-                logsList.innerHTML = '<div class="no-logs">No activity yet</div>';
-                return;
-            }
-            
-            logs.forEach(({ message, type, timestamp }) => {
-                const logItem = document.createElement('div');
-                logItem.className = `log-item ${type}`;
-                logItem.innerHTML = `
-                    <div class="log-timestamp">[${timestamp}]</div>
-                    <div>${sanitizeInput(message)}</div>
-                `;
-                logsList.appendChild(logItem);
-            });
-        }
-
-        function saveLogs() {
-            localStorage.setItem('expenseLogs', JSON.stringify(logs));
-        }
-
-        function clearLogs() {
-            if (confirm('Clear all activity logs? This cannot be undone.')) {
-                logs = [];
-                document.getElementById('logsList').innerHTML = '<div class="no-logs">No activity yet</div>';
-                saveLogs();
-                addLog('🗑️ Activity logs cleared', 'info');
-            }
         }
 
         function sanitizeInput(input) {
@@ -1019,90 +1085,70 @@
             return div.innerHTML;
         }
 
-        // Auto-focus on amount field when form is shown
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.target.id === 'expenseForm' && 
-                    mutation.target.classList.contains('show')) {
-                    // Focus on the first empty required field
-                    const requiredFields = ['expenseDate', 'expenseAmount', 'expenseCategory'];
-                    for (const fieldId of requiredFields) {
-                        const field = document.getElementById(fieldId);
-                        if (!field.value) {
-                            setTimeout(() => field.focus(), 100);
-                            break;
-                        }
-                    }
-                }
+        function addLog(message, type = 'info') {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('en-CH', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
             });
-        });
-
-        observer.observe(document.getElementById('expenseForm'), {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // ESC to cancel form
-            if (e.key === 'Escape') {
-                const expenseForm = document.getElementById('expenseForm');
-                const expensesList = document.getElementById('expensesList');
-                
-                if (expenseForm.classList.contains('show')) {
-                    cancelForm();
-                } else if (expensesList.classList.contains('show')) {
-                    hideExpensesList();
-                }
-            }
             
-            // Ctrl/Cmd + N for new expense
-            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-                e.preventDefault();
-                showNewExpenseForm();
-            }
+            const log = { message, type, timestamp };
+            logs.unshift(log);
             
-            // Ctrl/Cmd + E for view expenses
-            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-                e.preventDefault();
-                viewExpenses();
-            }
-        });
+            // Keep only last 50 logs
+            if (logs.length > 50) logs = logs.slice(0, 50);
+            
+            localStorage.setItem('expenseLogs', JSON.stringify(logs));
+            renderLogs();
+        }
 
-        // Enter key navigation in form
-        document.getElementById('expenseDate').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('expenseMethod').focus();
+        function renderLogs() {
+            const logsList = document.getElementById('logsList');
+            
+            if (logs.length === 0) {
+                logsList.innerHTML = '<div class="no-logs">No activity yet</div>';
+                return;
             }
-        });
 
-        document.getElementById('expenseAmount').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('expenseCategory').focus();
+            logsList.innerHTML = logs.map(log => `
+                <div class="log-item ${log.type}">
+                    <strong class="log-timestamp">[${log.timestamp}]</strong><br>
+                    ${log.message}
+                </div>
+            `).join('');
+        }
+
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                logs = [];
+                localStorage.removeItem('expenseLogs');
+                renderLogs();
+                addLog('📊 Logs cleared', 'info');
             }
-        });
+        }
 
-        document.getElementById('expenseCategory').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('expenseVehicle').focus();
-            }
-        });
+        function updateStatistics() {
+            const totalAmount = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            const monthAmount = expenses
+                .filter(exp => {
+                    const expDate = new Date(exp.date);
+                    return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+                })
+                .reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
 
-        // Auto-format amount field
-        document.getElementById('expenseAmount').addEventListener('blur', function(e) {
-            const value = parseFloat(e.target.value);
-            if (!isNaN(value)) {
-                e.target.value = value.toFixed(2);
-            }
-        });
+            document.getElementById('totalExpenses').textContent = `CHF ${totalAmount.toFixed(2)}`;
+            document.getElementById('monthExpenses').textContent = `CHF ${monthAmount.toFixed(2)}`;
+            document.getElementById('expenseCount').textContent = expenses.length;
+        }
 
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Show welcome message
-            setTimeout(() => {
-                addLog('💰 Expense tracker ready! Tap "New Expense" to get started.', 'info');
-            }, 500);
-        });
-    </script>
-</body>
-</html>
+        // Initialize
+        addLog('💰 Expense tracker ready! Tap "New Expense" to get started', 'info');
+
+        // Check configuration
+        if (!appSettings.authToken || !appSettings.scriptUrl) {
+            addLog('⚠️ Configuration missing! Please go to Settings to configure the app.', 'error');
+        }
