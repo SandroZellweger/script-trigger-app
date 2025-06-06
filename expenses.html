@@ -119,74 +119,110 @@
         <button>Clear Logs</button>
     </div>
 
-    <script>
-        function toggleForm() {
-            const form = document.getElementById('expense-form');
-            form.classList.toggle('hidden');
-            if (!form.classList.contains('hidden')) {
-                document.getElementById('new-expense-form').reset();
-                document.getElementById('form-message').textContent = '';
-            }
-        }
-
-        function cancelForm() {
+   <script>
+    function toggleForm() {
+        const form = document.getElementById('expense-form');
+        form.classList.toggle('hidden');
+        if (!form.classList.contains('hidden')) {
             document.getElementById('new-expense-form').reset();
-            document.getElementById('expense-form').classList.add('hidden');
             document.getElementById('form-message').textContent = '';
         }
+    }
 
-        document.getElementById('new-expense-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const form = e.target;
-            const message = document.getElementById('form-message');
-            message.textContent = 'Submitting...';
+    function cancelForm() {
+        document.getElementById('new-expense-form').reset();
+        document.getElementById('expense-form').classList.add('hidden');
+        document.getElementById('form-message').textContent = '';
+    }
 
-            // Basic client-side validation
-            const amount = form.amount.value;
-            if (amount <= 0) {
-                message.textContent = 'Error: Amount must be greater than 0';
-                message.className = 'error';
-                return;
-            }
+    document.getElementById('new-expense-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const message = document.getElementById('form-message');
+        message.textContent = 'Submitting...';
 
-            // Prepare form data
-            const formData = new FormData(form);
-            const data = {};
-            formData.forEach((value, key) => {
-                data[key] = value;
+        // Basic client-side validation
+        const amount = form.amount.value;
+        if (amount <= 0) {
+            message.textContent = 'Error: Amount must be greater than 0';
+            message.className = 'error';
+            return;
+        }
+
+        // Prepare form data
+        const formData = new FormData(form);
+        const data = {
+            function: 'logExpense', // Required by doPost
+            authToken: localStorage.getItem('authToken') || 'myAppToken2025', // From settings or hardcoded
+            date: formData.get('date'),
+            method: formData.get('payment_method'),
+            paidBy: formData.get('paid_by'),
+            category: formData.get('category'),
+            amount: parseFloat(formData.get('amount')),
+            vehicle: formData.get('vehicle'),
+            profiteur: formData.get('profiteur'),
+            image: '', // Image uploads disabled
+            imageName: '' // Image uploads disabled
+        };
+
+        try {
+            // Retrieve script URL from settings (or use deployed URL)
+            const scriptUrl = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+            const response = await fetch(scriptUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
             });
 
-            try {
-                // Replace with your Google Apps Script URL from settings
-                const scriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
-                const response = await fetch(scriptUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer YOUR_AUTH_TOKEN' // Replace with token from settings
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    message.textContent = 'Expense submitted successfully!';
-                    message.className = 'success';
-                    form.reset();
-                    setTimeout(() => {
-                        document.getElementById('expense-form').classList.add('hidden');
-                        message.textContent = '';
-                    }, 2000);
-                    // Optionally, refresh past expenses or update totals
-                } else {
-                    const error = await response.text();
-                    message.textContent = `Error: ${error}`;
-                    message.className = 'error';
-                }
-            } catch (err) {
-                message.textContent = 'Error: Failed to submit expense';
+            const result = await response.json();
+            if (result.result) {
+                message.textContent = 'Expense submitted successfully!';
+                message.className = 'success';
+                form.reset();
+                setTimeout(() => {
+                    document.getElementById('expense-form').classList.add('hidden');
+                    message.textContent = '';
+                    // Optionally, refresh past expenses
+                    fetchPastExpenses();
+                }, 2000);
+            } else {
+                message.textContent = `Error: ${result.error || 'Failed to submit expense'}`;
                 message.className = 'error';
             }
-        });
-    </script>
+        } catch (err) {
+            message.textContent = `Error: ${err.message}`;
+            message.className = 'error';
+        }
+    });
+
+    // Function to fetch and display past expenses
+    async function fetchPastExpenses() {
+        try {
+            const scriptUrl = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+            const response = await fetch(`${scriptUrl}?function=getExpenses&authToken=${encodeURIComponent(localStorage.getItem('authToken') || 'myAppToken2025')}`);
+            const result = await response.json();
+
+            const pastExpensesDiv = document.getElementById('past-expenses');
+            if (result.result && result.result.length > 0) {
+                const expenses = result.result;
+                let html = '<h2>📋 Past Expenses</h2><ul>';
+                expenses.forEach(expense => {
+                    html += `<li>${expense.date} - ${expense.category} - CHF ${expense.amount} (${expense.paidBy})</li>`;
+                });
+                html += '</ul>';
+                pastExpensesDiv.innerHTML = html;
+            } else {
+                pastExpensesDiv.innerHTML = '<h2>📋 Past Expenses</h2><p>No expenses yet</p>';
+            }
+        } catch (err) {
+            console.error('Failed to fetch expenses:', err);
+        }
+    }
+
+    // Fetch past expenses on page load
+    window.onload = fetchPastExpenses;
+</script>
 </body>
 </html>
