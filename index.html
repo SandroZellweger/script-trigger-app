@@ -261,7 +261,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 // Ping the Google Apps Script to check if it's online
-                const scriptUrl = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+                const scriptUrl = "https://script.google.com/macros/s/AKfycbwfWSjTE8g0dK5keWeDsUwFjPBgmk8NLy8bpJJm05h091HJgCNoxVeJnPrF3oSG-u62vw/exec";
                 const response = await fetch(`${scriptUrl}?function=ping&authToken=myAppToken2025`);
                 const data = await response.json();
                 
