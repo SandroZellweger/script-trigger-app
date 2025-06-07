@@ -2,227 +2,853 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expenses</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Expenses">
+    <title>Expenses - Script Trigger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        .hidden { display: none; }
-        .form-section { margin-top: 20px; }
-        .error { color: red; }
-        .success { color: green; }
-        button { cursor: pointer; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .expense-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .expense-form.show {
+            display: block;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .new-expense-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .new-expense-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .expenses-list {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .expenses-list h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .expense-item {
+            padding: 15px;
+            border-left: 4px solid #e1e5e9;
+            margin-bottom: 10px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 0 8px 8px 0;
+            position: relative;
+        }
+
+        .expense-item.fuel {
+            border-left-color: #FF9800;
+        }
+
+        .expense-item.maintenance {
+            border-left-color: #f44336;
+        }
+
+        .expense-item.parking {
+            border-left-color: #2196F3;
+        }
+
+        .expense-item.tolls {
+            border-left-color: #9C27B0;
+        }
+
+        .expense-item.insurance {
+            border-left-color: #4CAF50;
+        }
+
+        .expense-item.other {
+            border-left-color: #607D8B;
+        }
+
+        .expense-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .expense-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .expense-category {
+            font-size: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .expense-details {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .expense-date {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .no-expenses {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        .logs-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .logs-section h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .log-item {
+            padding: 10px;
+            border-left: 3px solid #e1e5e9;
+            margin-bottom: 10px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+
+        .log-item.success {
+            border-left-color: #4CAF50;
+            background: rgba(212, 237, 218, 0.8);
+        }
+
+        .log-item.error {
+            border-left-color: #f44336;
+            background: rgba(248, 215, 218, 0.8);
+        }
+
+        .log-timestamp {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .no-logs {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .expense-form, .expenses-list, .logs-section {
+                padding: 20px;
+            }
+            
+            .button-row {
+                flex-direction: column;
+            }
+            
+            .btn {
+                margin-bottom: 10px;
+            }
+            
+            .radio-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div>
-        <a href="index.html">←</a>
-    </div>
+    <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back to Home">
+        ←
+    </button>
 
-    <div>
-        <h1>💰 Expenses</h1>
-        <p>Track and manage business expenses</p>
-    </div>
-
-    <div>
-        <div>
-            <p><strong>CHF 0</strong></p>
-            <p>Total Expenses</p>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Expenses</h1>
+            <p>Track and manage business expenses</p>
         </div>
-        <div>
-            <p><strong>CHF 0</strong></p>
-            <p>This Month</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalExpenses">CHF 0</div>
+                <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="thisMonth">CHF 0</div>
+                <div class="stat-label">This Month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalEntries">0</div>
+                <div class="stat-label">Total Entries</div>
+            </div>
         </div>
-        <div>
-            <p><strong>0</strong></p>
-            <p>Total Entries</p>
+
+        <button class="new-expense-btn" onclick="toggleExpenseForm()">
+            ➕ Add New Expense
+        </button>
+
+        <div class="expense-form" id="expenseForm">
+            <div class="form-title">💰 New Expense</div>
+            
+            <div class="input-group">
+                <label for="expenseDate">Date of Purchase:</label>
+                <input type="date" id="expenseDate" required>
+            </div>
+
+            <div class="input-group">
+                <label>Payment Method:</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="methodCash" name="paymentMethod" value="Cash" required>
+                        <label for="methodCash">💵 Cash</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="methodCard" name="paymentMethod" value="Card">
+                        <label for="methodCard">💳 Card</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="paidBy">Paid By:</label>
+                <select id="paidBy" required>
+                    <option value="">Select payer</option>
+                    <option value="Company">Company</option>
+                    <option value="Private Sandro">Private Sandro</option>
+                    <option value="Private Alessandro">Private Alessandro</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="category">Category:</label>
+                <select id="category" required>
+                    <option value="">Select category</option>
+                    <option value="Fuel">⛽ Fuel</option>
+                    <option value="Maintenance">🔧 Maintenance</option>
+                    <option value="Parking">🅿️ Parking</option>
+                    <option value="Tolls">🛣️ Tolls</option>
+                    <option value="Insurance">🛡️ Insurance</option>
+                    <option value="Other">📋 Other</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="amount">Amount (CHF):</label>
+                <input type="number" id="amount" step="0.01" min="0.01" placeholder="50.00" required>
+            </div>
+
+            <div class="input-group">
+                <label for="vehicle">Vehicle:</label>
+                <select id="vehicle">
+                    <option value="All">All Vehicles</option>
+                    <option value="N1">N1</option>
+                    <option value="N2">N2</option>
+                    <option value="N3">N3</option>
+                    <option value="N4">N4</option>
+                    <option value="N5">N5</option>
+                    <option value="N6">N6</option>
+                    <option value="N7">N7</option>
+                    <option value="N8">N8</option>
+                    <option value="N9">N9</option>
+                    <option value="N10">N10</option>
+                    <option value="N11">N11</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="profiteur">Profiteur:</label>
+                <select id="profiteur">
+                    <option value="None">None</option>
+                    <option value="Sandro">Sandro</option>
+                    <option value="Alessandro">Alessandro</option>
+                </select>
+            </div>
+
+            <div class="button-row">
+                <button class="btn btn-primary" id="submitBtn" onclick="submitExpense()">
+                    Submit Expense
+                </button>
+                <button class="btn btn-secondary" onclick="cancelExpenseForm()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <div class="expenses-list">
+            <h3>📋 Recent Expenses</h3>
+            <div id="expensesList">
+                <div class="no-expenses">No expenses yet. Add your first expense above!</div>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <h3>📊 Activity Log</h3>
+            <div id="logsList">
+                <div class="no-logs">No activity yet</div>
+            </div>
         </div>
     </div>
 
-    <div>
-        <button onclick="toggleForm()">➕ New Expense</button>
-        <p>Log a new expense with receipt</p>
-        <a href="#past-expenses">📋 View Expenses</a>
-        <p>See and manage past expenses</p>
-    </div>
+    <script>
+        // Configuration
+        const AUTH_TOKEN = "myAppToken2025";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfWSjTE8g0dK5keWeDsUwFjPBgmk8NLy8bpJJm05h091HJgCNoxVeJnPrF3oSG-u62vw/exec";
 
-    <div id="expense-form" class="form-section hidden">
-        <h2>💰 New Expense</h2>
-        <form id="new-expense-form">
-            <label>Date of Purchase:</label>
-            <input type="date" name="date" required><br>
+        let expenses = [];
+        let logs = JSON.parse(localStorage.getItem('expenseLogs')) || [];
+        let isLoading = false;
 
-            <label>Payment Method:</label>
-            <input type="radio" name="payment_method" value="Cash" required> Cash
-            <input type="radio" name="payment_method" value="Card"> Card<br>
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExpenses();
+            renderLogs();
+            
+            // Set today's date as default
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+        });
 
-            <label>Paid By:</label>
-            <select name="paid_by" required>
-                <option value="Company">Company</option>
-                <option value="Private Sandro">Private Sandro</option>
-                <option value="Private Alessandro">Private Alessandro</option>
-            </select><br>
-
-            <label>Category:</label>
-            <select name="category" required>
-                <option value="Fuel">Fuel</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Parking">Parking</option>
-                <option value="Tolls">Tolls</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Other">Other</option>
-            </select><br>
-
-            <label>Amount (CHF):</label>
-            <input type="number" name="amount" step="0.01" min="0" required><br>
-
-            <label>Vehicle:</label>
-            <select name="vehicle">
-                <option value="All">All</option>
-                <option value="N1">N1</option>
-                <option value="N2">N2</option>
-                <option value="N3">N3</option>
-                <option value="N4">N4</option>
-                <option value="N5">N5</option>
-                <option value="N6">N6</option>
-                <option value="N7">N7</option>
-                <option value="N8">N8</option>
-                <option value="N9">N9</option>
-                <option value="N10">N10</option>
-                <option value="N11">N11</option>
-                <option value="None">None</option>
-            </select><br>
-
-            <label>Profiteur:</label>
-            <select name="profiteur">
-                <option value="Sandro">Sandro</option>
-                <option value="Alessandro">Alessandro</option>
-                <option value="None">None</option>
-            </select><br>
-
-            <label>Receipt Photo (Optional):</label>
-            <input type="file" name="receipt" accept="image/*" disabled>
-            <p>Note: Image uploads are temporarily disabled due to technical limitations.</p>
-
-            <button type="submit">Submit Expense</button>
-            <button type="button" onclick="cancelForm()">Cancel</button>
-        </form>
-        <p id="form-message"></p>
-    </div>
-
-    <div id="past-expenses">
-        <h2>📋 Past Expenses</h2>
-        <p>No expenses yet</p>
-    </div>
-
-    <div>
-        <h2>📊 Activity Log</h2>
-        <p>No activity yet</p>
-        <button>Clear Logs</button>
-    </div>
-
-   <script>
-    function toggleForm() {
-        const form = document.getElementById('expense-form');
-        form.classList.toggle('hidden');
-        if (!form.classList.contains('hidden')) {
-            document.getElementById('new-expense-form').reset();
-            document.getElementById('form-message').textContent = '';
-        }
-    }
-
-    function cancelForm() {
-        document.getElementById('new-expense-form').reset();
-        document.getElementById('expense-form').classList.add('hidden');
-        document.getElementById('form-message').textContent = '';
-    }
-
-    document.getElementById('new-expense-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const message = document.getElementById('form-message');
-        message.textContent = 'Submitting...';
-
-        // Basic client-side validation
-        const amount = form.amount.value;
-        if (amount <= 0) {
-            message.textContent = 'Error: Amount must be greater than 0';
-            message.className = 'error';
-            return;
-        }
-
-        // Prepare form data
-        const formData = new FormData(form);
-        const data = {
-            function: 'logExpense', // Required by doPost
-            authToken: localStorage.getItem('authToken') || 'myAppToken2025', // From settings or hardcoded
-            date: formData.get('date'),
-            method: formData.get('payment_method'),
-            paidBy: formData.get('paid_by'),
-            category: formData.get('category'),
-            amount: parseFloat(formData.get('amount')),
-            vehicle: formData.get('vehicle'),
-            profiteur: formData.get('profiteur'),
-            image: '', // Image uploads disabled
-            imageName: '' // Image uploads disabled
-        };
-
-        try {
-            // Retrieve script URL from settings (or use deployed URL)
-            const scriptUrl = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
-            const response = await fetch(scriptUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            if (result.result) {
-                message.textContent = 'Expense submitted successfully!';
-                message.className = 'success';
-                form.reset();
+        function toggleExpenseForm() {
+            const form = document.getElementById('expenseForm');
+            const isVisible = form.classList.contains('show');
+            
+            if (isVisible) {
+                form.classList.remove('show');
+            } else {
+                form.classList.add('show');
+                resetForm();
+                
+                // Scroll to form
                 setTimeout(() => {
-                    document.getElementById('expense-form').classList.add('hidden');
-                    message.textContent = '';
-                    // Optionally, refresh past expenses
-                    fetchPastExpenses();
-                }, 2000);
-            } else {
-                message.textContent = `Error: ${result.error || 'Failed to submit expense'}`;
-                message.className = 'error';
+                    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+                
+                // Focus on first input
+                setTimeout(() => {
+                    document.getElementById('expenseDate').focus();
+                }, 300);
             }
-        } catch (err) {
-            message.textContent = `Error: ${err.message}`;
-            message.className = 'error';
         }
-    });
 
-    // Function to fetch and display past expenses
-    async function fetchPastExpenses() {
-        try {
-            const scriptUrl = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
-            const response = await fetch(`${scriptUrl}?function=getExpenses&authToken=${encodeURIComponent(localStorage.getItem('authToken') || 'myAppToken2025')}`);
-            const result = await response.json();
+        function cancelExpenseForm() {
+            document.getElementById('expenseForm').classList.remove('show');
+            resetForm();
+        }
 
-            const pastExpensesDiv = document.getElementById('past-expenses');
-            if (result.result && result.result.length > 0) {
-                const expenses = result.result;
-                let html = '<h2>📋 Past Expenses</h2><ul>';
-                expenses.forEach(expense => {
-                    html += `<li>${expense.date} - ${expense.category} - CHF ${expense.amount} (${expense.paidBy})</li>`;
-                });
-                html += '</ul>';
-                pastExpensesDiv.innerHTML = html;
-            } else {
-                pastExpensesDiv.innerHTML = '<h2>📋 Past Expenses</h2><p>No expenses yet</p>';
+        function resetForm() {
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => radio.checked = false);
+            document.getElementById('paidBy').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('vehicle').value = 'All';
+            document.getElementById('profiteur').value = 'None';
+        }
+
+        async function submitExpense() {
+            if (isLoading) return;
+
+            // Get form data
+            const date = document.getElementById('expenseDate').value;
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+            const paidBy = document.getElementById('paidBy').value;
+            const category = document.getElementById('category').value;
+            const amount = document.getElementById('amount').value;
+            const vehicle = document.getElementById('vehicle').value;
+            const profiteur = document.getElementById('profiteur').value;
+
+            // Validation
+            if (!date || !paymentMethod || !paidBy || !category || !amount) {
+                addLog('❌ Please fill in all required fields', 'error');
+                return;
             }
-        } catch (err) {
-            console.error('Failed to fetch expenses:', err);
-        }
-    }
 
-    // Fetch past expenses on page load
-    window.onload = fetchPastExpenses;
-</script>
+            if (parseFloat(amount) <= 0) {
+                addLog('❌ Amount must be greater than 0', 'error');
+                return;
+            }
+
+            isLoading = true;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span> Submitting...';
+
+            try {
+                addLog(`💰 Adding expense: CHF ${amount} for ${category}...`, 'info');
+
+                // Build URL for GET request
+                const url = new URL(SCRIPT_URL);
+                url.searchParams.append('function', 'logExpense');
+                url.searchParams.append('authToken', AUTH_TOKEN);
+                url.searchParams.append('date', date);
+                url.searchParams.append('method', paymentMethod);
+                url.searchParams.append('paidBy', paidBy);
+                url.searchParams.append('category', category);
+                url.searchParams.append('amount', amount);
+                url.searchParams.append('vehicle', vehicle);
+                url.searchParams.append('profiteur', profiteur);
+                url.searchParams.append('imageUrl', ''); // No image for now
+
+                const response = await fetch(url.toString());
+                const data = await response.json();
+
+                if (data.result) {
+                    addLog('✅ Expense added successfully!', 'success');
+                    cancelExpenseForm();
+                    vibrate();
+                    
+                    // Refresh expenses list
+                    setTimeout(() => {
+                        loadExpenses();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to add expense');
+                }
+
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit Expense';
+            }
+        }
+
+        async function loadExpenses() {
+            try {
+                const url = `${SCRIPT_URL}?function=getExpenses&authToken=${AUTH_TOKEN}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.result) {
+                    expenses = data.result || [];
+                    renderExpenses();
+                    updateStats();
+                } else {
+                    console.error('Failed to load expenses:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+                addLog('⚠️ Could not load expenses from server', 'error');
+            }
+        }
+
+        function renderExpenses() {
+            const expensesList = document.getElementById('expensesList');
+            
+            if (expenses.length === 0) {
+                expensesList.innerHTML = '<div class="no-expenses">No expenses yet. Add your first expense above!</div>';
+                return;
+            }
+
+            // Sort by date (newest first)
+            const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Show only last 10 expenses
+            const recentExpenses = sortedExpenses.slice(0, 10);
+
+            expensesList.innerHTML = recentExpenses.map(expense => {
+                const categoryClass = expense.category.toLowerCase();
+                const formattedDate = new Date(expense.date).toLocaleDateString();
+                
+                return `
+                    <div class="expense-item ${categoryClass}">
+                        <div class="expense-header">
+                            <div class="expense-amount">CHF ${parseFloat(expense.amount).toFixed(2)}</div>
+                            <div class="expense-category">${expense.category}</div>
+                        </div>
+                        <div class="expense-details">
+                            ${expense.method} • ${expense.paidBy} • Vehicle: ${expense.vehicle}
+                            ${expense.profiteur !== 'None' ? ` • Profiteur: ${expense.profiteur}` : ''}
+                        </div>
+                        <div class="expense-date">${formattedDate}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            if (expenses.length === 0) {
+                document.getElementById('totalExpenses').textContent = 'CHF 0';
+                document.getElementById('thisMonth').textContent = 'CHF 0';
+                document.getElementById('totalEntries').textContent = '0';
+                return;
+            }
+
+            // Calculate total expenses
+            const total = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount || 0), 0);
+            document.getElementById('totalExpenses').textContent = `CHF ${total.toFixed(2)}`;
+
+            // Calculate this month's expenses
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            const thisMonthExpenses = expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+            });
+            
+            const monthlyTotal = thisMonthExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount || 0), 0);
+            document.getElementById('thisMonth').textContent = `CHF ${monthlyTotal.toFixed(2)}`;
+
+            // Total entries
+            document.getElementById('totalEntries').textContent = expenses.length.toString();
+        }
+
+        function addLog(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div>${sanitizeInput(message)}</div>
+            `;
+
+            const logsList = document.getElementById('logsList');
+            const noLogs = logsList.querySelector('.no-logs');
+            if (noLogs) {
+                noLogs.remove();
+            }
+
+            logsList.insertBefore(logItem, logsList.firstChild);
+            
+            // Keep only last 5 logs
+            logs.unshift({ message, type, timestamp });
+            if (logs.length > 5) {
+                logs = logs.slice(0, 5);
+                const logItems = logsList.querySelectorAll('.log-item');
+                if (logItems.length > 5) {
+                    logItems[logItems.length - 1].remove();
+                }
+            }
+            
+            saveLogs();
+        }
+
+        function renderLogs() {
+            const logsList = document.getElementById('logsList');
+            logsList.innerHTML = '';
+            
+            if (logs.length === 0) {
+                logsList.innerHTML = '<div class="no-logs">No activity yet</div>';
+                return;
+            }
+            
+            logs.forEach(({ message, type, timestamp }) => {
+                const logItem = document.createElement('div');
+                logItem.className = `log-item ${type}`;
+                logItem.innerHTML = `
+                    <div class="log-timestamp">[${timestamp}]</div>
+                    <div>${sanitizeInput(message)}</div>
+                `;
+                logsList.appendChild(logItem);
+            });
+        }
+
+        function saveLogs() {
+            localStorage.setItem('expenseLogs', JSON.stringify(logs));
+        }
+
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+
+        function vibrate() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
+        }
+
+        // Enter key navigation
+        document.getElementById('expenseDate').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('methodCash').focus();
+            }
+        });
+
+        document.getElementById('amount').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitExpense();
+            }
+        });
+    </script>
 </body>
 </html>
