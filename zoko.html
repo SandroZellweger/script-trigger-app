@@ -398,10 +398,10 @@
                 console.error('❌ Error name:', error.name);
                 console.error('❌ Error message:', error.message);
                 
-                // Check if it's a CORS/network error but might have actually worked
-                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    showStatus('📤 Message sent! (Note: Browser shows CORS error but message was delivered)', 'success');
-                    form.reset(); // Clear the form since it likely worked
+                if (error.message.includes('CORS')) {
+                    showStatus('❌ CORS error. Please check script deployment settings.', 'error');
+                } else if (error.message.includes('Failed to fetch')) {
+                    showStatus('❌ Network error. Please check your connection and script URL.', 'error');
                 } else {
                     showStatus(`❌ Error: ${error.message}`, 'error');
                 }
