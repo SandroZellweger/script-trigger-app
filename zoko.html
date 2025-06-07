@@ -287,22 +287,18 @@
         <div class="message-form animate-in">
             <form id="messageForm">
                 <div class="form-group">
-                    <label for="phoneNumber" class="form-label">Customer Phone Number</label>
-                    <div class="phone-input">
-                        <span class="phone-prefix">+41</span>
-                        <input 
-                            type="tel" 
-                            id="phoneNumber" 
-                            name="phoneNumber"
-                            class="form-input with-prefix" 
-                            placeholder="781234567"
-                            required
-                            pattern="[0-9]{9}"
-                            title="Please enter a 9-digit Swiss phone number"
-                        >
-                    </div>
-                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                        Enter Swiss phone number without +41 (e.g., 781234567)
+                    <label for="phoneNumber" class="form-label">Phone Number</label>
+                    <input 
+                        type="tel" 
+                        id="phoneNumber" 
+                        name="phoneNumber"
+                        class="form-input" 
+                        placeholder="Paste phone number here (e.g., 0781234567 or +41781234567)"
+                        required
+                        title="Paste the phone number from your calling app"
+                    >
+                    <small id="phoneHint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.
                     </small>
                 </div>
 
@@ -330,18 +326,77 @@
 
         const form = document.getElementById('messageForm');
         const phoneInput = document.getElementById('phoneNumber');
+        const phoneHint = document.getElementById('phoneHint');
         const sendButton = document.getElementById('sendButton');
         const buttonText = document.getElementById('buttonText');
         const buttonSpinner = document.getElementById('buttonSpinner');
         const statusMessage = document.getElementById('statusMessage');
 
-        // Format phone number as user types
-        phoneInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-            if (value.length > 9) {
-                value = value.slice(0, 9); // Limit to 9 digits
+        function formatPhoneNumber(phoneNumber) {
+            // Remove all non-digit characters and spaces
+            let cleaned = phoneNumber.replace(/\D/g, '');
+            
+            console.log('📱 Original input:', phoneNumber);
+            console.log('📱 Cleaned input:', cleaned);
+            
+            // If it already starts with 41 (Swiss country code), add +
+            if (cleaned.startsWith('41')) {
+                const formatted = '+' + cleaned;
+                console.log('📱 Already Swiss format, added +:', formatted);
+                return formatted;
             }
-            e.target.value = value;
+            
+            // Check if it's a Swiss mobile number starting with 0 (075, 076, 077, 078, 079)
+            if (cleaned.match(/^0(75|76|77|78|79)/)) {
+                // Remove the leading 0 and add +41
+                const formatted = '+41' + cleaned.substring(1);
+                console.log('📱 Swiss mobile detected, formatted to:', formatted);
+                return formatted;
+            }
+            
+            // If it already has a + at the beginning of original input, keep as international
+            if (phoneNumber.trim().startsWith('+')) {
+                const formatted = '+' + cleaned;
+                console.log('📱 International format detected:', formatted);
+                return formatted;
+            }
+            
+            // For any other format, assume it's already international without +
+            const formatted = '+' + cleaned;
+            console.log('📱 Assuming international, added +:', formatted);
+            return formatted;
+        }
+
+        // Auto-format phone number when user pastes or types
+        phoneInput.addEventListener('input', function(e) {
+            const originalValue = e.target.value;
+            const formatted = formatPhoneNumber(originalValue);
+            
+            // Update the input to show the formatted number
+            if (originalValue !== formatted) {
+                e.target.value = formatted;
+                
+                // Update hint to show what happened
+                if (formatted.startsWith('+41')) {
+                    phoneHint.textContent = '🇨🇭 Swiss number detected and formatted';
+                    phoneHint.style.color = '#4CAF50';
+                } else {
+                    phoneHint.textContent = '🌍 International number format applied';
+                    phoneHint.style.color = '#2196F3';
+                }
+            } else {
+                phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
+                phoneHint.style.color = '#666';
+            }
+        });
+
+        // Also handle paste events specifically
+        phoneInput.addEventListener('paste', function(e) {
+            // Let the paste happen first, then format
+            setTimeout(() => {
+                const event = new Event('input');
+                phoneInput.dispatchEvent(event);
+            }, 10);
         });
 
         // Handle form submission
@@ -350,13 +405,23 @@
             
             const phoneNumber = phoneInput.value.trim();
             
-            if (!phoneNumber || phoneNumber.length !== 9) {
-                showStatus('Please enter a valid 9-digit phone number', 'error');
+            // Validation
+            if (!phoneNumber) {
+                showStatus('Please enter a phone number', 'error');
                 return;
             }
-
-            // Format phone number with +41 prefix
-            const fullPhoneNumber = `+41${phoneNumber}`;
+            
+            // Ensure the number is in international format
+            let finalPhoneNumber = phoneNumber;
+            if (!finalPhoneNumber.startsWith('+')) {
+                finalPhoneNumber = formatPhoneNumber(finalPhoneNumber);
+            }
+            
+            // Basic validation - must be international format with at least 8 digits
+            if (!finalPhoneNumber.match(/^\+[0-9]{8,15}$/)) {
+                showStatus('Please enter a valid phone number', 'error');
+                return;
+            }
             
             // Show loading state
             setLoading(true);
@@ -367,10 +432,10 @@
                 const settings = getSettings();
                 
                 // Use the same approach as reports.html
-                const requestUrl = `${settings.scriptUrl}?function=sendHowToBookMessageApp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(fullPhoneNumber)}`;
+                const requestUrl = `${settings.scriptUrl}?function=sendHowToBookMessageApp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
                 
                 console.log('🚀 Making request to:', requestUrl);
-                console.log('📱 Phone number:', fullPhoneNumber);
+                console.log('📱 Phone number:', finalPhoneNumber);
 
                 // Simple fetch without special headers (like reports.html)
                 const response = await fetch(requestUrl);
@@ -386,8 +451,11 @@
                 console.log('✅ Parsed response:', data);
                 
                 if (data.result === true) {
-                    showStatus(`✅ Message sent successfully to ${fullPhoneNumber}`, 'success');
+                    showStatus(`✅ Message sent successfully to ${finalPhoneNumber}`, 'success');
                     form.reset(); // Clear the form
+                    // Reset hint text
+                    phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
+                    phoneHint.style.color = '#666';
                 } else if (data.error) {
                     showStatus(`❌ Failed to send message: ${data.error}`, 'error');
                 } else {
@@ -402,8 +470,11 @@
                 if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
                     // The console shows "200 (OK)" which means the request succeeded
                     // CORS just prevents us from reading the response
-                    showStatus(`✅ Message sent successfully to ${fullPhoneNumber}! 🎉`, 'success');
+                    showStatus(`✅ Message sent successfully to ${finalPhoneNumber}! 🎉`, 'success');
                     form.reset(); // Clear the form since it worked (we got 200 OK)
+                    // Reset hint text
+                    phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
+                    phoneHint.style.color = '#666';
                 } else {
                     showStatus(`❌ Error: ${error.message}`, 'error');
                 }
