@@ -355,18 +355,18 @@
             hideStatus();
 
             try {
-                // Call the Google Apps Script function
-                const response = await fetch(scriptUrl, {
-                    method: 'POST',
+                // Call the Google Apps Script function using URL parameters
+                const params = new URLSearchParams({
+                    function: 'sendHowToBookMessageApp',
+                    authToken: 'myAppToken2025',
+                    phoneNumber: fullPhoneNumber
+                });
+
+                const response = await fetch(`${scriptUrl}?${params.toString()}`, {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        function: 'sendHowToBookMessageApp',
-                        authToken: 'myAppToken2025',
-                        phoneNumber: fullPhoneNumber,
-                        templateArgs: [] // Add any template arguments here if needed
-                    })
+                        'Accept': 'application/json',
+                    }
                 });
 
                 const data = await response.json();
