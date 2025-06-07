@@ -18,7 +18,7 @@
         body {
             font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #332;
+            color: #333;
             min-height: 100vh;
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
@@ -392,9 +392,16 @@
     </div>
 
     <script>
-        // Configuration
-        const AUTH_TOKEN = "myAppToken2025";
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+        // Function to get settings from localStorage
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
 
         let currentPaymentLink = '';
         let isLoading = false;
@@ -427,7 +434,9 @@
             try {
                 addLog(`🚀 Creating payment link for CHF ${amount}...`, 'info');
 
-                const requestUrl = `${SCRIPT_URL}?function=triggerStripePayment&authToken=${AUTH_TOKEN}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
+                // Get current settings
+                const settings = getSettings();
+                const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
 
                 const response = await fetch(requestUrl);
                 const data = await response.json();
