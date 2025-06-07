@@ -1,3 +1,403 @@
+
+SandroZellweger/script-trigger-app
+main
+
+GITHUB
+
+add an extra buttono nemed zoko, connecting to zoko.html, here we will send messages to customers. okay?
+
+I'll add a Zoko button to your Script Trigger home page that connects to zoko.html for sending messages to customers.
+
+
+Untitled
+Text 
+
+Untitled
+Text ∙ Version 2 
+Perfect! I've added the Zoko button to your Script Trigger home page. Here's what I added:
+
+New Zoko Menu Card: Added between Expenses and Settings with:
+💬 Message icon
+"Zoko" title
+Description: "Send messages and communicate with customers"
+Links to zoko.html
+Updated Animation: Added animation delay for the 5th card so it appears smoothly with the others
+The Zoko button will now appear in your menu grid and will redirect users to zoko.html where you can build your customer messaging interface. The button follows the same design pattern as your other menu items with the glassmorphism effect, hover animations, and ripple effects.
+
+
+
+
+okay. now lets creat a zoko.html
+basicly i have this function below in my google script.
+i want a field to insert a phonenumber 
+once click send it will send the phonnumber to my function and it will send the message to the insert number, make sense?
+
+/**
+ * Sends the Zoko WhatsApp template "how_to_book_new".
+ *
+ * ⚠️  Fill in the values for {{1}}, {{2}}, … exactly as they appear
+ *     in your Zoko template definition.  Delete any unused placeholders.
+ *
+ * @param {string} phoneNumber Recipient’s phone number in +41… format
+ * @param {...string} templateArgs Values to populate the template placeholders, in order
+ * @return {boolean}            True on success, false on failure
+ */
+function sendHowToBookMessageApp(phoneNumber, ...templateArgs) {
+  const url    = "https://chat.zoko.io/v2/message";
+  const apiKey = "0a12096d-cfee-43e2-8360-b66d7b460cd3";   // TODO: store safely
+
+  const payload = {
+    channel:          "whatsapp",
+    recipient:        phoneNumber,            // e.g. "+41781234567"
+    type:             "template",
+    templateId:       "how_to_book_new",      //  your template name 
+    templateLanguage: "it",                   // or "en", "de", … as defined in Zoko
+    templateArgs:     templateArgs            // → values for {{1}}, {{2}}, …
+  };
+
+  const options = {
+    method:  "POST",
+    headers: {
+      "Accept":       "application/json",
+      "Content-Type": "application/json",
+      "apikey":       apiKey
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response     = UrlFetchApp.fetch(url, options);
+    const code         = response.getResponseCode();
+    const data         = JSON.parse(response.getContentText());
+
+    if (code === 200) {
+      Logger.log("Zoko how_to_book_new ➜ success: " + JSON.stringify(data));
+      return true;
+    } else {
+      Logger.log("Zoko how_to_book_new ➜ HTTP " + code + ": " + JSON.stringify(data));
+      return false;
+    }
+  } catch (e) {
+    Logger.log("Zoko how_to_book_new ➜ exception: " + e.toString());
+    return false;
+  }
+}
+
+I'll create a zoko.html page that allows you to send WhatsApp messages through your Google Apps Script function. This will have a clean interface to input a phone number and send the "how_to_book_new" template.
+
+
+Zoko WhatsApp Messaging
+Interactive artifact 
+Perfect! I've created the zoko.html page for sending WhatsApp messages through your Google Apps Script. Here's what the page includes:
+
+Key Features:
+Clean Interface:
+Phone number input field with +41 prefix (Swiss format)
+Template information showing it will send "How to Book New" template
+Send button with loading states
+Phone Number Handling:
+Automatically formats Swiss numbers (+41 prefix)
+Validates 9-digit input
+Auto-focuses the input field
+Integration with Your Script:
+Calls your sendHowToBookMessageApp function
+Sends the phone number in the correct format (+41xxxxxxxxx)
+Includes your auth token and script URL
+User Experience:
+Loading spinner during message sending
+Success/error status messages
+Form validation and error handling
+Responsive design matching your app's style
+Visual Design:
+Matches your existing glassmorphism theme
+Smooth animations and transitions
+Mobile-friendly responsive layout
+Back button to return to home
+How it works:
+User enters a 9-digit Swiss phone number (e.g., 781234567)
+System automatically adds +41 prefix
+Clicks "Send Message"
+Calls your Google Apps Script function with the formatted number
+Shows success/error feedback
+The page is ready to use with your existing Google Apps Script function. Just make sure your script can handle the JSON payload format being sent from the frontend!
+
+
+
+
+❌ Network error. Please check your connection and try again.
+
+The network error suggests there might be an issue with how we're calling your Google Apps Script. Let me fix the request format to match what your script expects.
+
+
+Zoko WhatsApp Messaging
+Interactive artifact ∙ Version 2 
+I've updated the request to use GET method with URL parameters instead of POST with JSON body, which is more common for Google Apps Script web apps.
+
+However, you'll also need to make sure your Google Apps Script can handle this function call. You'll need to add a handler in your script's doGet() function. Here's what you need to add to your Google Apps Script:
+
+javascript
+function doGet(e) {
+  const func = e.parameter.function;
+  const authToken = e.parameter.authToken;
+  
+  // Verify auth token
+  if (authToken !== 'myAppToken2025') {
+    return ContentService.createTextOutput(JSON.stringify({
+      result: false,
+      error: 'Invalid auth token'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  try {
+    let result;
+    
+    if (func === 'sendHowToBookMessageApp') {
+      const phoneNumber = e.parameter.phoneNumber;
+      result = sendHowToBookMessageApp(phoneNumber);
+    } else if (func === 'ping') {
+      result = { status: 'online' };
+    } else {
+      result = false;
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      result: result
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      result: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+Add this doGet() function to your Google Apps Script, then redeploy the web app. This will allow the zoko.html page to properly call your sendHowToBookMessageApp function.
+
+Try it again after adding this to your script!
+
+
+
+
+does it metter if i have already a doget?
+function doGet(e) {
+  try {
+    // Validate authentication
+    const authToken = e.parameter.authToken;
+    if (!validateAuthToken(authToken)) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "Unauthorized: Invalid auth token" })
+      ).setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .setHeader('Access-Control-Allow-Methods', 'GET')
+        .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    const functionName = e.parameter.function;
+    if (!functionName) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "No function specified" })
+      ).setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .setHeader('Access-Control-Allow-Methods', 'GET')
+        .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    let result;
+    switch (functionName) {
+      case "triggerDailyReport":
+        result = triggerDailyReport();
+        break;
+      case "triggerCustomDateReport":
+        result = triggerCustomDateReport(e.parameter.customDateString);
+        break;
+      case "triggerHardcodedReport":
+        result = triggerHardcodedReport();
+        break;
+      case "triggerStripePayment":
+        result = triggerStripePayment(e.parameter.amount, e.parameter.description);
+        break;
+      case "ping":
+        result = { result: "Ping successful" };
+        break;
+      case "getExpenses":
+        result = getExpenses();
+        break;
+      case "logExpense":
+        result = logExpenseGet(e);
+        break;
+      case "editExpense":
+        result = editExpenseGet(e);
+        break;
+      case "deleteExpense":
+        result = deleteExpense(e);
+        break;
+      default:
+        result = { error: Unknown function: ${functionName} };
+    }
+
+    // Return JSON response with CORS headers
+    const response = typeof result === "string" ? { result } : result;
+
+    return ContentService.createTextOutput(JSON.stringify(response))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*')
+      .setHeader('Access-Control-Allow-Methods', 'GET')
+      .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  } catch (error) {
+    const errorResponse = { error: error.toString() };
+    return ContentService.createTextOutput(JSON.stringify(errorResponse))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*')
+      .setHeader('Access-Control-Allow-Methods', 'GET')
+      .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+}
+
+adjust that one okay?
+
+Perfect! You already have a well-structured doGet() function. I just need to add the Zoko case to your existing switch statement. Here's the updated version:
+
+javascript
+function doGet(e) {
+  try {
+    // Validate authentication
+    const authToken = e.parameter.authToken;
+    if (!validateAuthToken(authToken)) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "Unauthorized: Invalid auth token" })
+      ).setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .setHeader('Access-Control-Allow-Methods', 'GET')
+        .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    const functionName = e.parameter.function;
+    if (!functionName) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "No function specified" })
+      ).setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .setHeader('Access-Control-Allow-Methods', 'GET')
+        .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    let result;
+    switch (functionName) {
+      case "triggerDailyReport":
+        result = triggerDailyReport();
+        break;
+      case "triggerCustomDateReport":
+        result = triggerCustomDateReport(e.parameter.customDateString);
+        break;
+      case "triggerHardcodedReport":
+        result = triggerHardcodedReport();
+        break;
+      case "triggerStripePayment":
+        result = triggerStripePayment(e.parameter.amount, e.parameter.description);
+        break;
+      case "sendHowToBookMessageApp":
+        result = sendHowToBookMessageApp(e.parameter.phoneNumber);
+        break;
+      case "ping":
+        result = { result: "Ping successful" };
+        break;
+      case "getExpenses":
+        result = getExpenses();
+        break;
+      case "logExpense":
+        result = logExpenseGet(e);
+        break;
+      case "editExpense":
+        result = editExpenseGet(e);
+        break;
+      case "deleteExpense":
+        result = deleteExpense(e);
+        break;
+      default:
+        result = { error: `Unknown function: ${functionName}` };
+    }
+
+    // Return JSON response with CORS headers
+    const response = typeof result === "string" ? { result } : result;
+    
+    return ContentService.createTextOutput(JSON.stringify(response))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*')
+      .setHeader('Access-Control-Allow-Methods', 'GET')
+      .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+  } catch (error) {
+    const errorResponse = { error: error.toString() };
+    return ContentService.createTextOutput(JSON.stringify(errorResponse))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*')
+      .setHeader('Access-Control-Allow-Methods', 'GET')
+      .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+}
+I only added this case to your switch statement:
+
+javascript
+case "sendHowToBookMessageApp":
+  result = sendHowToBookMessageApp(e.parameter.phoneNumber);
+  break;
+After you add this case and redeploy your Google Apps Script web app, the zoko.html page should work perfectly! The function will receive the phone number parameter and call your sendHowToBookMessageApp function.
+
+
+
+
+still have the same erro, can we add some loggs?
+
+Yes! Let's add detailed logging to both the frontend and backend to see exactly what's happening. I'll update the zoko.html with more detailed logging first:
+
+
+Zoko WhatsApp Messaging
+Interactive artifact 
+Now let's also add logging to your Google Apps Script. Here's the updated doGet() function with detailed logging:
+
+javascript
+function doGet(e) {
+  try {
+    console.log('🚀 doGet called with parameters:', e.parameter);
+    
+    // Validate authentication
+    const authToken = e.parameter.authToken;
+    console.log('🔐 Auth token received:', authToken);
+    
+    if (!validateAuthToken(authToken)) {
+      console.log('❌ Auth validation failed');
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "Unauthorized: Invalid auth token" })
+      ).setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .setHeader('Access-Control-Allow-Methods', 'GET')
+        .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+    
+    console.log('✅ Auth validation passed');
+
+    const functionName = e.parameter.function;
+    console.log('🎯 Function requested:', functionName);
+    
+    if (!functionName) {
+      console.log('❌ No function specified');
+      return ContentService.createTextOutput(
+        JSON.stringify({ error: "No function specified" })
+      ).setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .setHeader('Access-Control-Allow-Methods', 'GET')
+        .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    let result;
+    switch (functionName) {
+      case "triggerDaily
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -362,24 +762,50 @@
                     phoneNumber: fullPhoneNumber
                 });
 
-                const response = await fetch(`${scriptUrl}?${params.toString()}`, {
+                const requestUrl = `${scriptUrl}?${params.toString()}`;
+                console.log('🚀 Making request to:', requestUrl);
+                console.log('📱 Phone number:', fullPhoneNumber);
+
+                const response = await fetch(requestUrl, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
                     }
                 });
 
-                const data = await response.json();
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const responseText = await response.text();
+                console.log('📄 Raw response:', responseText);
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('✅ Parsed response:', data);
+                } catch (parseError) {
+                    console.error('❌ JSON parse error:', parseError);
+                    throw new Error(`Invalid JSON response: ${responseText}`);
+                }
                 
                 if (data.result === true) {
                     showStatus(`✅ Message sent successfully to ${fullPhoneNumber}`, 'success');
                     form.reset(); // Clear the form
+                } else if (data.error) {
+                    showStatus(`❌ Failed to send message: ${data.error}`, 'error');
                 } else {
-                    showStatus(`❌ Failed to send message: ${data.error || 'Unknown error'}`, 'error');
+                    showStatus(`❌ Failed to send message: ${JSON.stringify(data)}`, 'error');
                 }
             } catch (error) {
-                console.error('Error sending message:', error);
-                showStatus('❌ Network error. Please check your connection and try again.', 'error');
+                console.error('❌ Full error details:', error);
+                console.error('❌ Error name:', error.name);
+                console.error('❌ Error message:', error.message);
+                console.error('❌ Error stack:', error.stack);
+                showStatus(`❌ Error: ${error.message}`, 'error');
             } finally {
                 setLoading(false);
             }
