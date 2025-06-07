@@ -398,9 +398,16 @@
     </div>
 
     <script>
-        // Configuration
-        const AUTH_TOKEN = "myAppToken2025";
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
+        // Function to get settings from localStorage
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
 
         const reports = {
             triggerDailyReport: {
@@ -513,7 +520,9 @@
             try {
                 addLog(`🚀 Generating ${report.name}...`, 'info');
 
-                let requestUrl = `${SCRIPT_URL}?function=${selectedReport}&authToken=${AUTH_TOKEN}`;
+                // Get current settings
+                const settings = getSettings();
+                let requestUrl = `${settings.scriptUrl}?function=${selectedReport}&authToken=${settings.authToken}`;
                 
                 // Add parameters to URL
                 if (parameters.customDate) {
