@@ -566,9 +566,16 @@
     </div>
 
     <script>
-        // Configuration
-        const AUTH_TOKEN = "myAppToken2025";
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfWSjTE8g0dK5keWeDsUwFjPBgmk8NLy8bpJJm05h091HJgCNoxVeJnPrF3oSG-u62vw/exec";
+        // Function to get settings from localStorage
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
 
         let expenses = [];
         let logs = JSON.parse(localStorage.getItem('expenseLogs')) || [];
@@ -651,10 +658,13 @@
             try {
                 addLog(`💰 Adding expense: CHF ${amount} for ${category}...`, 'info');
 
+                // Get current settings
+                const settings = getSettings();
+
                 // Build URL for GET request
-                const url = new URL(SCRIPT_URL);
+                const url = new URL(settings.scriptUrl);
                 url.searchParams.append('function', 'logExpense');
-                url.searchParams.append('authToken', AUTH_TOKEN);
+                url.searchParams.append('authToken', settings.authToken);
                 url.searchParams.append('date', date);
                 url.searchParams.append('method', paymentMethod);
                 url.searchParams.append('paidBy', paidBy);
@@ -691,8 +701,8 @@
 
         async function loadExpenses() {
             try {
-                const url = `${SCRIPT_URL}?function=getExpenses&authToken=${AUTH_TOKEN}`;
-                const response = await fetch(url);
+                const settings = getSettings();
+                const response = await fetch(`${settings.scriptUrl}?function=getExpenses&authToken=${settings.authToken}`);
                 const data = await response.json();
 
                 if (data.result) {
