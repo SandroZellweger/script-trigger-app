@@ -317,15 +317,24 @@
     </div>
 
     <script>
+    <script>
+        // Function to get settings from localStorage
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
+
         const form = document.getElementById('messageForm');
         const phoneInput = document.getElementById('phoneNumber');
         const sendButton = document.getElementById('sendButton');
         const buttonText = document.getElementById('buttonText');
         const buttonSpinner = document.getElementById('buttonSpinner');
         const statusMessage = document.getElementById('statusMessage');
-
-        // Google Apps Script URL (same as reports.html)
-        const scriptUrl = "https://script.google.com/macros/s/AKfycbwsGR5OoephzCuZwnL1eqIdetlrox7jK2MNXDDwYTc8KS8ykZ4GXsUlqs_40rtxlUUc6w/exec";
 
         // Format phone number as user types
         phoneInput.addEventListener('input', function(e) {
@@ -355,8 +364,11 @@
             hideStatus();
 
             try {
+                // Get current settings
+                const settings = getSettings();
+                
                 // Use the same approach as reports.html
-                const requestUrl = `${scriptUrl}?function=sendHowToBookMessageApp&authToken=myAppToken2025&phoneNumber=${encodeURIComponent(fullPhoneNumber)}`;
+                const requestUrl = `${settings.scriptUrl}?function=sendHowToBookMessageApp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(fullPhoneNumber)}`;
                 
                 console.log('🚀 Making request to:', requestUrl);
                 console.log('📱 Phone number:', fullPhoneNumber);
