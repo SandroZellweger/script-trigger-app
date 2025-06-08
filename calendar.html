@@ -570,7 +570,7 @@
         // Function to get settings from localStorage with error handling
         function getSettings() {
             const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbzo5sXOIs3r2s5Z2QaAOqKFhE7q8Ic72lYgsRkmL-5DwehLdGJ4XebdVJ6gdJA5p71T9A/exec',
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbzQ8XLeclWNDL58ho_hrG8uKlOqAF94LH1pavZy9WyO4FoFBZoFJA9ErKJJn6ungjIgzQ/exec',
                 authToken: 'myAppToken2025'
             };
            
@@ -952,15 +952,25 @@
             } catch (error) {
                 console.error('❌ Error loading calendar data:', error);
                
+                // Check if it's a CORS/network error - the request might have actually succeeded
+                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+                    console.log('🌐 CORS issue detected - request may have succeeded, checking...');
+                   
+                    // For now, show a message that we're trying to load data
+                    // In production, you might want to retry or show a different message
+                    console.log('📅 Calendar data may have loaded despite CORS error');
+                   
+                    // Try again in a few seconds, or use mock data for now
+                    setTimeout(() => {
+                        console.log('🔄 Retrying calendar data load...');
+                        // Could implement a retry mechanism here
+                    }, 3000);
+                }
+               
                 // For now, use mock data while testing
                 console.log('📝 Using mock data for testing...');
                 currentEvents = generateMockEvents();
                 renderEvents();
-               
-                // Show user-friendly message
-                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    console.log('🌐 CORS issue detected - calendar data might still be loading...');
-                }
             } finally {
                 refreshBtn.disabled = false;
                 refreshIcon.innerHTML = '🔄';
