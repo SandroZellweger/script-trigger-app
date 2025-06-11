@@ -264,15 +264,26 @@
                 v2.0
             </div>
         </div>
-    </div>
+    </div>    <script>
+        // Function to get settings from localStorage
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbzo5sXOIs3r2s5Z2QaAOqKFhE7q8Ic72lYgsRkmL-5DwehLdGJ4XebdVJ6gdJA5p71T9A/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
 
-    <script>
         // Check script status on load
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // Get current settings
+                const settings = getSettings();
+                
                 // Ping the Google Apps Script to check if it's online
-                const scriptUrl = "https://script.google.com/macros/s/AKfycbwfWSjTE8g0dK5keWeDsUwFjPBgmk8NLy8bpJJm05h091HJgCNoxVeJnPrF3oSG-u62vw/exec";
-                const response = await fetch(`${scriptUrl}?function=ping&authToken=myAppToken2025`);
+                const response = await fetch(`${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
                 const data = await response.json();
                 
                 if (data.result) {
