@@ -468,11 +468,11 @@
             const formatted = '+' + cleaned;
             console.log('📱 Assuming international, added +:', formatted);
             return formatted;
-        }
-
-        // Add input event handlers to all phone inputs
+        }        // Add input event handlers to all phone inputs
         document.querySelectorAll('.phone-input').forEach(input => {
-            const hintElement = document.getElementById(input.id + 'Hint');
+            // Find the corresponding hint element - get the parent form first
+            const formParent = input.closest('form');
+            const hintElement = formParent.querySelector('.phone-hint');
             
             // Auto-format phone number when user pastes or types
             input.addEventListener('input', function(e) {

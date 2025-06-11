@@ -86,6 +86,37 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
 
+        .template-tabs {
+            display: flex;
+            width: 100%;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px 15px 0 0;
+            overflow: hidden;
+        }
+
+        .template-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            color: #666;
+        }
+
+        .template-tab.active {
+            background: rgba(255, 255, 255, 0.95);
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .template-tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.9);
+            color: #555;
+        }
+
         .message-form {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -94,6 +125,27 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
             margin-bottom: 20px;
+        }
+
+        .template-info {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .template-info h3 {
+            color: #f57c00;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .template-info p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
         }
 
         .form-group {
@@ -176,6 +228,15 @@
             transform: none;
         }
 
+        .template-panel {
+            display: none;
+        }
+
+        .template-panel.active {
+            display: block;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
         .spinner {
             width: 20px;
             height: 20px;
@@ -210,27 +271,6 @@
             border: 1px solid rgba(244, 67, 54, 0.3);
         }
 
-        .template-info {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-
-        .template-info h3 {
-            color: #f57c00;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .template-info p {
-            color: #666;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -262,6 +302,15 @@
             }
         }
 
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
         .animate-in {
             animation: fadeInUp 0.6s ease-out forwards;
         }
@@ -279,36 +328,80 @@
             <p>Send WhatsApp messages to customers</p>
         </div>
 
-        <div class="template-info animate-in">
-            <h3>📋 Template: "How to Book New"</h3>
-            <p>This will send the predefined booking instructions template to the customer's WhatsApp number.</p>
+        <!-- Template selector tabs -->
+        <div class="template-tabs animate-in">
+            <div class="template-tab active" data-template="booking">📋 How to Book</div>
+            <div class="template-tab" data-template="multiday">📅 Dati Multigiorno</div>
         </div>
 
-        <div class="message-form animate-in">
-            <form id="messageForm">
-                <div class="form-group">
-                    <label for="phoneNumber" class="form-label">Phone Number</label>
-                    <input 
-                        type="tel" 
-                        id="phoneNumber" 
-                        name="phoneNumber"
-                        class="form-input" 
-                        placeholder="Paste phone number here (e.g., 0781234567 or +41781234567)"
-                        required
-                        title="Paste the phone number from your calling app"
-                    >
-                    <small id="phoneHint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                        Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.
-                    </small>
-                </div>
+        <!-- Booking instructions template panel -->
+        <div class="template-panel active" id="booking-panel">
+            <div class="template-info animate-in">
+                <h3>📋 Template: "How to Book New"</h3>
+                <p>This will send the predefined booking instructions template to the customer's WhatsApp number.</p>
+            </div>
 
-                <button type="submit" class="send-button" id="sendButton">
-                    <span id="buttonText">Send Message</span>
-                    <span id="buttonSpinner" class="spinner" style="display: none;"></span>
-                </button>
-            </form>
+            <div class="message-form animate-in">
+                <form id="bookingForm" class="template-form">
+                    <div class="form-group">
+                        <label for="bookingPhoneNumber" class="form-label">Phone Number</label>
+                        <input 
+                            type="tel" 
+                            id="bookingPhoneNumber" 
+                            name="phoneNumber"
+                            class="form-input phone-input" 
+                            placeholder="Paste phone number here (e.g., 0781234567 or +41781234567)"
+                            required
+                            title="Paste the phone number from your calling app"
+                        >
+                        <small class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.
+                        </small>
+                    </div>
 
-            <div id="statusMessage" class="status-message"></div>
+                    <button type="submit" class="send-button">
+                        <span class="button-text">Send Booking Instructions</span>
+                        <span class="button-spinner spinner" style="display: none;"></span>
+                    </button>
+                </form>
+
+                <div class="status-message"></div>
+            </div>
+        </div>
+
+        <!-- Dati Multigiorno template panel -->
+        <div class="template-panel" id="multiday-panel">
+            <div class="template-info animate-in">
+                <h3>📅 Template: "Dati Multigiorno"</h3>
+                <p>This will send the multi-day rental data request template to the customer's WhatsApp number.</p>
+            </div>
+
+            <div class="message-form animate-in">
+                <form id="multidayForm" class="template-form">
+                    <div class="form-group">
+                        <label for="multidayPhoneNumber" class="form-label">Phone Number</label>
+                        <input 
+                            type="tel" 
+                            id="multidayPhoneNumber" 
+                            name="phoneNumber"
+                            class="form-input phone-input" 
+                            placeholder="Paste phone number here (e.g., 0781234567 or +41781234567)"
+                            required
+                            title="Paste the phone number from your calling app"
+                        >
+                        <small class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="send-button">
+                        <span class="button-text">Send Multiday Data Request</span>
+                        <span class="button-spinner spinner" style="display: none;"></span>
+                    </button>
+                </form>
+
+                <div class="status-message"></div>
+            </div>
         </div>
     </div>
 
@@ -324,14 +417,24 @@
             return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
         }
 
-        const form = document.getElementById('messageForm');
-        const phoneInput = document.getElementById('phoneNumber');
-        const phoneHint = document.getElementById('phoneHint');
-        const sendButton = document.getElementById('sendButton');
-        const buttonText = document.getElementById('buttonText');
-        const buttonSpinner = document.getElementById('buttonSpinner');
-        const statusMessage = document.getElementById('statusMessage');
+        // Tab switching functionality
+        document.querySelectorAll('.template-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Update active tab
+                document.querySelectorAll('.template-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding panel
+                const templateId = this.getAttribute('data-template');
+                document.querySelectorAll('.template-panel').forEach(panel => panel.classList.remove('active'));
+                document.getElementById(`${templateId}-panel`).classList.add('active');
+                
+                // Focus on the phone input in the active panel
+                document.getElementById(`${templateId}PhoneNumber`).focus();
+            });
+        });
 
+        // Phone number formatting function
         function formatPhoneNumber(phoneNumber) {
             // Remove all non-digit characters and spaces
             let cleaned = phoneNumber.replace(/\D/g, '');
@@ -367,152 +470,179 @@
             return formatted;
         }
 
-        // Auto-format phone number when user pastes or types
-        phoneInput.addEventListener('input', function(e) {
-            const originalValue = e.target.value;
-            const formatted = formatPhoneNumber(originalValue);
+        // Add input event handlers to all phone inputs
+        document.querySelectorAll('.phone-input').forEach(input => {
+            // Find the corresponding hint element - get the parent form first
+            const formParent = input.closest('form');
+            const hintElement = formParent.querySelector('.phone-hint');
             
-            // Update the input to show the formatted number
-            if (originalValue !== formatted) {
-                e.target.value = formatted;
+            // Auto-format phone number when user pastes or types
+            input.addEventListener('input', function(e) {
+                const originalValue = e.target.value;
+                const formatted = formatPhoneNumber(originalValue);
                 
-                // Update hint to show what happened
-                if (formatted.startsWith('+41')) {
-                    phoneHint.textContent = '🇨🇭 Swiss number detected and formatted';
-                    phoneHint.style.color = '#4CAF50';
+                // Update the input to show the formatted number
+                if (originalValue !== formatted) {
+                    e.target.value = formatted;
+                    
+                    // Update hint to show what happened
+                    if (formatted.startsWith('+41')) {
+                        hintElement.textContent = '🇨🇭 Swiss number detected and formatted';
+                        hintElement.style.color = '#4CAF50';
+                    } else {
+                        hintElement.textContent = '🌍 International number format applied';
+                        hintElement.style.color = '#2196F3';
+                    }
                 } else {
-                    phoneHint.textContent = '🌍 International number format applied';
-                    phoneHint.style.color = '#2196F3';
+                    hintElement.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
+                    hintElement.style.color = '#666';
                 }
-            } else {
-                phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
-                phoneHint.style.color = '#666';
-            }
-        });
-
-        // Also handle paste events specifically
-        phoneInput.addEventListener('paste', function(e) {
-            // Let the paste happen first, then format
-            setTimeout(() => {
-                const event = new Event('input');
-                phoneInput.dispatchEvent(event);
-            }, 10);
-        });
-
-        // Handle form submission
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
+            });
             
-            const phoneNumber = phoneInput.value.trim();
-            
-            // Validation
-            if (!phoneNumber) {
-                showStatus('Please enter a phone number', 'error');
-                return;
-            }
-            
-            // Ensure the number is in international format
-            let finalPhoneNumber = phoneNumber;
-            if (!finalPhoneNumber.startsWith('+')) {
-                finalPhoneNumber = formatPhoneNumber(finalPhoneNumber);
-            }
-            
-            // Basic validation - must be international format with at least 8 digits
-            if (!finalPhoneNumber.match(/^\+[0-9]{8,15}$/)) {
-                showStatus('Please enter a valid phone number', 'error');
-                return;
-            }
-            
-            // Show loading state
-            setLoading(true);
-            hideStatus();
-
-            try {
-                // Get current settings
-                const settings = getSettings();
-                
-                // Use the same approach as reports.html
-                const requestUrl = `${settings.scriptUrl}?function=sendHowToBookMessageApp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
-                
-                console.log('🚀 Making request to:', requestUrl);
-                console.log('📱 Phone number:', finalPhoneNumber);
-
-                // Simple fetch without special headers (like reports.html)
-                const response = await fetch(requestUrl);
-
-                console.log('📡 Response status:', response.status);
-                console.log('📡 Response OK:', response.ok);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                console.log('✅ Parsed response:', data);
-                
-                if (data.result === true) {
-                    showStatus(`✅ Message sent successfully to ${finalPhoneNumber}`, 'success');
-                    form.reset(); // Clear the form
-                    // Reset hint text
-                    phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
-                    phoneHint.style.color = '#666';
-                } else if (data.error) {
-                    showStatus(`❌ Failed to send message: ${data.error}`, 'error');
-                } else {
-                    showStatus(`❌ Failed to send message: ${JSON.stringify(data)}`, 'error');
-                }
-            } catch (error) {
-                console.error('❌ Full error details:', error);
-                console.error('❌ Error name:', error.name);
-                console.error('❌ Error message:', error.message);
-                
-                // Check if it's a CORS/network error - but since we see 200 OK in console, it likely worked
-                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    // The console shows "200 (OK)" which means the request succeeded
-                    // CORS just prevents us from reading the response
-                    showStatus(`✅ Message sent successfully to ${finalPhoneNumber}! 🎉`, 'success');
-                    form.reset(); // Clear the form since it worked (we got 200 OK)
-                    // Reset hint text
-                    phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
-                    phoneHint.style.color = '#666';
-                } else {
-                    showStatus(`❌ Error: ${error.message}`, 'error');
-                }
-            } finally {
-                setLoading(false);
-            }
-        });
-
-        function setLoading(loading) {
-            sendButton.disabled = loading;
-            if (loading) {
-                buttonText.style.display = 'none';
-                buttonSpinner.style.display = 'block';
-            } else {
-                buttonText.style.display = 'block';
-                buttonSpinner.style.display = 'none';
-            }
-        }
-
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message status-${type}`;
-            statusMessage.style.display = 'block';
-            
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
+            // Also handle paste events specifically
+            input.addEventListener('paste', function(e) {
+                // Let the paste happen first, then format
                 setTimeout(() => {
-                    hideStatus();
-                }, 5000);
+                    const event = new Event('input');
+                    input.dispatchEvent(event);
+                }, 10);
+            });
+        });
+
+        // Set up form handlers
+        document.querySelectorAll('.template-form').forEach(form => {
+            const formId = form.id;
+            const panel = form.closest('.template-panel');
+            const phoneInput = form.querySelector('.phone-input');
+            const phoneHint = form.querySelector('.phone-hint');
+            const sendButton = form.querySelector('.send-button');
+            const buttonText = form.querySelector('.button-text');
+            const buttonSpinner = form.querySelector('.button-spinner');
+            const statusMessage = panel.querySelector('.status-message');
+            
+            // Set endpoint based on form ID
+            let endpoint = '';
+            if (formId === 'bookingForm') {
+                endpoint = 'sendHowToBookMessageApp';
+            } else if (formId === 'multidayForm') {
+                endpoint = 'sendDatiMultigiornoApp';
             }
-        }
+            
+            // Handle form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const phoneNumber = phoneInput.value.trim();
+                
+                // Validation
+                if (!phoneNumber) {
+                    showStatus('Please enter a phone number', 'error');
+                    return;
+                }
+                
+                // Ensure the number is in international format
+                let finalPhoneNumber = phoneNumber;
+                if (!finalPhoneNumber.startsWith('+')) {
+                    finalPhoneNumber = formatPhoneNumber(finalPhoneNumber);
+                }
+                
+                // Basic validation - must be international format with at least 8 digits
+                if (!finalPhoneNumber.match(/^\+[0-9]{8,15}$/)) {
+                    showStatus('Please enter a valid phone number', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                setLoading(true);
+                hideStatus();
 
-        function hideStatus() {
-            statusMessage.style.display = 'none';
-        }
+                try {
+                    // Get current settings
+                    const settings = getSettings();
+                    
+                    // Build request URL
+                    const requestUrl = `${settings.scriptUrl}?function=${endpoint}&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
+                    
+                    console.log(`🚀 Making request to: ${endpoint}`);
+                    console.log('📱 Phone number:', finalPhoneNumber);
 
-        // Auto-focus phone input
-        phoneInput.focus();
+                    // Simple fetch without special headers
+                    const response = await fetch(requestUrl);
+
+                    console.log('📡 Response status:', response.status);
+                    console.log('📡 Response OK:', response.ok);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('✅ Parsed response:', data);
+                    
+                    if (data.result === true) {
+                        showStatus(`✅ Message sent successfully to ${finalPhoneNumber}`, 'success');
+                        form.reset(); // Clear the form
+                        // Reset hint text
+                        phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
+                        phoneHint.style.color = '#666';
+                    } else if (data.error) {
+                        showStatus(`❌ Failed to send message: ${data.error}`, 'error');
+                    } else {
+                        showStatus(`❌ Failed to send message: ${JSON.stringify(data)}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ Full error details:', error);
+                    console.error('❌ Error name:', error.name);
+                    console.error('❌ Error message:', error.message);
+                    
+                    // Check if it's a CORS/network error - but since we see 200 OK in console, it likely worked
+                    if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+                        // The console shows "200 (OK)" which means the request succeeded
+                        // CORS just prevents us from reading the response
+                        showStatus(`✅ Message sent successfully to ${finalPhoneNumber}! 🎉`, 'success');
+                        form.reset(); // Clear the form since it worked (we got 200 OK)
+                        // Reset hint text
+                        phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
+                        phoneHint.style.color = '#666';
+                    } else {
+                        showStatus(`❌ Error: ${error.message}`, 'error');
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            });
+            
+            function setLoading(loading) {
+                sendButton.disabled = loading;
+                if (loading) {
+                    buttonText.style.display = 'none';
+                    buttonSpinner.style.display = 'block';
+                } else {
+                    buttonText.style.display = 'block';
+                    buttonSpinner.style.display = 'none';
+                }
+            }
+
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = `status-message status-${type}`;
+                statusMessage.style.display = 'block';
+                
+                // Auto-hide success messages after 5 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        hideStatus();
+                    }, 5000);
+                }
+            }
+
+            function hideStatus() {
+                statusMessage.style.display = 'none';
+            }
+        });
+
+        // Auto-focus booking phone input on page load
+        document.getElementById('bookingPhoneNumber').focus();
     </script>
 </body>
 </html>
