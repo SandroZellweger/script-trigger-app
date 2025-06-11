@@ -566,7 +566,10 @@
         </div>
     </div>
 
-    <script>        // Function to get settings from localStorage with error handling        function getSettings() {
+    <script>
+        // Function to get settings from localStorage with error handling
+        function getSettings() {
+            // Correct script URL that is confirmed to work
             const defaultSettings = {
                 scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
                 authToken: 'myAppToken2025'
@@ -574,9 +577,30 @@
            
             try {
                 const savedSettings = localStorage.getItem('appSettings');
-                return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+                
+                // If no saved settings, use defaults
+                if (!savedSettings) {
+                    return defaultSettings;
+                }
+                
+                // Parse saved settings
+                const parsedSettings = JSON.parse(savedSettings);
+                
+                // Verify if stored URL is a known problematic URL
+                // If so, ignore localStorage and use the default
+                if (parsedSettings.scriptUrl && 
+                    (parsedSettings.scriptUrl.includes('AKfycbxksJAHHqDZ7E2VTp3TazcC4SOCOWef2oM2Tz5MY5Px--A7TUqNjIXeUev5J1QW-T0b') || 
+                     parsedSettings.scriptUrl !== defaultSettings.scriptUrl)) {
+                    console.log('⚠️ Found outdated script URL in localStorage. Using correct default URL instead.');
+                    // Update localStorage with correct URL
+                    localStorage.setItem('appSettings', JSON.stringify(defaultSettings));
+                    return defaultSettings;
+                }
+                
+                // Merge with defaults and return
+                return { ...defaultSettings, ...parsedSettings };
             } catch (error) {
-                console.log('⚠️ localStorage not available, using default settings');
+                console.log('⚠️ localStorage not available or error occurred, using default settings:', error);
                 return defaultSettings;
             }
         }
@@ -603,6 +627,10 @@
 
         // Initialize calendar
         document.addEventListener('DOMContentLoaded', function() {
+            // Check localStorage on load and make sure we have the correct script URL
+            const settings = getSettings();
+            console.log('🔧 Initialized with script URL:', settings.scriptUrl);
+            
             generateCalendar();
             loadCalendarData();
            
@@ -923,25 +951,36 @@
                 const endDateStr = endDate.toISOString().split('T')[0];
                
                 console.log('🔄 Loading calendar data for:', startDateStr, 'to', endDateStr);
+                console.log('📡 Using script URL:', settings.scriptUrl);
                
+                // Add timestamp to prevent caching issues
+                const timestamp = Date.now();
+                
                 // Call Google Apps Script to fetch calendar events
-                const requestUrl = `${settings.scriptUrl}?function=getCalendarEventsApp&authToken=${settings.authToken}&startDate=${startDateStr}&endDate=${endDateStr}`;
+                const requestUrl = `${settings.scriptUrl}?function=getCalendarEventsApp&authToken=${settings.authToken}&startDate=${startDateStr}&endDate=${endDateStr}&timestamp=${timestamp}`;
                
                 const response = await fetch(requestUrl);
+                console.log('📊 Response Status:', response.status);
                
                 if (response.ok) {
-                    const data = await response.json();
-                    console.log('📅 Calendar data received:', data);
-                   
-                    if (data.result && Array.isArray(data.result)) {
-                        currentEvents = data.result;
-                        renderEvents();
-                        console.log('✅ Calendar events loaded successfully:', currentEvents.length, 'events');
-                    } else if (data.error) {
-                        console.error('❌ Calendar API error:', data.error);
-                        // Fall back to mock data for now
-                        currentEvents = generateMockEvents();
-                        renderEvents();
+                    const responseText = await response.text();
+                    console.log('📄 Raw Response:', responseText.substring(0, 100) + '...');
+                    
+                    try {
+                        const data = JSON.parse(responseText);
+                        
+                        if (data.result && Array.isArray(data.result)) {
+                            currentEvents = data.result;
+                            renderEvents();
+                            console.log('✅ Calendar events loaded successfully:', currentEvents.length, 'events');
+                        } else if (data.error) {
+                            throw new Error('API Error: ' + data.error);
+                        } else {
+                            throw new Error('Invalid API response format');
+                        }
+                    } catch (parseError) {
+                        console.error('❌ JSON Parse error:', parseError);
+                        throw new Error('Failed to parse API response');
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -950,23 +989,38 @@
             } catch (error) {
                 console.error('❌ Error loading calendar data:', error);
                
-                // Check if it's a CORS/network error - the request might have actually succeeded
+                // Check if it's a CORS/network error
                 if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    console.log('🌐 CORS issue detected - request may have succeeded, checking...');
-                   
-                    // For now, show a message that we're trying to load data
-                    // In production, you might want to retry or show a different message
-                    console.log('📅 Calendar data may have loaded despite CORS error');
-                   
-                    // Try again in a few seconds, or use mock data for now
-                    setTimeout(() => {
-                        console.log('🔄 Retrying calendar data load...');
-                        // Could implement a retry mechanism here
-                    }, 3000);
+                    console.log('🌐 CORS issue detected - attempt to fix by verifying localStorage settings');
+                    
+                    // Force update localStorage with the correct URL
+                    const defaultSettings = {
+                        scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+                        authToken: 'myAppToken2025'
+                    };
+                    
+                    localStorage.setItem('appSettings', JSON.stringify(defaultSettings));
+                    console.log('🔧 Updated localStorage with correct script URL');
+                    
+                    // Show message to user
+                    const calendarView = document.getElementById('calendarView');
+                    calendarView.innerHTML = `
+                        <div style="grid-column: span 7; padding: 20px; text-align: center; background: #fff;">
+                            <h3>📡 Connection Issue Detected</h3>
+                            <p>The calendar is having trouble connecting to the server.</p>
+                            <p>We've attempted to fix the issue. Please try refreshing the page.</p>
+                            <button onclick="window.location.reload()" style="margin-top: 15px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Refresh Page
+                            </button>
+                        </div>
+                    `;
+                    
+                    // No mock data in this case, just show the error message
+                    return;
                 }
                
-                // For now, use mock data while testing
-                console.log('📝 Using mock data for testing...');
+                // Use mock data for testing or when there's an error
+                console.log('📝 Using mock data due to API error...');
                 currentEvents = generateMockEvents();
                 renderEvents();
             } finally {
