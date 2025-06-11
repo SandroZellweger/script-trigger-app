@@ -3,15 +3,15 @@
 <head>
     <title>Google Apps Script Test</title>
 </head>
-<body>
-    <h1>Google Apps Script Test</h1>
+<body>    <h1>Google Apps Script Test</h1>
     <button onclick="testPing()">Test Ping</button>
+    <button onclick="testDebug()">Test Debug</button>
     <button onclick="testCalendar()">Test Calendar</button>
     <button onclick="testStripe()">Test Stripe</button>
     <div id="output"></div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIO5qEUh4e3k1PVXaccVQvCbJEUgPbgXoOv7AHX8C0P138hj5QzMGgEZ6ta7zBUzsY/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0GRYueaSCYRZ12_lUsnSimA9zE0Ryr1AHu_wczGVToTzCdE_DgrhvtL4HpYuj4W1a/exec';
         const AUTH_TOKEN = 'myAppToken2025';
 
         function log(message) {
@@ -71,6 +71,30 @@
             log('Testing Stripe...');
             try {
                 const url = `${SCRIPT_URL}?function=triggerStripePayment&authToken=${AUTH_TOKEN}&amount=100.00&description=Test`;
+                log(`URL: ${url}`);
+                
+                const response = await fetch(url);
+                log(`Response status: ${response.status}`);
+                log(`Response ok: ${response.ok}`);
+                
+                const data = await response.text();
+                log(`Response text: ${data}`);
+                
+                try {
+                    const jsonData = JSON.parse(data);
+                    log(`Parsed JSON: ${JSON.stringify(jsonData, null, 2)}`);
+                } catch (e) {
+                    log(`Could not parse as JSON: ${e.message}`);
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+
+        async function testDebug() {
+            log('Testing debug...');
+            try {
+                const url = `${SCRIPT_URL}?function=debug&authToken=${AUTH_TOKEN}`;
                 log(`URL: ${url}`);
                 
                 const response = await fetch(url);

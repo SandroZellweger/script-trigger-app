@@ -12,23 +12,21 @@ function validateAuthToken(token) {
 function doGet(e) {
   try {
     // Log the incoming request
-    console.log('🔍 Incoming request:', JSON.stringify(e.parameter));
+    Logger.log('🔍 Incoming request: ' + JSON.stringify(e.parameter));
     
     // Validate authentication
     const authToken = e.parameter.authToken;
     if (!validateAuthToken(authToken)) {
-      console.log('❌ Auth failed for token:', authToken);
+      Logger.log('❌ Auth failed for token: ' + authToken);
       return createResponse({ error: "Unauthorized: Invalid auth token" });
     }
 
     const functionName = e.parameter.function;
-    console.log('🎯 Function requested:', functionName);
+    Logger.log('🎯 Function requested: ' + functionName);
     
     if (!functionName) {
       return createResponse({ error: "No function specified" });
-    }
-
-    let result;
+    }    let result;
     switch (functionName) {
       case "ping":
         result = { result: "Ping successful - script is working!" };
@@ -36,18 +34,19 @@ function doGet(e) {
       case "testSimple":
         result = { result: "Simple test successful" };
         break;
+      case "debug":
+        result = debugInfo();
+        break;
       case "getCalendarEventsApp":
         result = testCalendarFunction(e.parameter.startDate, e.parameter.endDate);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
-    }
-
-    console.log('✅ Result:', JSON.stringify(result));
+    }Logger.log('✅ Result: ' + JSON.stringify(result));
     return createResponse(result);
       
   } catch (error) {
-    console.error('❌ Error in doGet:', error.toString());
+    Logger.log('❌ Error in doGet: ' + error.toString());
     const errorResponse = { error: error.toString() };
     return createResponse(errorResponse);
   }
@@ -63,7 +62,7 @@ function createResponse(data) {
 
 function testCalendarFunction(startDate, endDate) {
   try {
-    console.log('📅 Testing calendar access for dates:', startDate, 'to', endDate);
+    Logger.log('📅 Testing calendar access for dates: ' + startDate + ' to ' + endDate);
     
     // Test access to your main calendar first
     const mainCalendar = CalendarApp.getCalendarById('noleggiosemplice23@gmail.com');
@@ -71,14 +70,14 @@ function testCalendarFunction(startDate, endDate) {
       return { error: 'Cannot access main calendar' };
     }
     
-    console.log('✅ Main calendar found:', mainCalendar.getName());
+    Logger.log('✅ Main calendar found: ' + mainCalendar.getName());
     
     // Get a simple date range
     const timeMin = new Date(startDate + 'T00:00:00Z');
     const timeMax = new Date(endDate + 'T23:59:59Z');
     
     const events = mainCalendar.getEvents(timeMin, timeMax);
-    console.log('📊 Found', events.length, 'events in main calendar');
+    Logger.log('📊 Found ' + events.length + ' events in main calendar');
     
     // Return simple result
     return { 
@@ -90,15 +89,50 @@ function testCalendarFunction(startDate, endDate) {
     };
     
   } catch (error) {
-    console.error('❌ Calendar error:', error.toString());
+    Logger.log('❌ Calendar error: ' + error.toString());
     return { error: 'Calendar error: ' + error.toString() };
   }
 }
 
 // Test function for manual execution
 function manualTest() {
-  console.log('🧪 Running manual test...');
+  Logger.log('🧪 Running manual test...');
   const result = testCalendarFunction('2025-06-01', '2025-06-30');
-  console.log('📋 Manual test result:', JSON.stringify(result));
+  Logger.log('📋 Manual test result: ' + JSON.stringify(result));
   return result;
+}
+
+// Debug function that returns detailed information
+function debugInfo() {
+  const info = {
+    timestamp: new Date().toISOString(),
+    scriptTimeZone: Session.getScriptTimeZone(),
+    userEmail: Session.getActiveUser().getEmail(),
+    calendarTest: null,
+    permissions: null
+  };
+  
+  try {
+    // Test calendar access
+    const mainCalendar = CalendarApp.getCalendarById('noleggiosemplice23@gmail.com');
+    if (mainCalendar) {
+      info.calendarTest = {
+        success: true,
+        name: mainCalendar.getName(),
+        id: mainCalendar.getId()
+      };
+    } else {
+      info.calendarTest = {
+        success: false,
+        error: 'Calendar not found'
+      };
+    }
+  } catch (error) {
+    info.calendarTest = {
+      success: false,
+      error: error.toString()
+    };
+  }
+  
+  return { result: info };
 }
