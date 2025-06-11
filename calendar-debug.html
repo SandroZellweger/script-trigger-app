@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calendar Debug</title>
+</head>
+<body>
+    <h1>Calendar Debug</h1>
+    <button onclick="clearStorage()">Clear LocalStorage</button>
+    <button onclick="testCalendar()">Test Calendar</button>
+    <div id="output"></div>
+
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('output').innerHTML = 'LocalStorage cleared!';
+        }
+
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbzo5sXOIs3r2s5Z2QaAOqKFhE7q8Ic72lYgsRkmL-5DwehLdGJ4XebdVJ6gdJA5p71T9A/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
+
+        async function testCalendar() {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Testing...';
+            
+            try {
+                const settings = getSettings();
+                output.innerHTML += `<br>Using URL: ${settings.scriptUrl}`;
+                
+                const requestUrl = `${settings.scriptUrl}?function=getCalendarEventsApp&authToken=${settings.authToken}&startDate=2025-06-01&endDate=2025-06-30`;
+                output.innerHTML += `<br>Full URL: ${requestUrl}`;
+                
+                const response = await fetch(requestUrl);
+                output.innerHTML += `<br>Response status: ${response.status}`;
+                
+                const data = await response.text();
+                output.innerHTML += `<br>Response: ${data}`;
+                
+            } catch (error) {
+                output.innerHTML += `<br>Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
