@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear LocalStorage for Calendar</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; background: #e8f5e8; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .info { color: blue; background: #e8f0ff; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 15px 25px; margin: 10px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Calendar CORS Issue</h1>
+    
+    <div class="info">
+        <h3>Issue:</h3>
+        Your browser has the old script URL saved in localStorage. This is overriding the correct URL in your calendar.html file.
+    </div>
+
+    <div class="info">
+        <h3>Current localStorage settings:</h3>
+        <div id="currentSettings">Checking...</div>
+    </div>
+
+    <button onclick="clearStorage()">🗑️ Clear All LocalStorage</button>
+    <button onclick="updateSettings()">🔄 Update to Correct URL</button>
+    <button onclick="checkSettings()">📋 Check Current Settings</button>
+
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function checkSettings() {
+            try {
+                const savedSettings = localStorage.getItem('appSettings');
+                const current = document.getElementById('currentSettings');
+                
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    current.innerHTML = `<pre>${JSON.stringify(settings, null, 2)}</pre>`;
+                    
+                    if (settings.scriptUrl && settings.scriptUrl.includes('AKfycbxksJAHHqDZ7E2VTp3TazcC4SOCOWef2oM2Tz5MY5Px--A7TUqNjIXeUev5J1QW-T0b')) {
+                        addResult('❌ Found OLD script URL in localStorage! This is causing the CORS error.', 'error');
+                    } else {
+                        addResult('✅ Script URL looks correct.', 'success');
+                    }
+                } else {
+                    current.innerHTML = 'No settings saved in localStorage';
+                    addResult('✅ No localStorage settings found. Using defaults.', 'success');
+                }
+            } catch (error) {
+                addResult('❌ Error checking settings: ' + error.message, 'error');
+            }
+        }
+
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                addResult('✅ All localStorage cleared! The calendar will now use the correct default URL.', 'success');
+                checkSettings();
+            } catch (error) {
+                addResult('❌ Error clearing localStorage: ' + error.message, 'error');
+            }
+        }
+
+        function updateSettings() {
+            try {
+                const correctSettings = {
+                    scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+                    authToken: 'myAppToken2025'
+                };
+                
+                localStorage.setItem('appSettings', JSON.stringify(correctSettings));
+                addResult('✅ Updated localStorage with correct script URL!', 'success');
+                checkSettings();
+            } catch (error) {
+                addResult('❌ Error updating settings: ' + error.message, 'error');
+            }
+        }
+
+        // Auto-check on load
+        window.onload = function() {
+            checkSettings();
+        }
+    </script>
+</body>
+</html>

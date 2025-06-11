@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Corrected Script</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4CAF50; }
+        .error { background: #ffe8e8; border-color: #f44336; }
+        .info { background: #e8f0ff; border-color: #2196F3; }
+        button { margin: 5px; padding: 10px 20px; cursor: pointer; }
+        .log { font-family: monospace; font-size: 12px; background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Corrected Google Apps Script</h1>
+    
+    <div class="test-section info">
+        <h3>Current Script URL:</h3>
+        <div id="currentUrl">AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg</div>
+        <p><strong>Note:</strong> Make sure you've deployed the corrected script before testing!</p>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Functions:</h3>
+        <button onclick="testPing()">🏓 Test Ping</button>
+        <button onclick="testCalendar()">📅 Test Calendar</button>
+        <button onclick="testExpenses()">💰 Test Get Expenses</button>
+        <button onclick="testStripePayment()">💳 Test Stripe Payment</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec';
+        const AUTH_TOKEN = 'myAppToken2025';
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = `
+                <h4>${new Date().toLocaleTimeString()}</h4>
+                <div class="log">${message}</div>
+            `;
+            results.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearLogs() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function makeRequest(functionName, extraParams = {}) {
+            try {
+                const params = new URLSearchParams({
+                    function: functionName,
+                    authToken: AUTH_TOKEN,
+                    timestamp: Date.now(),
+                    ...extraParams
+                });
+
+                const url = `${SCRIPT_URL}?${params}`;
+                log(`🔄 Testing ${functionName}...\n📡 URL: ${url}`, 'info');
+
+                const response = await fetch(url);
+                log(`📊 Response Status: ${response.status} ${response.statusText}`, 'info');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const responseText = await response.text();
+                log(`📄 Raw Response: ${responseText}`, 'info');
+
+                const data = JSON.parse(responseText);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                return data;
+
+            } catch (error) {
+                log(`❌ Error in ${functionName}: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function testPing() {
+            try {
+                const data = await makeRequest('ping');
+                log(`✅ Ping Test PASSED!\n🎯 Result: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                log(`❌ Ping Test FAILED: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCalendar() {
+            try {
+                const data = await makeRequest('getCalendarEventsApp', {
+                    startDate: '2025-06-01',
+                    endDate: '2025-06-30'
+                });
+                
+                const events = data.result || [];
+                log(`✅ Calendar Test PASSED!\n📅 Found ${events.length} events\n🎯 Sample: ${JSON.stringify(events.slice(0, 2), null, 2)}`, 'success');
+            } catch (error) {
+                log(`❌ Calendar Test FAILED: ${error.message}`, 'error');
+            }
+        }
+
+        async function testExpenses() {
+            try {
+                const data = await makeRequest('getExpenses');
+                
+                const expenses = data.result || [];
+                log(`✅ Expenses Test PASSED!\n💰 Found ${expenses.length} expenses\n🎯 Sample: ${JSON.stringify(expenses.slice(0, 2), null, 2)}`, 'success');
+            } catch (error) {
+                log(`❌ Expenses Test FAILED: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStripePayment() {
+            try {
+                const data = await makeRequest('triggerStripePayment', {
+                    amount: '10.00',
+                    description: 'Test Payment Link'
+                });
+                
+                log(`✅ Stripe Test PASSED!\n💳 Payment Link Created\n🎯 Result: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                log(`❌ Stripe Test FAILED: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run ping test on load
+        window.onload = function() {
+            log('🚀 Test page loaded. Click buttons above to test different functions.', 'info');
+        }
+    </script>
+</body>
+</html>
