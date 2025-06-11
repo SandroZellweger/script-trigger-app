@@ -354,7 +354,7 @@
                             required
                             title="Paste the phone number from your calling app"
                         >
-                        <small class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        <small id="bookingPhoneHint" class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
                             Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.
                         </small>
                     </div>
@@ -389,7 +389,7 @@
                             required
                             title="Paste the phone number from your calling app"
                         >
-                        <small class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        <small id="multidayPhoneHint" class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
                             Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.
                         </small>
                     </div>
@@ -468,9 +468,7 @@
             const formatted = '+' + cleaned;
             console.log('📱 Assuming international, added +:', formatted);
             return formatted;
-        }
-
-        // Add input event handlers to all phone inputs
+        }        // Add input event handlers to all phone inputs
         document.querySelectorAll('.phone-input').forEach(input => {
             // Find the corresponding hint element - get the parent form first
             const formParent = input.closest('form');
