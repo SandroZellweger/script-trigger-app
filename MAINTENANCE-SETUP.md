@@ -46,6 +46,43 @@ The maintenance tracker integrates with your existing Google Apps Script project
 
 1. `getMaintenanceData`: Retrieves maintenance records from the spreadsheet
 2. `saveMaintenanceRecord`: Saves new records and updates existing ones
-3. Update your main `doGet` function to handle these new functions
+3. `getCleaningData`: Retrieves cleaning records from the spreadsheet
+4. `saveCleaningRecord`: Saves new cleaning records and updates existing ones
+5. Update your main `doGet` function to handle these new functions
 
 The code for these functions is provided in the `maintenance-script-code.js` file.
+
+## Van Cleaning Setup
+
+The system also includes a van cleaning tracking feature. To use this feature:
+
+1. Create a sheet named "Cleaning" in the same spreadsheet with the following columns:
+
+| id | timestamp | vehicle | cleaningType | date | time | assignedTo | status | completedDate | notes | isDeleted |
+|----|-----------|---------|--------------|------|------|------------|--------|---------------|-------|-----------|
+| clean_001 | 6/11/2025 | Van 1 | Standard | 6/15/2025 | 09:00 | Cleaning Crew A | scheduled | | Regular weekly cleaning | false |
+
+### Cleaning Column Descriptions
+
+- **id**: Unique identifier for each cleaning record (automatically generated)
+- **timestamp**: Date and time when the record was created (automatically generated)
+- **vehicle**: Name/ID of the vehicle to be cleaned
+- **cleaningType**: Type of cleaning service (Standard, Deep Clean, Express, etc.)
+- **date**: Date when the cleaning is scheduled
+- **time**: Time when the cleaning is scheduled
+- **assignedTo**: Person or team assigned to the cleaning task
+- **status**: Current status (scheduled, completed, in-progress, cancelled)
+- **completedDate**: Date when the cleaning was completed
+- **notes**: Additional notes or special instructions
+- **isDeleted**: Flag to mark deleted records (true/false)
+
+### Sample Cleaning Data
+
+You can add the following sample data to test the cleaning functionality:
+
+| id | timestamp | vehicle | cleaningType | date | time | assignedTo | status | completedDate | notes | isDeleted |
+|----|-----------|---------|--------------|------|------|------------|--------|---------------|-------|-----------|
+| clean_001 | 6/10/2025 | Van 1 | Standard | 6/11/2025 | 09:00 | Cleaning Crew A | completed | 6/11/2025 | Regular weekly cleaning | false |
+| clean_002 | 6/8/2025 | Van 2 | Deep Clean | 6/15/2025 | 14:00 | Cleaning Crew B | scheduled | | Monthly deep cleaning | false |
+| clean_003 | 6/9/2025 | Van 3 | Express | 6/12/2025 | 10:30 | Cleaning Crew A | scheduled | | Quick clean before customer pickup | false |
+| clean_004 | 6/5/2025 | Van 4 | Disinfection | 6/18/2025 | 16:00 | Cleaning Crew C | scheduled | | Special disinfection service | false |

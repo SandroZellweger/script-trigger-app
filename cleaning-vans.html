@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Van Cleaning">
+    <title>Van Cleaning Schedule</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #7DBB35 0%, #5a8827 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #FFFFFF;
+            border-radius: 20px;
+            color: #333;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.8;
+            color: #555;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .control-panel {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #7DBB35;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            background: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #7DBB35;
+            box-shadow: 0 0 0 3px rgba(125, 187, 53, 0.1);
+        }
+
+        .button {
+            background: linear-gradient(135deg, #7DBB35 0%, #5a8827 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(125, 187, 53, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(125, 187, 53, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button-secondary {
+            background: #fff;
+            color: #7DBB35;
+            border: 2px solid #7DBB35;
+            box-shadow: 0 4px 16px rgba(125, 187, 53, 0.1);
+        }
+
+        .button-secondary:hover {
+            background: rgba(125, 187, 53, 0.05);
+        }
+
+        .tabs {
+            display: flex;
+            width: 100%;
+            margin-bottom: 20px;
+            background: #FFFFFF;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            cursor: pointer;
+            background: #FFFFFF;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #555;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            background: #fff;
+            color: #7DBB35;
+            border-bottom: 3px solid #7DBB35;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            width: 100%;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .table-container {
+            width: 100%;
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(125, 187, 53, 0.1);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            color: #555;
+        }
+
+        tr:hover td {
+            background: rgba(125, 187, 53, 0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-due-soon {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .status-overdue {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .status-completed {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-scheduled {
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #555;
+            font-size: 18px;
+        }
+
+        .action-button:hover {
+            background: rgba(125, 187, 53, 0.1);
+            color: #7DBB35;
+        }
+
+        .action-button.delete:hover {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .empty-state-description {
+            max-width: 400px;
+            margin: 0 auto 20px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            position: relative;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .calendar-container {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-month {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .calendar-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar-btn {
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 24px;
+            color: #555;
+        }
+
+        .calendar-btn:hover {
+            background: rgba(125, 187, 53, 0.1);
+            color: #7DBB35;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 10px;
+            color: #555;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background: #f9f9f9;
+            border: 2px solid transparent;
+        }
+
+        .calendar-day:hover {
+            background: rgba(125, 187, 53, 0.1);
+        }
+
+        .calendar-day.active {
+            background: rgba(125, 187, 53, 0.2);
+            border-color: #7DBB35;
+        }
+
+        .calendar-day.today {
+            background: rgba(125, 187, 53, 0.1);
+            font-weight: 700;
+        }
+
+        .calendar-day-number {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .cleaning-indicator {
+            position: absolute;
+            bottom: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #7DBB35;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+                margin-top: 60px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 20px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .calendar-grid {
+                gap: 5px;
+            }
+            
+            .calendar-day-number {
+                font-size: 14px;
+            }
+        }
+
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        /* Staggered animations for cards */
+        .stats-grid .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stats-grid .stat-card:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <a href="maintenance.html" class="back-button">
+        <span>←</span>
+        Back to Maintenance
+    </a>
+
+    <div class="container">
+        <div class="header animate-in">
+            <img src="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" alt="Company Logo" class="logo" style="max-height: 60px; margin-bottom: 15px;">
+            <h1>🧹 Van Cleaning Schedule</h1>
+            <p>Track and manage cleaning schedules for your fleet</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card animate-in">
+                <div class="stat-value" id="totalCleaned">0</div>
+                <div class="stat-label">Cleaned This Month</div>
+            </div>
+            <div class="stat-card animate-in">
+                <div class="stat-value" id="scheduledCleanings">0</div>
+                <div class="stat-label">Scheduled</div>
+            </div>
+            <div class="stat-card animate-in">
+                <div class="stat-value" id="overdueCleanings">0</div>
+                <div class="stat-label">Overdue</div>
+            </div>
+            <div class="stat-card animate-in">
+                <div class="stat-value" id="avgDaysBetween">0</div>
+                <div class="stat-label">Avg. Days Between Cleanings</div>
+            </div>
+        </div>
+
+        <div class="control-panel animate-in">
+            <div class="vehicle-selector">
+                <select id="vehicleFilter" class="form-select">
+                    <option value="all">All Vehicles</option>
+                    <!-- Vehicle options will be added dynamically -->
+                </select>
+            </div>
+            <div class="add-record">
+                <button id="addCleaningBtn" class="button">
+                    <span>+ Schedule Cleaning</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="tabs animate-in">
+            <div class="tab active" data-tab="calendar">Calendar View</div>
+            <div class="tab" data-tab="list">List View</div>
+            <div class="tab" data-tab="history">Cleaning History</div>
+        </div>
+
+        <div id="calendar" class="tab-content active">
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <div class="calendar-month" id="currentMonth">June 2025</div>
+                    <div class="calendar-controls">
+                        <button class="calendar-btn" id="prevMonth">←</button>
+                        <button class="calendar-btn" id="nextMonth">→</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendarDaysHeader">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                </div>
+                <div class="calendar-grid" id="calendarDays">
+                    <!-- Calendar days will be generated dynamically -->
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="dailyScheduleTable">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Cleaning Type</th>
+                            <th>Time</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyScheduleBody">
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">🗓️</div>
+                                <div class="empty-state-title">Select a date to view cleanings</div>
+                                <div class="empty-state-description">Click on a day in the calendar to see scheduled cleanings for that day.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="list" class="tab-content">
+            <div class="table-container">
+                <table id="cleaningListTable">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Cleaning Type</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cleaningListBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-state-icon">🧹</div>
+                                <div class="empty-state-title">No scheduled cleanings</div>
+                                <div class="empty-state-description">Click "Schedule Cleaning" to add a new cleaning appointment to the calendar.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="history" class="tab-content">
+            <div class="table-container">
+                <table id="cleaningHistoryTable">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Cleaning Type</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Completed By</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cleaningHistoryBody">
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">📜</div>
+                                <div class="empty-state-title">No cleaning history</div>
+                                <div class="empty-state-description">Completed cleanings will appear here.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Cleaning Modal -->
+    <div id="cleaningModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2 class="modal-title" id="modalTitle">Schedule Cleaning</h2>
+            <form id="cleaningForm">
+                <input type="hidden" id="recordId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="vehicle" class="form-label">Vehicle *</label>
+                        <select id="vehicle" class="form-select" required>
+                            <option value="">Select Vehicle</option>
+                            <!-- Vehicle options will be added dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cleaningType" class="form-label">Cleaning Type *</label>
+                        <select id="cleaningType" class="form-select" required>
+                            <option value="">Select Cleaning Type</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Deep Clean">Deep Clean</option>
+                            <option value="Express">Express</option>
+                            <option value="Exterior Only">Exterior Only</option>
+                            <option value="Interior Only">Interior Only</option>
+                            <option value="Disinfection">Disinfection</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cleaningDate" class="form-label">Date *</label>
+                        <input type="date" id="cleaningDate" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cleaningTime" class="form-label">Time</label>
+                        <input type="time" id="cleaningTime" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="assignedTo" class="form-label">Assigned To</label>
+                        <input type="text" id="assignedTo" class="form-input" placeholder="e.g. Cleaning Crew A">
+                    </div>
+                    <div class="form-group">
+                        <label for="status" class="form-label">Status *</label>
+                        <select id="status" class="form-select" required>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea id="notes" class="form-input" rows="3" placeholder="Enter any additional notes or special instructions..."></textarea>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" id="cancelBtn" class="button button-secondary">Cancel</button>
+                    <button type="submit" id="saveBtn" class="button">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global API handling
+        async function loadRealCleaningData() {
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=getCleaningData&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    cleaningData = result.data;
+                    
+                    // Get unique vehicles
+                    const vehicleList = [...new Set(cleaningData.map(record => record.vehicle))].filter(Boolean);
+                    populateVehicleOptions(vehicleList.length > 0 ? vehicleList : ['Van 1', 'Van 2', 'Van 3', 'Van 4', 'Van 5']);
+                    
+                    // Update UI
+                    updateStats();
+                    updateCalendarWithCleanings();
+                    updateCleaningLists();
+                    
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error loading cleaning data:', error);
+                return false;
+            }
+        }
+        
+        // Save cleaning record to the API
+        async function saveCleaningToAPI(cleaningRecord) {
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=saveCleaningRecord&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `data=${encodeURIComponent(JSON.stringify(cleaningRecord))}`
+                });
+                
+                const result = await response.json();
+                return result.success;
+            } catch (error) {
+                console.error('Error saving cleaning record:', error);
+                return false;
+            }
+        }
+
+        // Function to get settings from localStorage
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+                authToken: 'myAppToken2025',
+                maintenanceSheetId: '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
+
+        // DOM Elements
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const cleaningModal = document.getElementById('cleaningModal');
+        const addCleaningBtn = document.getElementById('addCleaningBtn');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const cleaningForm = document.getElementById('cleaningForm');
+        
+        // Calendar Elements
+        const currentMonthEl = document.getElementById('currentMonth');
+        const prevMonthBtn = document.getElementById('prevMonth');
+        const nextMonthBtn = document.getElementById('nextMonth');
+        const calendarDaysEl = document.getElementById('calendarDays');
+        
+        // Stats Elements
+        const totalCleanedEl = document.getElementById('totalCleaned');
+        const scheduledCleaningsEl = document.getElementById('scheduledCleanings');
+        const overdueCleaningsEl = document.getElementById('overdueCleanings');
+        const avgDaysBetweenEl = document.getElementById('avgDaysBetween');
+        
+        // Global Variables
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let cleaningData = [];
+        let vehicles = [];
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up tab functionality
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Modal functionality
+            addCleaningBtn.addEventListener('click', openAddModal);
+            closeModal.addEventListener('click', closeModalHandler);
+            cancelBtn.addEventListener('click', closeModalHandler);
+            cleaningForm.addEventListener('submit', handleFormSubmit);
+            
+            // Calendar navigation
+            prevMonthBtn.addEventListener('click', () => navigateMonth(-1));
+            nextMonthBtn.addEventListener('click', () => navigateMonth(1));
+            
+            // Initialize calendar
+            renderCalendar();
+            
+            // Load sample data (in a real app, this would be fetched from the server)
+            loadSampleData();
+            
+            // Populate vehicle selector with sample data
+            populateVehicleOptions(['Van 1', 'Van 2', 'Van 3', 'Van 4', 'Van 5']);
+        });
+          // Load data for the app
+        async function loadSampleData() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            
+            // Try to load real data from API first
+            try {
+                const success = await loadRealCleaningData();
+                if (success) {
+                    console.log('Successfully loaded data from API');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error loading data from API:', error);
+            }
+            
+            // Fallback to sample data if API fails
+            console.log('Using sample data as fallback');
+            cleaningData = [
+                {
+                    id: 'clean_001',
+                    vehicle: 'Van 1',
+                    cleaningType: 'Standard',
+                    date: formatDate(yesterday),
+                    time: '09:00',
+                    assignedTo: 'Cleaning Crew A',
+                    status: 'completed',
+                    notes: 'Regular weekly cleaning'
+                },
+                {
+                    id: 'clean_002',
+                    vehicle: 'Van 2',
+                    cleaningType: 'Deep Clean',
+                    date: formatDate(today),
+                    time: '14:00',
+                    assignedTo: 'Cleaning Crew B',
+                    status: 'scheduled',
+                    notes: 'Monthly deep cleaning'
+                },
+                {
+                    id: 'clean_003',
+                    vehicle: 'Van 3',
+                    cleaningType: 'Express',
+                    date: formatDate(tomorrow),
+                    time: '10:30',
+                    assignedTo: 'Cleaning Crew A',
+                    status: 'scheduled',
+                    notes: 'Quick clean before customer pickup'
+                },
+                {
+                    id: 'clean_004',
+                    vehicle: 'Van 4',
+                    cleaningType: 'Disinfection',
+                    date: formatDate(nextWeek),
+                    time: '16:00',
+                    assignedTo: 'Cleaning Crew C',
+                    status: 'scheduled',
+                    notes: 'Special disinfection service'
+                }
+            ];
+            
+            // Update stats
+            updateStats();
+            
+            // Update calendar with cleaning data
+            updateCalendarWithCleanings();
+            
+            // Update list views
+            updateCleaningLists();
+        }
+        
+        // Populate vehicle select options
+        function populateVehicleOptions(vehicleList) {
+            const vehicleSelect = document.getElementById('vehicle');
+            const vehicleFilter = document.getElementById('vehicleFilter');
+            
+            // Store the vehicles list
+            vehicles = vehicleList;
+            
+            // First, clear existing options except the placeholder
+            while (vehicleSelect.options.length > 1) {
+                vehicleSelect.remove(1);
+            }
+            
+            while (vehicleFilter.options.length > 1) {
+                vehicleFilter.remove(1);
+            }
+            
+            // Add vehicle options to both selects
+            vehicles.forEach(vehicle => {
+                const optionForm = document.createElement('option');
+                optionForm.value = vehicle;
+                optionForm.textContent = vehicle;
+                vehicleSelect.appendChild(optionForm);
+                
+                const optionFilter = document.createElement('option');
+                optionFilter.value = vehicle;
+                optionFilter.textContent = vehicle;
+                vehicleFilter.appendChild(optionFilter);
+            });
+        }
+        
+        // Update stats based on the data
+        function updateStats() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            // Calculate stats
+            const completed = cleaningData.filter(record => record.status === 'completed');
+            const completedThisMonth = completed.filter(record => {
+                const cleaningDate = new Date(record.date);
+                return cleaningDate >= firstDayOfMonth;
+            });
+            
+            const scheduled = cleaningData.filter(record => 
+                record.status === 'scheduled' || record.status === 'in-progress'
+            );
+            
+            const overdue = cleaningData.filter(record => {
+                if (record.status !== 'completed' && record.status !== 'cancelled') {
+                    const cleaningDate = new Date(record.date);
+                    return cleaningDate < today;
+                }
+                return false;
+            });
+            
+            // Calculate average days between cleanings (sample calculation)
+            const avgDays = 7; // This would be calculated from real data
+            
+            // Update UI
+            totalCleanedEl.textContent = completedThisMonth.length;
+            scheduledCleaningsEl.textContent = scheduled.length;
+            overdueCleaningsEl.textContent = overdue.length;
+            avgDaysBetweenEl.textContent = avgDays;
+        }
+        
+        // Render the calendar
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Update the month display
+            const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long' });
+            currentMonthEl.textContent = `${monthName} ${year}`;
+            
+            // Clear previous calendar days
+            calendarDaysEl.innerHTML = '';
+            
+            // Get the first day of the month
+            const firstDay = new Date(year, month, 1);
+            const startingDay = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            
+            // Get the last day of the month
+            const lastDay = new Date(year, month + 1, 0);
+            const totalDays = lastDay.getDate();
+            
+            // Create empty cells for days before the first day of the month
+            for (let i = 0; i < startingDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day';
+                emptyCell.style.visibility = 'hidden';
+                calendarDaysEl.appendChild(emptyCell);
+            }
+            
+            // Create cells for each day of the month
+            const today = new Date();
+            for (let day = 1; day <= totalDays; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                
+                // Check if this day is today
+                const currentDay = new Date(year, month, day);
+                if (currentDay.toDateString() === today.toDateString()) {
+                    dayCell.classList.add('today');
+                }
+                
+                // Check if this day is selected
+                if (currentDay.toDateString() === selectedDate.toDateString()) {
+                    dayCell.classList.add('active');
+                }
+                
+                // Add day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'calendar-day-number';
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+                
+                // Add click event to select the day
+                dayCell.addEventListener('click', () => {
+                    document.querySelectorAll('.calendar-day').forEach(cell => {
+                        cell.classList.remove('active');
+                    });
+                    dayCell.classList.add('active');
+                    selectedDate = new Date(year, month, day);
+                    updateDailySchedule();
+                });
+                
+                calendarDaysEl.appendChild(dayCell);
+            }
+        }
+        
+        // Navigate to previous or next month
+        function navigateMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+            updateCalendarWithCleanings();
+        }
+        
+        // Update calendar with cleaning indicators
+        function updateCalendarWithCleanings() {
+            // Remove all existing indicators
+            document.querySelectorAll('.cleaning-indicator').forEach(indicator => {
+                indicator.remove();
+            });
+            
+            // Get the current month and year
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Filter cleanings for the current month
+            const monthCleanings = cleaningData.filter(cleaning => {
+                const cleaningDate = new Date(cleaning.date);
+                return cleaningDate.getMonth() === month && cleaningDate.getFullYear() === year;
+            });
+            
+            // Group cleanings by day
+            const cleaningsByDay = {};
+            monthCleanings.forEach(cleaning => {
+                const cleaningDate = new Date(cleaning.date);
+                const day = cleaningDate.getDate();
+                
+                if (!cleaningsByDay[day]) {
+                    cleaningsByDay[day] = [];
+                }
+                cleaningsByDay[day].push(cleaning);
+            });
+            
+            // Add indicators to calendar days
+            const dayCells = calendarDaysEl.querySelectorAll('.calendar-day');
+            dayCells.forEach(cell => {
+                const dayNumber = cell.querySelector('.calendar-day-number');
+                if (dayNumber) {
+                    const day = parseInt(dayNumber.textContent);
+                    
+                    if (cleaningsByDay[day] && cleaningsByDay[day].length > 0) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'cleaning-indicator';
+                        cell.appendChild(indicator);
+                    }
+                }
+            });
+            
+            // Update the daily schedule if the selected date is in this month
+            if (selectedDate.getMonth() === month && selectedDate.getFullYear() === year) {
+                updateDailySchedule();
+            }
+        }
+        
+        // Update the daily schedule table
+        function updateDailySchedule() {
+            const dailyScheduleBody = document.getElementById('dailyScheduleBody');
+            
+            // Filter cleanings for the selected date
+            const selectedDateStr = formatDate(selectedDate);
+            const dayCleanings = cleaningData.filter(cleaning => cleaning.date === selectedDateStr);
+            
+            if (dayCleanings.length === 0) {
+                dailyScheduleBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📅</div>
+                            <div class="empty-state-title">No cleanings scheduled</div>
+                            <div class="empty-state-description">There are no cleanings scheduled for ${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                dailyScheduleBody.innerHTML = dayCleanings.map(cleaning => `
+                    <tr>
+                        <td>${cleaning.vehicle}</td>
+                        <td>${cleaning.cleaningType}</td>
+                        <td>${cleaning.time || 'Not specified'}</td>
+                        <td>${cleaning.assignedTo || 'Not assigned'}</td>
+                        <td><span class="status-badge status-${cleaning.status}">${getStatusLabel(cleaning.status)}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-button" onclick="editCleaning('${cleaning.id}')">✏️</button>
+                                <button class="action-button delete" onclick="deleteCleaning('${cleaning.id}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Update the cleaning lists
+        function updateCleaningLists() {
+            const cleaningListBody = document.getElementById('cleaningListBody');
+            const cleaningHistoryBody = document.getElementById('cleaningHistoryBody');
+            
+            // Filter for upcoming cleanings
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const upcomingCleanings = cleaningData.filter(cleaning => {
+                if (cleaning.status === 'completed' || cleaning.status === 'cancelled') {
+                    return false;
+                }
+                
+                const cleaningDate = new Date(cleaning.date);
+                cleaningDate.setHours(0, 0, 0, 0);
+                return cleaningDate >= today;
+            });
+            
+            // Filter for history (completed cleanings)
+            const historyCleanings = cleaningData.filter(cleaning => 
+                cleaning.status === 'completed'
+            );
+            
+            // Render upcoming cleanings list
+            if (upcomingCleanings.length === 0) {
+                cleaningListBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-state-icon">🧹</div>
+                            <div class="empty-state-title">No scheduled cleanings</div>
+                            <div class="empty-state-description">Click "Schedule Cleaning" to add a new cleaning appointment to the calendar.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                cleaningListBody.innerHTML = upcomingCleanings.map(cleaning => `
+                    <tr>
+                        <td>${cleaning.vehicle}</td>
+                        <td>${cleaning.cleaningType}</td>
+                        <td>${formatDateForDisplay(cleaning.date)}</td>
+                        <td>${cleaning.time || 'Not specified'}</td>
+                        <td>${cleaning.assignedTo || 'Not assigned'}</td>
+                        <td><span class="status-badge status-${cleaning.status}">${getStatusLabel(cleaning.status)}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-button" onclick="editCleaning('${cleaning.id}')">✏️</button>
+                                <button class="action-button delete" onclick="deleteCleaning('${cleaning.id}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Render history list
+            if (historyCleanings.length === 0) {
+                cleaningHistoryBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📜</div>
+                            <div class="empty-state-title">No cleaning history</div>
+                            <div class="empty-state-description">Completed cleanings will appear here.</div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                cleaningHistoryBody.innerHTML = historyCleanings.map(cleaning => `
+                    <tr>
+                        <td>${cleaning.vehicle}</td>
+                        <td>${cleaning.cleaningType}</td>
+                        <td>${formatDateForDisplay(cleaning.date)}</td>
+                        <td>${cleaning.time || 'Not specified'}</td>
+                        <td>${cleaning.assignedTo || 'Not assigned'}</td>
+                        <td>${cleaning.notes || ''}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Format date for storage (YYYY-MM-DD)
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Format date for display
+        function formatDateForDisplay(dateStr) {
+            if (!dateStr) return '';
+            
+            const date = new Date(dateStr);
+            if (isNaN(date)) return dateStr;
+            
+            return date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        // Get status label based on status value
+        function getStatusLabel(status) {
+            switch (status) {
+                case 'scheduled':
+                    return 'Scheduled';
+                case 'completed':
+                    return 'Completed';
+                case 'in-progress':
+                    return 'In Progress';
+                case 'cancelled':
+                    return 'Cancelled';
+                default:
+                    return status;
+            }
+        }
+        
+        // Open modal for adding new cleaning
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Schedule Cleaning';
+            document.getElementById('recordId').value = '';
+            document.getElementById('cleaningForm').reset();
+            
+            // Set default date to the selected date in the calendar
+            document.getElementById('cleaningDate').value = formatDate(selectedDate);
+            
+            cleaningModal.classList.add('active');
+        }
+        
+        // Close modal handler
+        function closeModalHandler() {
+            cleaningModal.classList.remove('active');
+        }
+          // Handle form submit
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const recordId = document.getElementById('recordId').value;
+            const vehicle = document.getElementById('vehicle').value;
+            const cleaningType = document.getElementById('cleaningType').value;
+            const date = document.getElementById('cleaningDate').value;
+            const time = document.getElementById('cleaningTime').value;
+            const assignedTo = document.getElementById('assignedTo').value;
+            const status = document.getElementById('status').value;
+            const notes = document.getElementById('notes').value;
+            
+            // Validate required fields
+            if (!vehicle || !cleaningType || !date || !status) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            // Create cleaning record
+            const cleaningRecord = {
+                id: recordId || `clean_${Date.now()}`,
+                vehicle,
+                cleaningType,
+                date,
+                time,
+                assignedTo,
+                status,
+                notes,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Save to API
+            const saveButton = document.getElementById('saveBtn');
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+            
+            try {
+                const savedToAPI = await saveCleaningToAPI(cleaningRecord);
+                
+                if (savedToAPI) {
+                    // If editing, update existing record
+                    if (recordId) {
+                        const index = cleaningData.findIndex(cleaning => cleaning.id === recordId);
+                        if (index !== -1) {
+                            cleaningData[index] = cleaningRecord;
+                        }
+                    } else {
+                        // Otherwise add new record
+                        cleaningData.push(cleaningRecord);
+                    }
+                    
+                    // Update UI
+                    updateStats();
+                    updateCalendarWithCleanings();
+                    updateCleaningLists();
+                    
+                    // Close modal
+                    closeModalHandler();
+                } else {
+                    alert('Failed to save cleaning record. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error saving cleaning:', error);
+                alert('An error occurred while saving. Please try again.');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save';
+            }
+        }
+        
+        // Edit cleaning record
+        window.editCleaning = function(id) {
+            const cleaning = cleaningData.find(cleaning => cleaning.id === id);
+            if (!cleaning) return;
+            
+            // Set form values
+            document.getElementById('modalTitle').textContent = 'Edit Cleaning';
+            document.getElementById('recordId').value = cleaning.id;
+            document.getElementById('vehicle').value = cleaning.vehicle;
+            document.getElementById('cleaningType').value = cleaning.cleaningType;
+            document.getElementById('cleaningDate').value = cleaning.date;
+            document.getElementById('cleaningTime').value = cleaning.time || '';
+            document.getElementById('assignedTo').value = cleaning.assignedTo || '';
+            document.getElementById('status').value = cleaning.status;
+            document.getElementById('notes').value = cleaning.notes || '';
+            
+            // Open modal
+            cleaningModal.classList.add('active');
+        };
+          // Delete cleaning record
+        window.deleteCleaning = async function(id) {
+            if (confirm('Are you sure you want to delete this cleaning record?')) {
+                const index = cleaningData.findIndex(cleaning => cleaning.id === id);
+                if (index !== -1) {
+                    try {
+                        // Mark as deleted for API
+                        const cleaningToDelete = { ...cleaningData[index], isDeleted: true };
+                        const savedToAPI = await saveCleaningToAPI(cleaningToDelete);
+                        
+                        if (savedToAPI) {
+                            // Remove from local array
+                            cleaningData.splice(index, 1);
+                            
+                            // Update UI
+                            updateStats();
+                            updateCalendarWithCleanings();
+                            updateCleaningLists();
+                        } else {
+                            alert('Failed to delete cleaning record. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting cleaning:', error);
+                        alert('An error occurred while deleting. Please try again.');
+                    }
+                }
+            }
+        };
+    </script>
+</body>
+</html>
