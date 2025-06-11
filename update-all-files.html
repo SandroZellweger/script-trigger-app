@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update All HTML Files</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .success { color: green; background: #e8f5e8; padding: 10px; margin: 10px 0; }
+        .error { color: red; background: #ffe8e8; padding: 10px; margin: 10px 0; }
+        .info { color: blue; background: #e8f0ff; padding: 10px; margin: 10px 0; }
+        input[type="text"] { width: 100%; margin: 10px 0; padding: 10px; font-size: 14px; }
+        button { margin: 10px 5px; padding: 15px 25px; font-size: 16px; }
+        .file-list { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .old-url { background: #fff3cd; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .new-url { background: #d1ecf1; padding: 10px; margin: 10px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Update All HTML Files with New Script URL</h1>
+        
+        <div class="info">
+            <h3>Files that will be updated:</h3>
+            <div class="file-list">
+                ✅ index.html<br>
+                ✅ calendar.html<br>
+                ✅ expenses.html<br>
+                ✅ payments.html<br>
+                ✅ reports.html<br>
+                ✅ settings.html<br>
+                ✅ zoko.html<br>
+                ✅ calendar-debug.html<br>
+                ✅ test-script.html
+            </div>
+        </div>
+
+        <div class="old-url">
+            <strong>Current URL in files:</strong><br>
+            <code>AKfycbxksJAHHqDZ7E2VTp3TazcC4SOCOWef2oM2Tz5MY5Px--A7TUqNjIXeUev5J1QW-T0b</code>
+        </div>
+
+        <label for="newScriptUrl"><strong>Enter your NEW main script deployment URL:</strong></label>
+        <input type="text" id="newScriptUrl" placeholder="https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec">
+        
+        <div class="new-url">
+            <strong>New deployment ID will be:</strong> <span id="newDeploymentId">Enter URL above to see ID</span>
+        </div>
+        
+        <button onclick="generateUpdateCommands()" style="background: #28a745; color: white;">🚀 Generate Update Commands</button>
+        <button onclick="testNewUrl()" style="background: #007bff; color: white;">🧪 Test New URL First</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function extractDeploymentId(url) {
+            const match = url.match(/\/s\/([^\/]+)\/exec/);
+            return match ? match[1] : null;
+        }
+
+        function updateDeploymentIdDisplay() {
+            const url = document.getElementById('newScriptUrl').value;
+            const id = extractDeploymentId(url);
+            const display = document.getElementById('newDeploymentId');
+            
+            if (id) {
+                display.textContent = id;
+                display.style.color = 'green';
+            } else {
+                display.textContent = 'Invalid URL format';
+                display.style.color = 'red';
+            }
+        }
+
+        document.getElementById('newScriptUrl').addEventListener('input', updateDeploymentIdDisplay);
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testNewUrl() {
+            const newUrl = document.getElementById('newScriptUrl').value.trim();
+            
+            if (!newUrl) {
+                addResult('❌ Please enter the new script URL first', 'error');
+                return;
+            }
+
+            if (!extractDeploymentId(newUrl)) {
+                addResult('❌ Invalid URL format. Should be: https://script.google.com/macros/s/DEPLOYMENT_ID/exec', 'error');
+                return;
+            }
+
+            clearResults();
+            addResult('🧪 Testing new script URL...', 'info');
+
+            try {
+                const testUrl = newUrl + '?function=ping&authToken=myAppToken2025&timestamp=' + Date.now();
+                const response = await fetch(testUrl);
+                const data = await response.json();
+
+                if (data.result === 'Ping successful') {
+                    addResult('🎉 SUCCESS! New script is working correctly!', 'success');
+                    addResult('✅ Ready to update all HTML files', 'success');
+                } else {
+                    addResult('⚠️ Script responded but with unexpected data: ' + JSON.stringify(data), 'error');
+                }
+            } catch (error) {
+                addResult('❌ Error testing new URL: ' + error.message, 'error');
+                addResult('💡 Make sure the script is deployed with "Anyone" access', 'info');
+            }
+        }
+
+        function generateUpdateCommands() {
+            const newUrl = document.getElementById('newScriptUrl').value.trim();
+            const newId = extractDeploymentId(newUrl);
+            
+            if (!newId) {
+                addResult('❌ Please enter a valid Google Apps Script URL first', 'error');
+                return;
+            }
+
+            clearResults();
+            
+            const oldId = 'AKfycbxksJAHHqDZ7E2VTp3TazcC4SOCOWef2oM2Tz5MY5Px--A7TUqNjIXeUev5J1QW-T0b';
+            
+            addResult('<h3>📋 Copy and run these PowerShell commands:</h3>', 'info');
+            
+            const commands = [
+                `# Navigate to your project directory`,
+                `cd "c:\\Users\\sandr\\Scritp-trigger-app\\script-trigger-app"`,
+                ``,
+                `# Update all HTML files with new script URL`,
+                `(Get-Content "index.html") -replace "${oldId}", "${newId}" | Set-Content "index.html"`,
+                `(Get-Content "calendar.html") -replace "${oldId}", "${newId}" | Set-Content "calendar.html"`,
+                `(Get-Content "expenses.html") -replace "${oldId}", "${newId}" | Set-Content "expenses.html"`,
+                `(Get-Content "payments.html") -replace "${oldId}", "${newId}" | Set-Content "payments.html"`,
+                `(Get-Content "reports.html") -replace "${oldId}", "${newId}" | Set-Content "reports.html"`,
+                `(Get-Content "settings.html") -replace "${oldId}", "${newId}" | Set-Content "settings.html"`,
+                `(Get-Content "zoko.html") -replace "${oldId}", "${newId}" | Set-Content "zoko.html"`,
+                `(Get-Content "calendar-debug.html") -replace "${oldId}", "${newId}" | Set-Content "calendar-debug.html"`,
+                `(Get-Content "test-script.html") -replace "${oldId}", "${newId}" | Set-Content "test-script.html"`,
+                ``,
+                `Write-Host "✅ All files updated successfully!" -ForegroundColor Green`
+            ];
+            
+            addResult('<pre style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto;">' + 
+                     commands.join('\\n') + '</pre>', 'success');
+            
+            addResult('📝 <strong>Instructions:</strong><br>1. Copy the commands above<br>2. Open PowerShell<br>3. Paste and run the commands<br>4. Test your calendar functionality!', 'info');
+        }
+    </script>
+</body>
+</html>
