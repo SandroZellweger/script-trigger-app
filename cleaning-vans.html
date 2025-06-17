@@ -524,6 +524,39 @@
             background: #7DBB35;
         }
 
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Staggered animations for cards */
+        .stats-grid .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stats-grid .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -544,59 +577,15 @@
                 padding: 20px;
             }
             
-            .tabs {
-                flex-direction: column;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
             .form-grid {
                 grid-template-columns: 1fr;
             }
             
-            .calendar-grid {
-                gap: 5px;
-            }
-            
-            .calendar-day-number {
-                font-size: 14px;
+            .modal-content {
+                margin: 20px;
+                padding: 20px;
             }
         }
-
-        /* Fade in animation */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-in {
-            animation: fadeInUp 0.6s ease-out forwards;
-        }
-
-        /* Staggered animations for cards */
-        .stats-grid .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
-        .stats-grid .stat-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
@@ -605,7 +594,8 @@
         Back to Maintenance
     </a>
 
-    <div class="container">        <div class="header animate-in">
+    <div class="container">
+        <div class="header animate-in">
             <img src="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" alt="Company Logo" class="logo" style="max-height: 60px; margin-bottom: 15px;">
             <h1>🧹 Van Cleaning</h1>
             <p>Add cleaning records for your fleet</p>
@@ -617,12 +607,14 @@
                     <span>+ Add Cleaning</span>
                 </button>
             </div>
-        </div>    </div>
+        </div>
+    </div>
 
     <!-- Add Cleaning Modal -->
     <div id="cleaningModal" class="modal">
         <div class="modal-content">
-            <button class="modal-close" id="closeModal">&times;</button>            <h2 class="modal-title" id="modalTitle">Add Cleaning</h2>
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2 class="modal-title" id="modalTitle">Add Cleaning</h2>
             <form id="cleaningForm">
                 <input type="hidden" id="recordId">
                 <div class="form-grid">
@@ -651,9 +643,9 @@
                             <option value="">Select Cleaning Type</option>
                             <option value="inside">Inside</option>
                             <option value="outside">Outside</option>
-                            <option value="both">Both</option>
-                        </select>
-                    </div>                </div>
+                            <option value="both">Both</option>                        </select>
+                    </div>
+                </div>
                 <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancelBtn" class="button button-secondary">Cancel</button>
                     <button type="submit" id="saveBtn" class="button">Save</button>
@@ -692,7 +684,8 @@
                 return false;
             }
         }
-          // Save cleaning record to the API (updates Visione generale sheet)
+        
+        // Save cleaning record to the API (updates Visione generale sheet)
         async function saveCleaningToAPI(cleaningRecord) {
             try {
                 const settings = getSettings();
@@ -707,11 +700,11 @@
                 });
                 
                 const result = await response.json();
-                return result.success;
-            } catch (error) {
+                return result.success;            } catch (error) {
                 console.error('Error saving cleaning record:', error);
                 return false;
-            }        }
+            }
+        }
         
         // Function to get settings from localStorage
         function getSettings() {
@@ -731,6 +724,43 @@
         const closeModal = document.getElementById('closeModal');
         const cancelBtn = document.getElementById('cancelBtn');
         const cleaningForm = document.getElementById('cleaningForm');
+        
+        // Initialize missing functions and variables
+        let cleaningData = [];
+        
+        // Add missing utility functions
+        function updateStats() {
+            // Update cleaning statistics if needed
+            console.log('Updating cleaning stats...');
+        }
+        
+        function updateCalendarWithCleanings() {
+            // Update calendar display with cleaning records
+            console.log('Updating calendar with cleaning records...');
+        }
+        
+        function updateCleaningLists() {
+            // Update cleaning lists display
+            console.log('Updating cleaning lists...');
+        }
+        
+        function populateVehicleOptions(vehicles) {
+            // Populate vehicle dropdown options
+            const vehicleSelect = document.getElementById('vehicle');
+            if (vehicleSelect && vehicles) {
+                // Clear existing options except first
+                while (vehicleSelect.options.length > 1) {
+                    vehicleSelect.remove(1);
+                }
+                
+                vehicles.forEach(vehicle => {
+                    const option = document.createElement('option');
+                    option.value = vehicle;
+                    option.textContent = vehicle;
+                    vehicleSelect.appendChild(option);
+                });
+            }
+        }
         
         // Initialize the page
         document.addEventListener('DOMContentLoaded', () => {
@@ -756,15 +786,17 @@
             document.getElementById('cleaningForm').reset();
             
             // Set default date to today
-            const today = new Date();
-            document.getElementById('cleaningDate').value = formatDate(today);
+            const today = new Date();            document.getElementById('cleaningDate').value = formatDate(today);
             
             cleaningModal.classList.add('active');
-        }        
+        }
+        
         // Close modal handler
         function closeModalHandler() {
             cleaningModal.classList.remove('active');
-        }// Handle form submit
+        }
+        
+        // Handle form submit
         async function handleFormSubmit(e) {
             e.preventDefault();
             
@@ -806,8 +838,8 @@
                 alert('An error occurred while saving. Please try again.');
             } finally {
                 saveButton.disabled = false;
-                saveButton.textContent = 'Save';
-            }
-        }    </script>
+                saveButton.textContent = 'Save';            }
+        }
+    </script>
 </body>
 </html>
