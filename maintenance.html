@@ -550,6 +550,191 @@
             font-weight: 500;
         }
 
+        /* Mobile Card Layout for Overview */
+        .overview-cards {
+            display: none;
+        }
+
+        .vehicle-card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #f0f0f0;
+        }
+
+        .vehicle-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .vehicle-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .vehicle-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-action-btn {
+            background: rgba(125, 187, 53, 0.1);
+            border: 1px solid rgba(125, 187, 53, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            color: #7DBB35;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .card-action-btn:hover {
+            background: rgba(125, 187, 53, 0.2);
+            transform: scale(1.05);
+        }
+
+        .vehicle-card-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .card-info-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-info-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .card-cleaning-status {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card-expand-btn {
+            background: rgba(125, 187, 53, 0.1);
+            border: 1px solid rgba(125, 187, 53, 0.3);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #7DBB35;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .card-expand-btn:hover {
+            background: rgba(125, 187, 53, 0.2);
+        }
+
+        .card-details {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .card-details.expanded {
+            display: block;
+        }
+
+        .card-details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .card-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #f8f8f8;
+        }
+
+        .card-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .card-detail-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .card-detail-value {
+            font-size: 13px;
+            color: #333;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
+        }
+
+        .card-notes-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .card-notes-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .card-note-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+            padding: 8px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .card-note-item.red-note {
+            background: rgba(244, 67, 54, 0.05);
+            border-left: 3px solid #f44336;
+        }
+
+        .card-note-icon {
+            font-size: 14px;
+            margin-top: 1px;
+        }
+
+        .card-note-text {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -592,6 +777,45 @@
             
             table {
                 min-width: 600px;
+            }
+            
+            /* Hide table and show cards on mobile for overview tab only */
+            #overview .table-container {
+                display: none;
+            }
+            
+            #overview .overview-cards {
+                display: block;
+            }
+
+            .vehicle-card-info {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .card-info-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .card-info-label {
+                font-size: 11px;
+            }
+
+            .card-info-value {
+                font-size: 13px;
+            }
+        }
+
+        /* Tablet responsive */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 700px;
             }
         }
 
@@ -965,72 +1189,47 @@
             word-break: break-word;
         }
 
+        /* Additional mobile styles for overview cards */
         @media (max-width: 768px) {
-            .container {
-                padding: 15px;
+            /* Hide table and show cards on mobile for overview tab only */
+            #overview .table-container {
+                display: none;
             }
             
-            .header {
-                padding: 20px;
-                margin-top: 60px;
+            #overview .overview-cards {
+                display: block;
             }
-            
-            .header h1 {
-                font-size: 24px;
-            }
-            
-            .control-panel {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 20px;
-            }
-            
-            .filter-controls {
-                flex-direction: column;
-            }
-            
-            .tabs {
-                flex-direction: column;
-            }
-            
-            .stats-grid {
+
+            .vehicle-card-info {
                 grid-template-columns: 1fr;
+                gap: 8px;
             }
-            
-            .form-grid {
-                grid-template-columns: 1fr;
+
+            .card-info-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
             }
-            
+
+            .card-info-label {
+                font-size: 11px;
+            }
+
+            .card-info-value {
+                font-size: 13px;
+            }
+        }
+
+        /* Tablet responsive */
+        @media (min-width: 769px) and (max-width: 1024px) {
             .table-container {
                 overflow-x: auto;
             }
             
             table {
-                min-width: 600px;
+                min-width: 700px;
             }
         }
-
-        /* Fade in animation */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-in {
-            animation: fadeInUp 0.6s ease-out forwards;
-        }
-
-        /* Staggered animations for cards */
-        .stats-grid .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
-        .stats-grid .stat-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
@@ -1111,8 +1310,7 @@
                         </tr>
                     </thead>
                     <tbody id="overviewTableBody">
-                        <!-- Data will be loaded dynamically -->
-                        <tr>
+                        <!-- Data will be loaded dynamically -->                        <tr>
                             <td colspan="7" class="empty-state">
                                 <div class="empty-state-icon">📋</div>
                                 <div class="empty-state-title">Loading vehicle overview...</div>
@@ -1121,6 +1319,10 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <!-- Mobile Card Layout -->
+            <div class="overview-cards" id="overviewCards">
+                <!-- Cards will be populated by JavaScript -->
             </div>
         </div>
 
@@ -1429,6 +1631,7 @@
                     });
                     
                     renderOverviewTable();
+                    renderOverviewCards();
                     return true;
                 } else {
                     console.error('Failed to load overview data:', data.error);
@@ -1703,14 +1906,146 @@
                                                     <span class="note-icon">${icon}</span>
                                                     <span class="note-text">${noteText}</span>
                                                 </div>
-                                            `;
-                                        }).join('')}
+                                            `;                                        }).join('')}
                                     </div>
                                 </div>
                             ` : ''}
                         </div>
                     </td>
                 </tr>
+            `).join('');
+            
+            // Also render mobile cards
+            renderOverviewCards();
+        }
+
+        // Render the overview cards for mobile
+        function renderOverviewCards() {
+            const overviewCards = document.getElementById('overviewCards');
+            
+            if (overviewData.length === 0) {
+                overviewCards.innerHTML = `
+                    <div class="vehicle-card">
+                        <div class="vehicle-card-header">
+                            <div class="vehicle-card-title">🚐 No vehicle data found</div>
+                        </div>
+                        <p>Unable to load vehicle overview data.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            overviewCards.innerHTML = overviewData.map(vehicle => `
+                <div class="vehicle-card" data-vehicle="${vehicle.vehicleNumber}">
+                    <div class="vehicle-card-header">
+                        <div class="vehicle-card-title">
+                            <strong>${vehicle.vehicleNumber}</strong>
+                            <span>${vehicle.licensePlate}</span>
+                        </div>
+                        <div class="vehicle-card-actions">
+                            <button class="card-action-btn" onclick="openCleaningModal('${vehicle.vehicleNumber}')" title="Add Cleaning">🧹</button>
+                            <button class="card-action-btn" onclick="openMaintenanceModal('${vehicle.vehicleNumber}')" title="Add Maintenance">🔧</button>
+                        </div>
+                    </div>
+                    
+                    <div class="vehicle-card-info">
+                        <div class="card-info-item">
+                            <div class="card-info-label">Brand/Model</div>
+                            <div class="card-info-value">${vehicle.brand} ${vehicle.model}</div>
+                        </div>
+                        <div class="card-info-item">
+                            <div class="card-info-label">Km attuali</div>
+                            <div class="card-info-value">${vehicle.currentKm}</div>
+                        </div>
+                        <div class="card-info-item">
+                            <div class="card-info-label">Potenziale</div>
+                            <div class="card-info-value">${vehicle.potential}</div>
+                        </div>
+                        <div class="card-cleaning-status">
+                            <div class="card-info-label">Cleaning Status</div>
+                            <div class="cleaning-status">
+                                <span class="status-badge ${vehicle.statusClass}">
+                                    ${vehicle.cleaningStatus}
+                                </span>
+                                <div class="last-cleaning-date">
+                                    ${vehicle.lastCleaningDate !== '-' ? `Last: ${vehicle.lastCleaningDate}` : 'Never cleaned'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="card-expand-btn" onclick="toggleCardDetails('${vehicle.vehicleNumber}')">
+                        Show Details
+                    </button>
+                    
+                    <div class="card-details" id="card-details-${vehicle.vehicleNumber}">
+                        <div class="card-details-grid">
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Type:</span>
+                                <span class="card-detail-value">${vehicle.type}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Location:</span>
+                                <span class="card-detail-value">${vehicle.location}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Purchase Date:</span>
+                                <span class="card-detail-value">${vehicle.purchaseDate}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Acquisition Km:</span>
+                                <span class="card-detail-value">${vehicle.acquisitionKm}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Km Date:</span>
+                                <span class="card-detail-value">${vehicle.kmDate}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Next Service Km:</span>
+                                <span class="card-detail-value">${vehicle.nextServiceKm}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">External Cleaning:</span>
+                                <span class="card-detail-value">${vehicle.externalCleaning}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Internal Cleaning:</span>
+                                <span class="card-detail-value">${vehicle.internalCleaning}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Gom. Avanti:</span>
+                                <span class="card-detail-value">${vehicle.notes1}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Gom. Post.:</span>
+                                <span class="card-detail-value">${vehicle.notes2}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Next CO:</span>
+                                <span class="card-detail-value">${vehicle.nextCO}</span>
+                            </div>
+                        </div>
+                        
+                        ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                            <div class="card-notes-section">
+                                <h4 class="card-notes-title">Issues & Notes:</h4>
+                                <div class="vehicle-notes">
+                                    ${vehicle.vehicleNotes.map(note => {
+                                        const isRedText = note.startsWith('🔴');
+                                        const noteText = isRedText ? note.substring(2).trim() : note;
+                                        const icon = isRedText ? '🔴' : '⚠️';
+                                        return `
+                                            <div class="card-note-item ${isRedText ? 'red-note' : ''}">
+                                                <span class="card-note-icon">${icon}</span>
+                                                <span class="card-note-text">${noteText}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
             `).join('');
         }
 
@@ -1899,52 +2234,23 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // If it's a new record, add it to the array
-                    if (!isEditing && !record.isDeleted) {
-                        maintenanceData.push(record);
-                    } 
-                    // If editing, update the existing record
-                    else if (isEditing && !record.isDeleted) {
-                        const index = maintenanceData.findIndex(r => r.id === record.id);
-                        if (index !== -1) {
-                            maintenanceData[index] = record;
-                        }
-                    }
-                    // If deleting, remove from array
-                    else if (record.isDeleted) {
-                        const index = maintenanceData.findIndex(r => r.id === record.id);
-                        if (index !== -1) {
-                            maintenanceData.splice(index, 1);
-                        }
-                    }
-                    
-                    // Update UI
+                    // Close the modal
                     closeModalHandler();
-                    updateStats();
-                    applyFilters();
+                    
+                    // Reload data
+                    await loadData();
                     
                     // Show success notification
-                    if (record.isDeleted) {
-                        showNotification('Success', 'Record has been deleted successfully');
-                    } else if (isEditing) {
-                        showNotification('Success', 'Record has been updated successfully');
-                    } else {
-                        showNotification('Success', 'New maintenance record has been added');
-                    }
+                    showNotification('Success', 'The record has been saved successfully.');
                 } else {
                     showNotification('Error', data.error || 'Failed to save record', true);
                 }
             } catch (error) {
                 console.error('Error saving record:', error);
-                showNotification('Error', 'Failed to save record. Please try again later.', true);
+                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
             } finally {
                 hideLoader();
             }
-        }
-
-        // Generate a unique ID for new records
-        function generateId() {
-            return 'maint_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
 
         // Show loader
@@ -1959,20 +2265,37 @@
 
         // Show notification
         function showNotification(title, message, isError = false) {
-            notification.querySelector('.notification-title').textContent = title;
-            notification.querySelector('.notification-message').textContent = message;
+            const notificationTitle = document.querySelector('.notification-title');
+            const notificationMessage = document.querySelector('.notification-message');
             
-            if (isError) {
-                notification.classList.add('error');
-            } else {
-                notification.classList.remove('error');
-            }
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
             
             notification.classList.add('active');
             
+            // Auto-hide after 3 seconds
             setTimeout(() => {
                 notification.classList.remove('active');
-            }, 5000);
+            }, 3000);
+        }
+
+        // Generate a unique ID
+        function generateId() {
+            return 'id-' + Math.random().toString(36).substr(2, 16);
+        }
+        
+        // Toggle card details visibility
+        function toggleCardDetails(vehicleNumber) {
+            const detailsDiv = document.getElementById(`card-details-${vehicleNumber}`);
+            const expandBtn = document.querySelector(`[data-vehicle="${vehicleNumber}"] .card-expand-btn`);
+            
+            if (detailsDiv.classList.contains('expanded')) {
+                detailsDiv.classList.remove('expanded');
+                expandBtn.textContent = 'Show Details';
+            } else {
+                detailsDiv.classList.add('expanded');
+                expandBtn.textContent = 'Hide Details';
+            }
         }
     </script>
 </body>
