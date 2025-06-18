@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notes Newline Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        textarea { width: 100%; height: 100px; }
+        .display-area { 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            margin: 10px 0; 
+            min-height: 50px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .note-line { 
+            margin-bottom: 4px; 
+            padding: 4px 0; 
+            line-height: 1.4; 
+            word-wrap: break-word; 
+        }
+        .note-line.red-note { 
+            color: #d32f2f; 
+            font-weight: 500; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Notes Newline Handling Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Input</h3>
+        <textarea id="testInput" placeholder="Enter notes with line breaks...">🔴 Piccola scheggiatura sul vetro avanti
+condizionata non funziona radiatore rotto
+montare 90gradi per GPS</textarea>
+        <button onclick="testProcessing()">Test Processing</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Processed as Array (how it's stored)</h3>
+        <div id="arrayDisplay"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Display as HTML (how it appears in UI)</h3>
+        <div id="htmlDisplay"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Back to Text (how it's edited)</h3>
+        <div class="display-area" id="textDisplay"></div>
+    </div>
+    
+    <script>
+        function testProcessing() {
+            const input = document.getElementById('testInput').value;
+            
+            // Process like the frontend does
+            const notesArray = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            
+            // Show array
+            document.getElementById('arrayDisplay').innerHTML = 
+                '<pre>' + JSON.stringify(notesArray, null, 2) + '</pre>';
+            
+            // Show HTML display (like in the UI)
+            const htmlDisplay = notesArray.map(note => {
+                const isRedText = note.includes('🔴');
+                return `<div class="note-line ${isRedText ? 'red-note' : ''}">${note}</div>`;
+            }).join('');
+            document.getElementById('htmlDisplay').innerHTML = htmlDisplay;
+            
+            // Show back to text (like when editing)
+            const backToText = notesArray.join('\n');
+            document.getElementById('textDisplay').textContent = backToText;
+        }
+        
+        // Test on page load
+        window.onload = testProcessing;
+    </script>
+</body>
+</html>

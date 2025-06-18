@@ -717,11 +717,21 @@
             padding: 8px;
             background: #fafafa;
             border-radius: 8px;
-        }
-
-        .card-note-item.red-note {
+        }        .card-note-item.red-note {
             background: rgba(244, 67, 54, 0.05);
             border-left: 3px solid #f44336;
+        }
+
+        .card-note-line {
+            margin-bottom: 4px;
+            padding: 2px 0;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .card-note-line.red-note {
+            color: #d32f2f;
+            font-weight: 500;
         }
 
         .card-note-icon {
@@ -742,6 +752,8 @@
             border: 1px solid transparent;
             border-radius: 4px;
             transition: all 0.2s ease;
+            white-space: pre-wrap; /* Preserve line breaks and spaces */
+            word-wrap: break-word; /* Break long words */
         }
 
         .notes-editor {
@@ -1299,9 +1311,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-        }
-
-        .note-item {
+        }        .note-item {
             display: flex;
             align-items: flex-start;
             gap: 8px;
@@ -1310,6 +1320,18 @@
             border: 1px solid rgba(244, 67, 54, 0.2);
             border-radius: 6px;
             border-left: 4px solid #f44336;
+        }
+
+        .note-line {
+            margin-bottom: 4px;
+            padding: 4px 0;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .note-line.red-note {
+            color: #d32f2f;
+            font-weight: 500;
         }
 
         .note-icon {
@@ -2029,19 +2051,12 @@
                                     <button class="edit-notes-btn" onclick="editVehicleNotes('${vehicle.vehicleNumber}')" title="Edit Notes">
                                         ✏️
                                     </button>
-                                </div>
-                                <div class="notes-content" id="notes-display-${vehicle.vehicleNumber}">
+                                </div>                                <div class="notes-content" id="notes-display-${vehicle.vehicleNumber}">
                                     ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
                                         vehicle.vehicleNotes.map(note => {
-                                            const isRedText = note.startsWith('🔴');
-                                            const noteText = isRedText ? note.substring(2).trim() : note;
-                                            const icon = isRedText ? '🔴' : '⚠️';
-                                            return `
-                                                <div class="note-item ${isRedText ? 'red-note' : ''}">
-                                                    <span class="note-icon">${icon}</span>
-                                                    <span class="note-text">${noteText}</span>
-                                                </div>
-                                            `;
+                                            const isRedText = note.includes('🔴');
+                                            const noteText = note;
+                                            return `<div class="note-line ${isRedText ? 'red-note' : ''}">${noteText}</div>`;
                                         }).join('') 
                                         : '<div style="color: #999; font-style: italic;">No notes yet. Click the pencil to add notes.</div>'
                                     }
@@ -2169,19 +2184,11 @@
                             </div>                        </div>
                         
                         <div class="card-notes-section">
-                            <h4 class="card-notes-title">Issues & Notes:</h4>
-                            <div class="card-notes-editable" onclick="editCardNotes('${vehicle.vehicleNumber}')" id="card-notes-display-${vehicle.vehicleNumber}">
+                            <h4 class="card-notes-title">Issues & Notes:</h4>                            <div class="card-notes-editable" onclick="editCardNotes('${vehicle.vehicleNumber}')" id="card-notes-display-${vehicle.vehicleNumber}">
                                 ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
                                     vehicle.vehicleNotes.map(note => {
-                                        const isRedText = note.startsWith('🔴');
-                                        const noteText = isRedText ? note.substring(2).trim() : note;
-                                        const icon = isRedText ? '🔴' : '⚠️';
-                                        return `
-                                            <div class="card-note-item ${isRedText ? 'red-note' : ''}">
-                                                <span class="card-note-icon">${icon}</span>
-                                                <span class="card-note-text">${noteText}</span>
-                                            </div>
-                                        `;
+                                        const isRedText = note.includes('🔴');
+                                        return `<div class="card-note-line ${isRedText ? 'red-note' : ''}">${note}</div>`;
                                     }).join('') 
                                     : '<div style="color: #999; font-style: italic; padding: 8px;">Tap to add notes...</div>'
                                 }

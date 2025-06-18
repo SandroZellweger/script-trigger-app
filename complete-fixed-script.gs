@@ -1072,10 +1072,13 @@ function getVehicleOverview(params) {
               } catch (styleCheckError) {
                 Logger.log(`Could not check text style for target cell:`, styleCheckError);
               }
+                const noteText = isRedText ? `🔴 ${trimmedValue}` : trimmedValue;
               
-              const noteText = isRedText ? `🔴 ${trimmedValue}` : trimmedValue;
-              vehicleNotes.push(noteText);
-              Logger.log(`Vehicle N${vehicleNumber} - Found ${isRedText ? 'RED TEXT' : 'NOTE'}: ${trimmedValue}`);
+              // Split multi-line notes into individual lines
+              const noteLines = noteText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+              vehicleNotes.push(...noteLines);
+              
+              Logger.log(`Vehicle N${vehicleNumber} - Found ${isRedText ? 'RED TEXT' : 'NOTE'} with ${noteLines.length} lines: ${trimmedValue}`);
             } else {
               Logger.log(`Vehicle N${vehicleNumber} - Skipping license plate: ${trimmedValue}`);
             }
