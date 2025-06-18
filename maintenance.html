@@ -910,6 +910,49 @@
             line-height: 1.5;
         }
 
+        .vehicle-notes-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(125, 187, 53, 0.2);
+        }
+
+        .vehicle-notes-section h4 {
+            margin: 0 0 10px 0;
+            color: #d32f2f;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .vehicle-notes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .note-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(244, 67, 54, 0.05);
+            border: 1px solid rgba(244, 67, 54, 0.2);
+            border-radius: 6px;
+            border-left: 4px solid #f44336;
+        }
+
+        .note-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .note-text {
+            color: #d32f2f;
+            font-size: 14px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -1591,8 +1634,7 @@
                             <button class="action-button maintenance" onclick="openMaintenanceModal('${vehicle.vehicleNumber}')" title="Add Maintenance">🔧</button>
                         </div>
                     </td>
-                </tr>
-                <tr class="vehicle-details" id="details-${vehicle.vehicleNumber}" style="display: none;">
+                </tr>                <tr class="vehicle-details" id="details-${vehicle.vehicleNumber}" style="display: none;">
                     <td colspan="7">
                         <div class="details-content">
                             <div class="details-grid">
@@ -1620,7 +1662,29 @@
                                 <div class="detail-item">
                                     <strong>Internal Cleaning:</strong> ${vehicle.internalCleaning}
                                 </div>
+                                <div class="detail-item">
+                                    <strong>Gom. Avanti:</strong> ${vehicle.notes1}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Gom. Post.:</strong> ${vehicle.notes2}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Next CO:</strong> ${vehicle.nextCO}
+                                </div>
                             </div>
+                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                                <div class="vehicle-notes-section">
+                                    <h4>Issues & Notes:</h4>
+                                    <div class="vehicle-notes">
+                                        ${vehicle.vehicleNotes.map(note => `
+                                            <div class="note-item">
+                                                <span class="note-icon">⚠️</span>
+                                                <span class="note-text">${note}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </td>
                 </tr>

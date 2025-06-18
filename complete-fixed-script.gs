@@ -869,9 +869,31 @@ function getVehicleOverview(params) {
       const currentKm = row[9]; // Column J (Km attuali)
       const kmDate = row[10]; // Column K (data km)
       const nextServiceKm = row[11]; // Column L (km prossimo servizio)
-      const potential = row[12]; // Column M (Potenziale)
-      const externalCleaning = row[13]; // Column N (Data ultima pulizia esterna)
+      const potential = row[12]; // Column M (Potenziale)      const externalCleaning = row[13]; // Column N (Data ultima pulizia esterna)
       const internalCleaning = row[14]; // Column O (Data ultima pulizia interna)
+      const notes1 = row[15]; // Column P (Gom. avanti)
+      const notes2 = row[16]; // Column Q (Gom. post.)
+      const nextCO = row[17]; // Column R (Next CO)
+      
+      // Collect all notes/issues from the row (look for non-empty text in various columns)
+      let vehicleNotes = [];
+      
+      // Check for notes in columns that might contain red text/issues
+      for (let colIndex = 0; colIndex < row.length; colIndex++) {
+        const cellValue = row[colIndex];
+        if (cellValue && typeof cellValue === 'string' && cellValue.length > 10) {
+          // Check if it looks like a note/issue (contains common keywords or is longer text)
+          if (cellValue.includes('rotto') || cellValue.includes('problema') || 
+              cellValue.includes('montare') || cellValue.includes('cambiare') ||
+              cellValue.includes('specchietto') || cellValue.includes('sostituire') ||
+              cellValue.includes('riparare') || cellValue.includes('controllare') ||
+              cellValue.includes('verificare') || cellValue.includes('pulire') ||
+              cellValue.includes('sostituire') || cellValue.includes('aggiustare') ||
+              (cellValue.length > 30 && cellValue.includes(' '))) {
+            vehicleNotes.push(cellValue);
+          }
+        }
+      }
       
       // Determine cleaning status and last cleaning date
       let cleaningStatus = 'Good';
@@ -916,9 +938,12 @@ function getVehicleOverview(params) {
         currentKm: currentKm || '-',
         kmDate: formatDateForDisplay(kmDate),
         nextServiceKm: nextServiceKm || '-',
-        potential: potential || '-',
-        externalCleaning: formatDateForDisplay(externalCleaning),
+        potential: potential || '-',        externalCleaning: formatDateForDisplay(externalCleaning),
         internalCleaning: formatDateForDisplay(internalCleaning),
+        notes1: notes1 || '-',
+        notes2: notes2 || '-',
+        nextCO: nextCO || '-',
+        vehicleNotes: vehicleNotes,
         lastCleaningDate: formatDateForDisplay(lastCleaningDate),
         cleaningStatus: cleaningStatus,
         statusClass: statusClass
