@@ -91,14 +91,27 @@ function doGet(e) {
         break;
       case "deleteExpense":
         result = deleteExpense(e);
-        break;
-      // ADD CLEANING FUNCTIONS TO doGet
+        break;      // ADD CLEANING FUNCTIONS TO doGet
       case "getCleaningData":
         result = getCleaningData(e.parameter);
-        break;      // ADD OVERVIEW FUNCTION TO doGet
+        break;
+      // ADD MAINTENANCE DATA FUNCTION TO doGet
+      case "getMaintenanceData":
+        result = getMaintenanceData(e.parameter);
+        break;
+      // ADD JSONP MAINTENANCE DATA FUNCTION TO doGet
+      case "getMaintenanceDataJsonp":
+        return getMaintenanceDataJsonp(e.parameter);
+        break;
+      // ADD OVERVIEW FUNCTION TO doGet
       case "getVehicleOverview":
         result = getVehicleOverview(e.parameter);
-        break;      // ADD VEHICLE NOTES UPDATE FUNCTION TO doGet
+        break;
+      // ADD JSONP OVERVIEW FUNCTION TO doGet
+      case "getVehicleOverviewJsonp":
+        return getVehicleOverviewJsonp(e.parameter);
+        break;
+      // ADD VEHICLE NOTES UPDATE FUNCTION TO doGet
       case "updateVehicleNotes":
         result = updateVehicleNotes(e.parameter);
         break;
@@ -857,6 +870,52 @@ function updateCleaningInVisioneGenerale(data) {
   }
 }
 
+// ===== MAINTENANCE FUNCTIONS =====
+
+function getMaintenanceData(params) {
+  try {
+    const { sheetId } = params;
+    
+    if (!sheetId) {
+      return { success: false, error: 'Sheet ID is required' };
+    }
+    
+    // This is a placeholder - you'll need to implement based on your maintenance sheet structure
+    // For now, return empty data to prevent errors
+    return { 
+      success: true, 
+      records: [],
+      vehicles: ['N1', 'N3', 'N4', 'N6', 'N7', 'N8', 'N9', 'N10']
+    };
+    
+  } catch (error) {
+    Logger.log('Error in getMaintenanceData:', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// JSONP version of getMaintenanceData
+function getMaintenanceDataJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = getMaintenanceData(params);
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { success: false, error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
 // ===== OVERVIEW FUNCTIONS =====
 
 function getVehicleOverview(params) {
@@ -1236,6 +1295,28 @@ function updateVehicleNotesJsonp(params) {
     const result = updateVehicleNotes(params);
     
     // Return JSONP response
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { success: false, error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// JSONP version of getVehicleOverview
+function getVehicleOverviewJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = getVehicleOverview(params);
     const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
     
     return ContentService

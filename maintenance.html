@@ -1699,17 +1699,14 @@
             searchInput.addEventListener('input', applyFilters);
             vehicleFilter.addEventListener('change', applyFilters);
             statusFilter.addEventListener('change', applyFilters);
-        });
-
-        // Load data from Google Sheets
+        });        // Load data from Google Sheets using JSONP
         async function loadData() {
             showLoader();
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=getMaintenanceData&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                const url = `${settings.scriptUrl}?function=getMaintenanceDataJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
                 
-                const response = await fetch(url);
-                const data = await response.json();
+                const data = await makeJsonpRequest(url);
                 
                 if (data.success) {
                     maintenanceData = data.records || [];
@@ -1745,14 +1742,13 @@
             } finally {
                 hideLoader();
             }
-        }        // Load overview data from Google Sheets
+        }        // Load overview data from Google Sheets using JSONP
         async function loadOverviewData() {
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=getVehicleOverview&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                const url = `${settings.scriptUrl}?function=getVehicleOverviewJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
                 
-                const response = await fetch(url);
-                const data = await response.json();
+                const data = await makeJsonpRequest(url);
                 
                 if (data.success) {
                     overviewData = data.vehicles || [];
