@@ -98,10 +98,13 @@ function doGet(e) {
         break;      // ADD OVERVIEW FUNCTION TO doGet
       case "getVehicleOverview":
         result = getVehicleOverview(e.parameter);
-        break;
-      // ADD VEHICLE NOTES UPDATE FUNCTION TO doGet
+        break;      // ADD VEHICLE NOTES UPDATE FUNCTION TO doGet
       case "updateVehicleNotes":
         result = updateVehicleNotes(e.parameter);
+        break;
+      // ADD JSONP VEHICLE NOTES UPDATE FUNCTION TO doGet
+      case "updateVehicleNotesJsonp":
+        return updateVehicleNotesJsonp(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1220,5 +1223,32 @@ function updateVehicleNotes(params) {
   } catch (error) {
     Logger.log('Error in updateVehicleNotes:', error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+// JSONP version of updateVehicleNotes that bypasses CORS
+function updateVehicleNotesJsonp(params) {
+  try {
+    // Get the callback function name
+    const callback = params.callback || 'callback';
+    
+    // Use the existing updateVehicleNotes function
+    const result = updateVehicleNotes(params);
+    
+    // Return JSONP response
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { success: false, error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 }

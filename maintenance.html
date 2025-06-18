@@ -2481,7 +2481,39 @@
             displayElement.style.display = 'block';
             editorElement.style.display = 'none';
             actionsElement.style.display = 'none';
-        }        // Save vehicle notes
+        }        // Global callback counter for unique callback names
+        let callbackCounter = 0;
+
+        // JSONP helper function to bypass CORS
+        function makeJsonpRequest(url, callback) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonpCallback' + (++callbackCounter);
+                
+                // Create the callback function
+                window[callbackName] = function(data) {
+                    // Clean up
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    resolve(data);
+                };
+                
+                // Create the script tag
+                const script = document.createElement('script');
+                script.src = url + '&callback=' + callbackName;
+                
+                // Handle errors
+                script.onerror = function() {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                // Add script to head to execute
+                document.head.appendChild(script);
+            });
+        }
+
+        // Save vehicle notes using JSONP
         async function saveVehicleNotes(vehicleNumber) {
             const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
             const notesText = editorElement.value.trim();
@@ -2493,20 +2525,11 @@
             try {
                 const settings = getSettings();
                 
-                // Create a simple form to avoid CORS issues
-                const form = new FormData();
-                form.append('function', 'updateVehicleNotes');
-                form.append('authToken', settings.authToken);
-                form.append('sheetId', settings.maintenanceSheetId);
-                form.append('vehicleNumber', vehicleNumber);
-                form.append('notes', notesArray.join('|||'));
+                // Build JSONP URL
+                const notesParam = encodeURIComponent(notesArray.join('|||'));
+                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}`;
                 
-                const response = await fetch(settings.scriptUrl, {
-                    method: 'POST',
-                    body: form
-                });
-                
-                const data = await response.json();
+                const data = await makeJsonpRequest(url);
                 
                 if (data.success) {
                     // Update local data
@@ -2563,7 +2586,7 @@
             displayElement.style.display = 'block';
             editorElement.style.display = 'none';
             actionsElement.style.display = 'none';
-        }        // Save card notes
+        }        // Save card notes using JSONP
         async function saveCardNotes(vehicleNumber) {
             const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
             const notesText = editorElement.value.trim();
@@ -2574,20 +2597,11 @@
             try {
                 const settings = getSettings();
                 
-                // Create a simple form to avoid CORS issues
-                const form = new FormData();
-                form.append('function', 'updateVehicleNotes');
-                form.append('authToken', settings.authToken);
-                form.append('sheetId', settings.maintenanceSheetId);
-                form.append('vehicleNumber', vehicleNumber);
-                form.append('notes', notesArray.join('|||'));
+                // Build JSONP URL
+                const notesParam = encodeURIComponent(notesArray.join('|||'));
+                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}`;
                 
-                const response = await fetch(settings.scriptUrl, {
-                    method: 'POST',
-                    body: form
-                });
-                
-                const data = await response.json();
+                const data = await makeJsonpRequest(url);
                 
                 if (data.success) {
                     // Update local data
