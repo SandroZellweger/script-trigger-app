@@ -14,11 +14,29 @@ function validateAuthToken(token) {
   return token === AUTH_TOKEN;
 }
 
-// Helper function to create proper JSON response (FIXED!)
+// Helper function to create proper JSON response with CORS headers (FIXED!)
 function createJsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    });
+}
+
+// Handle OPTIONS requests for CORS preflight
+function doOptions(e) {
+  return ContentService
+    .createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    });
 }
 
 // Main doGet handler for script triggers and fetching expenses
@@ -77,10 +95,13 @@ function doGet(e) {
       // ADD CLEANING FUNCTIONS TO doGet
       case "getCleaningData":
         result = getCleaningData(e.parameter);
-        break;
-      // ADD OVERVIEW FUNCTION TO doGet
+        break;      // ADD OVERVIEW FUNCTION TO doGet
       case "getVehicleOverview":
         result = getVehicleOverview(e.parameter);
+        break;
+      // ADD VEHICLE NOTES UPDATE FUNCTION TO doGet
+      case "updateVehicleNotes":
+        result = updateVehicleNotes(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -132,8 +153,7 @@ function doPost(e) {
     switch (functionName) {
       case "logExpense":
         result = logExpense(requestBody);
-        break;
-      case "editExpense":
+        break;      case "editExpense":
         result = editExpense(requestBody);
         break;      // ADD CLEANING FUNCTION TO doPost
       case "updateCleaningInVisioneGenerale":
@@ -141,7 +161,7 @@ function doPost(e) {
         break;
       // ADD VEHICLE NOTES UPDATE FUNCTION TO doPost
       case "updateVehicleNotes":
-        result = updateVehicleNotes(requestBody);
+        result = updateVehicleNotes(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1124,11 +1144,11 @@ function formatDateForDisplay(dateValue) {
 }
 
 // Update vehicle notes in Google Sheet
-function updateVehicleNotes(requestBody) {
+function updateVehicleNotes(params) {
   try {
-    Logger.log('updateVehicleNotes called with:', requestBody);
+    Logger.log('updateVehicleNotes called with:', params);
     
-    const { vehicleNumber, notes, sheetId } = requestBody;
+    const { vehicleNumber, notes, sheetId } = params;
     
     if (!vehicleNumber) {
       return { success: false, error: 'Vehicle number is required' };
@@ -1136,6 +1156,13 @@ function updateVehicleNotes(requestBody) {
     
     if (!sheetId) {
       return { success: false, error: 'Sheet ID is required' };
+    }
+    
+    // Parse notes from URL parameter (split by |||)
+    let notesArray = [];
+    if (notes && notes.trim() !== '') {
+      const decodedNotes = decodeURIComponent(notes);
+      notesArray = decodedNotes.split('|||').map(note => note.trim()).filter(note => note.length > 0);
     }
     
     // Open the sheet
@@ -1165,8 +1192,8 @@ function updateVehicleNotes(requestBody) {
     
     // Prepare the notes text
     let notesText = '';
-    if (notes && Array.isArray(notes) && notes.length > 0) {
-      notesText = notes.join('\n');
+    if (notesArray.length > 0) {
+      notesText = notesArray.join('\n');
     }
     
     // Update the cell
@@ -1187,7 +1214,7 @@ function updateVehicleNotes(requestBody) {
       success: true, 
       message: `Notes updated for vehicle ${vehicleNumber}`,
       vehicleNumber: vehicleNumber,
-      notesCount: notes ? notes.length : 0
+      notesCount: notesArray.length
     };
     
   } catch (error) {

@@ -2481,9 +2481,7 @@
             displayElement.style.display = 'block';
             editorElement.style.display = 'none';
             actionsElement.style.display = 'none';
-        }
-
-        // Save vehicle notes
+        }        // Save vehicle notes
         async function saveVehicleNotes(vehicleNumber) {
             const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
             const notesText = editorElement.value.trim();
@@ -2494,17 +2492,18 @@
             showLoader();
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=updateVehicleNotes&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
                 
-                const response = await fetch(url, {
+                // Create a simple form to avoid CORS issues
+                const form = new FormData();
+                form.append('function', 'updateVehicleNotes');
+                form.append('authToken', settings.authToken);
+                form.append('sheetId', settings.maintenanceSheetId);
+                form.append('vehicleNumber', vehicleNumber);
+                form.append('notes', notesArray.join('|||'));
+                
+                const response = await fetch(settings.scriptUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        vehicleNumber: vehicleNumber,
-                        notes: notesArray
-                    })
+                    body: form
                 });
                 
                 const data = await response.json();
@@ -2564,30 +2563,28 @@
             displayElement.style.display = 'block';
             editorElement.style.display = 'none';
             actionsElement.style.display = 'none';
-        }
-
-        // Save card notes
+        }        // Save card notes
         async function saveCardNotes(vehicleNumber) {
             const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
             const notesText = editorElement.value.trim();
             
             // Parse notes into array (split by lines, filter empty)
             const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            
-            showLoader();
+              showLoader();
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=updateVehicleNotes&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
                 
-                const response = await fetch(url, {
+                // Create a simple form to avoid CORS issues
+                const form = new FormData();
+                form.append('function', 'updateVehicleNotes');
+                form.append('authToken', settings.authToken);
+                form.append('sheetId', settings.maintenanceSheetId);
+                form.append('vehicleNumber', vehicleNumber);
+                form.append('notes', notesArray.join('|||'));
+                
+                const response = await fetch(settings.scriptUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        vehicleNumber: vehicleNumber,
-                        notes: notesArray
-                    })
+                    body: form
                 });
                 
                 const data = await response.json();
