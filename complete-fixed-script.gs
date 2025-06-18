@@ -869,27 +869,33 @@ function getVehicleOverview(params) {
       const currentKm = row[9]; // Column J (Km attuali)
       const kmDate = row[10]; // Column K (data km)
       const nextServiceKm = row[11]; // Column L (km prossimo servizio)
-      const potential = row[12]; // Column M (Potenziale)      const externalCleaning = row[13]; // Column N (Data ultima pulizia esterna)
+      const potential = row[12]; // Column M (Potenziale)
+      const externalCleaning = row[13]; // Column N (Data ultima pulizia esterna)
       const internalCleaning = row[14]; // Column O (Data ultima pulizia interna)
       const notes1 = row[15]; // Column P (Gom. avanti)
       const notes2 = row[16]; // Column Q (Gom. post.)
       const nextCO = row[17]; // Column R (Next CO)
-      
-      // Collect all notes/issues from the row (look for non-empty text in various columns)
+        // Collect all notes/issues from the row (look for non-empty text in various columns)
       let vehicleNotes = [];
       
       // Check for notes in columns that might contain red text/issues
+      // Look at all columns for longer text content that could be notes
       for (let colIndex = 0; colIndex < row.length; colIndex++) {
         const cellValue = row[colIndex];
-        if (cellValue && typeof cellValue === 'string' && cellValue.length > 10) {
-          // Check if it looks like a note/issue (contains common keywords or is longer text)
-          if (cellValue.includes('rotto') || cellValue.includes('problema') || 
-              cellValue.includes('montare') || cellValue.includes('cambiare') ||
-              cellValue.includes('specchietto') || cellValue.includes('sostituire') ||
-              cellValue.includes('riparare') || cellValue.includes('controllare') ||
-              cellValue.includes('verificare') || cellValue.includes('pulire') ||
-              cellValue.includes('sostituire') || cellValue.includes('aggiustare') ||
-              (cellValue.length > 30 && cellValue.includes(' '))) {
+        if (cellValue && typeof cellValue === 'string') {
+          // Skip short values that are likely just data (dates, numbers, short codes)
+          if (cellValue.length > 20 && 
+              !cellValue.match(/^\d{2}[\./]\d{2}[\./]\d{4}$/) && // Skip dates
+              !cellValue.match(/^\d+$/) && // Skip pure numbers
+              !cellValue.match(/^[A-Z]{2}\s?\d+[A-Z]*$/) && // Skip license plates
+              !cellValue.match(/^(Buone|Good|No|YES|L\d+H\d+)$/i) && // Skip status words
+              cellValue !== licensePlate && 
+              cellValue !== brand && 
+              cellValue !== model && 
+              cellValue !== type && 
+              cellValue !== location) {
+            
+            // This looks like a note/issue, add it
             vehicleNotes.push(cellValue);
           }
         }
@@ -938,7 +944,8 @@ function getVehicleOverview(params) {
         currentKm: currentKm || '-',
         kmDate: formatDateForDisplay(kmDate),
         nextServiceKm: nextServiceKm || '-',
-        potential: potential || '-',        externalCleaning: formatDateForDisplay(externalCleaning),
+        potential: potential || '-',
+        externalCleaning: formatDateForDisplay(externalCleaning),
         internalCleaning: formatDateForDisplay(internalCleaning),
         notes1: notes1 || '-',
         notes2: notes2 || '-',
