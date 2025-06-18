@@ -733,142 +733,6 @@
             font-size: 13px;
             color: #333;
             line-height: 1.4;
-        }        /* Editable Notes Styles */
-        .notes-display {
-            min-height: 40px;
-            max-height: 100px;
-            overflow-y: auto;
-            padding: 8px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-
-        .notes-editor {
-            display: none;
-            width: 100%;
-            min-height: 60px;
-            max-height: 120px;
-            padding: 8px;
-            border: 2px solid #7DBB35;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 13px;
-            resize: vertical;
-        }
-
-        .notes-editor:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(125, 187, 53, 0.2);
-        }
-
-        .notes-actions {
-            display: none;
-            gap: 4px;
-            margin-top: 4px;
-        }
-
-        .notes-save, .notes-cancel {
-            padding: 4px 8px;
-            border: none;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .notes-save {
-            background: #7DBB35;
-            color: white;
-        }
-
-        .notes-save:hover {
-            background: #5a8827;
-        }
-
-        .notes-cancel {
-            background: #f5f5f5;
-            color: #666;
-        }
-
-        .notes-cancel:hover {
-            background: #e0e0e0;
-        }
-
-        .note-item-inline {
-            display: flex;
-            align-items: flex-start;
-            gap: 6px;
-            margin-bottom: 4px;
-            padding: 4px 6px;
-            background: rgba(244, 67, 54, 0.05);
-            border: 1px solid rgba(244, 67, 54, 0.2);
-            border-radius: 4px;
-            border-left: 3px solid #f44336;
-            font-size: 12px;
-        }
-
-        .note-icon-inline {
-            font-size: 12px;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .note-text-inline {
-            color: #d32f2f;
-            line-height: 1.3;
-            word-break: break-word;
-        }
-
-        /* Mobile card notes editing */
-        .card-notes-editable {
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .card-notes-editable:hover {
-            background: rgba(125, 187, 53, 0.05);
-        }
-
-        .card-notes-editor {
-            display: none;
-            width: 100%;
-            min-height: 60px;
-            margin-top: 8px;
-            padding: 8px;
-            border: 2px solid #7DBB35;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 13px;
-            resize: vertical;
-        }
-
-        /* Notes header with edit button */
-        .notes-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .edit-notes-btn {
-            background: rgba(125, 187, 53, 0.1);
-            border: 1px solid rgba(125, 187, 53, 0.3);
-            border-radius: 6px;
-            padding: 6px 8px;
-            color: #7DBB35;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .edit-notes-btn:hover {
-            background: rgba(125, 187, 53, 0.2);
-            transform: scale(1.05);
-        }
-
-        .notes-content {
-            min-height: 40px;
         }
 
         @media (max-width: 768px) {
@@ -1440,6 +1304,7 @@
                             <th>Brand/Model</th>
                             <th>Km attuali</th>
                             <th>Potenziale</th>
+                            <th>Issues & Notes</th>
                             <th>Cleaning Status</th>
                             <th>Actions</th>
                         </tr>
@@ -1950,8 +1815,9 @@
         function renderOverviewTable() {
             const overviewTableBody = document.getElementById('overviewTableBody');
               if (overviewData.length === 0) {
-                overviewTableBody.innerHTML = `                    <tr>
-                        <td colspan="7" class="empty-state">
+                overviewTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
                             <div class="empty-state-icon">🚐</div>
                             <div class="empty-state-title">No vehicle data found</div>
                             <div class="empty-state-description">Unable to load vehicle overview data.</div>
@@ -1968,7 +1834,8 @@
                             <strong>${vehicle.vehicleNumber}</strong>
                             <button class="expand-btn" onclick="toggleVehicleDetails('${vehicle.vehicleNumber}')">+</button>
                         </div>
-                    </td>                    <td>${vehicle.licensePlate}</td>
+                    </td>
+                    <td>${vehicle.licensePlate}</td>
                     <td>${vehicle.brand} ${vehicle.model}</td>
                     <td>${vehicle.currentKm}</td>
                     <td>${vehicle.potential}</td>
@@ -2024,19 +1891,12 @@
                                 </div>
                                 <div class="detail-item">
                                     <strong>Next CO:</strong> ${vehicle.nextCO}
-                                </div>                            </div>
-                            
-                            <!-- Always show notes section with edit capability -->
-                            <div class="vehicle-notes-section">
-                                <div class="notes-header">
-                                    <h4>Issues & Notes:</h4>
-                                    <button class="edit-notes-btn" onclick="editVehicleNotes('${vehicle.vehicleNumber}')" title="Edit Notes">
-                                        ✏️
-                                    </button>
                                 </div>
-                                <div class="notes-content" id="notes-display-${vehicle.vehicleNumber}">
-                                    ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
-                                        vehicle.vehicleNotes.map(note => {
+                            </div>                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                                <div class="vehicle-notes-section">
+                                    <h4>Issues & Notes:</h4>
+                                    <div class="vehicle-notes">
+                                        ${vehicle.vehicleNotes.map(note => {
                                             const isRedText = note.startsWith('🔴');
                                             const noteText = isRedText ? note.substring(2).trim() : note;
                                             const icon = isRedText ? '🔴' : '⚠️';
@@ -2045,18 +1905,10 @@
                                                     <span class="note-icon">${icon}</span>
                                                     <span class="note-text">${noteText}</span>
                                                 </div>
-                                            `;
-                                        }).join('') 
-                                        : '<div style="color: #999; font-style: italic;">No notes yet. Click the pencil to add notes.</div>'
-                                    }
+                                            `;                                        }).join('')}
+                                    </div>
                                 </div>
-                                <textarea class="notes-editor" id="notes-editor-${vehicle.vehicleNumber}" 
-                                          placeholder="Enter issues and notes (prefix with 🔴 for red text)..."></textarea>
-                                <div class="notes-actions" id="notes-actions-${vehicle.vehicleNumber}">
-                                    <button class="notes-save" onclick="saveVehicleNotes('${vehicle.vehicleNumber}')">Save</button>
-                                    <button class="notes-cancel" onclick="cancelEditNotes('${vehicle.vehicleNumber}')">Cancel</button>
-                                </div>
-                            </div>
+                            ` : ''}
                         </div>
                     </td>
                 </tr>
@@ -2170,13 +2022,14 @@
                             <div class="card-detail-item">
                                 <span class="card-detail-label">Next CO:</span>
                                 <span class="card-detail-value">${vehicle.nextCO}</span>
-                            </div>                        </div>
+                            </div>
+                        </div>
                         
-                        <div class="card-notes-section">
-                            <h4 class="card-notes-title">Issues & Notes:</h4>
-                            <div class="card-notes-editable" onclick="editCardNotes('${vehicle.vehicleNumber}')" id="card-notes-display-${vehicle.vehicleNumber}">
-                                ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
-                                    vehicle.vehicleNotes.map(note => {
+                        ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                            <div class="card-notes-section">
+                                <h4 class="card-notes-title">Issues & Notes:</h4>
+                                <div class="vehicle-notes">
+                                    ${vehicle.vehicleNotes.map(note => {
                                         const isRedText = note.startsWith('🔴');
                                         const noteText = isRedText ? note.substring(2).trim() : note;
                                         const icon = isRedText ? '🔴' : '⚠️';
@@ -2186,119 +2039,112 @@
                                                 <span class="card-note-text">${noteText}</span>
                                             </div>
                                         `;
-                                    }).join('') 
-                                    : '<div style="color: #999; font-style: italic; padding: 8px;">Tap to add notes...</div>'
-                                }
+                                    }).join('')}
+                                <span class="card-detail-label">Next Service Km:</span>
+                                <span class="card-detail-value">${vehicle.nextServiceKm}</span>
                             </div>
-                            <textarea class="card-notes-editor" id="card-notes-editor-${vehicle.vehicleNumber}" 
-                                      placeholder="Enter issues and notes (prefix with 🔴 for red text)..."></textarea>
-                            <div class="notes-actions" id="card-notes-actions-${vehicle.vehicleNumber}">
-                                <button class="notes-save" onclick="saveCardNotes('${vehicle.vehicleNumber}')">Save</button>
-                                <button class="notes-cancel" onclick="cancelCardEditNotes('${vehicle.vehicleNumber}')">Cancel</button>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">External Cleaning:</span>
+                                <span class="card-detail-value">${vehicle.externalCleaning}</span>
+                            </div>
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Internal Cleaning:</span>
+                                <span class="card-detail-value">${vehicle.internalCleaning}</span>
+                            </div>ument.getElementById(`details-${vehicleNumber}`);
+                            <div class="card-detail-item">a-vehicle="${vehicleNumber}"] .expand-btn`);
+                                <span class="card-detail-label">Gom. Avanti:</span>
+                                <span class="card-detail-value">${vehicle.notes1}</span>
+                            </div>isplay = 'table-row';
+                            <div class="card-detail-item">
+                                <span class="card-detail-label">Gom. Post.:</span>
+                                <span class="card-detail-value">${vehicle.notes2}</span>
+                            </div>                            <div class="card-detail-item">
+                                <span class="card-detail-label">Next CO:</span>
+                                <span class="card-detail-value">${vehicle.nextCO}</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Toggle vehicle details visibility
-        function toggleVehicleDetails(vehicleNumber) {
-            const detailsRow = document.getElementById(`details-${vehicleNumber}`);
+                        
+                        <!-- Always show editable notes section in mobile cards -->
+                        <div class="card-notes-always">
+                            <div class="notes-header">?vehicle=${vehicleNumber}`;
+                                <h4 class="notes-title">Issues & Notes:</h4>
+                                <button class="edit-notes-btn" onclick="editVehicleNotes('${vehicle.vehicleNumber}')">Edit</button>
+                            </div>for specific vehicle
+                            <div class="notes-content" id="notes-display-${vehicle.vehicleNumber}">
+                                ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
+                                    vehicle.vehicleNotes.map(note => {
+                                        const isRedText = note.startsWith('🔴');
+                                        const noteText = isRedText ? note.substring(2).trim() : note;
+                                        const icon = isRedText ? '🔴' : '⚠️';
+                                        return `<div class="note-item ${isRedText ? 'red-note' : ''}"><span class="note-icon">${icon}</span><span class="note-text">${noteText}</span></div>`;
+                                    }).join('') 
+                                    : '<em style="color: #666;">No issues or notes recorded</em>'
+                                }
+                            </div>
+                            <div class="notes-edit" id="notes-edit-${vehicle.vehicleNumber}" style="display: none;">
+                                <textarea class="notes-input" id="notes-input-${vehicle.vehicleNumber}" placeholder="Enter issues and notes here...">${vehicle.vehicleNotes ? vehicle.vehicleNotes.join('\\n') : ''}</textarea>
+                                <div class="notes-actions">
+                                    <button class="save-notes-btn" onclick="saveVehicleNotes('${vehicle.vehicleNumber}')">Save</button>
+                                    <button class="cancel-notes-btn" onclick="cancelEditNotes('${vehicle.vehicleNumber}')">Cancel</button>
+                                </div>
+                            </div>
+                        </div>l(status) {
+            const statusLabels = {
+                        ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                            <div class="card-notes-section">
+                                <h4 class="card-notes-title">Issues & Notes:</h4>
+                                <div class="vehicle-notes">
+                                    ${vehicle.vehicleNotes.map(note => {
+                                        const isRedText = note.startsWith('🔴');
+                                        const noteText = isRedText ? note.substring(2).trim() : note;
+                                        const icon = isRedText ? '🔴' : '⚠️';
+                                        return `
+                                            <div class="card-note-item ${isRedText ? 'red-note' : ''}">
+                                                <span class="card-note-icon">${icon}</span>
+                                                <span class="card-note-text">${noteText}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>record data
+                        ` : ''}ById('recordId').value = record.id;
+                    </div>ementById('vehicle').value = record.vehicle || '';
+                </div>etElementById('serviceType').value = record.serviceType || '';
+            `).join('');ElementById('dueDate').value = record.dueDate || '';
+        }   document.getElementById('status').value = record.status || 'scheduled';
+            document.getElementById('odometer').value = record.odometer || '';
+        // Toggle vehicle details visibilityvalue = record.cost || '';
+        function toggleVehicleDetails(vehicleNumber) {e = record.assignedTo || '';
+            const detailsRow = document.getElementById(`details-${vehicleNumber}`);| '';
             const expandBtn = document.querySelector(`[data-vehicle="${vehicleNumber}"] .expand-btn`);
-            
+            document.getElementById('partsReplaced').value = record.partsReplaced || '';
             if (detailsRow.style.display === 'none') {
-                               detailsRow.style.display = 'table-row';
-                expandBtn.textContent = '-';
+                detailsRow.style.display = 'table-row';
+                expandBtn.textContent = '-';tle').textContent = 'Edit Maintenance Record';
                 expandBtn.classList.add('expanded');
-            } else {
-                detailsRow.style.display = 'none';
+            } else {modal
+                detailsRow.style.display = 'none';');
                 expandBtn.textContent = '+';
                 expandBtn.classList.remove('expanded');
-            }
-        }
-
+            }lete record function
+        }unction deleteRecord(recordId) {
+            if (!confirm('Are you sure you want to delete this maintenance record?')) {
         // Open cleaning modal for specific vehicle
         function openCleaningModal(vehicleNumber) {
             window.location.href = `cleaning-vans.html?vehicle=${vehicleNumber}`;
-        }
-
+        }   const record = maintenanceData.find(r => r.id === recordId);
+            if (!record) return;
         // Open maintenance modal for specific vehicle
         function openMaintenanceModal(vehicleNumber) {
-            openAddModal();
+            openAddModal();d = true;
             // Pre-select the vehicle
             setTimeout(() => {
                 const vehicleSelect = document.getElementById('vehicle');
                 if (vehicleSelect) {
                     vehicleSelect.value = vehicleNumber.replace('N', ''); // Remove N prefix if needed
-                }
-            }, 100);
+                } record = maintenanceData.find(r => r.id === recordId);
+            }, 100);ord) return;
         }
-
-        // Missing utility functions
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-GB');
-        }
-
-        function getStatusLabel(status) {
-            const statusLabels = {
-                'scheduled': 'Scheduled',
-                'completed': 'Completed',
-                'overdue': 'Overdue',
-                'due-soon': 'Due Soon'
-            };
-            return statusLabels[status] || status;
-        }
-
-        // Edit record function
-        function editRecord(recordId) {
-            const record = maintenanceData.find(r => r.id === recordId);
-            if (!record) return;
-
-            isEditing = true;
-            currentEditId = recordId;
-
-            // Populate form with record data
-            document.getElementById('recordId').value = record.id;
-            document.getElementById('vehicle').value = record.vehicle || '';
-            document.getElementById('serviceType').value = record.serviceType || '';
-            document.getElementById('dueDate').value = record.dueDate || '';
-            document.getElementById('status').value = record.status || 'scheduled';
-            document.getElementById('odometer').value = record.odometer || '';
-            document.getElementById('cost').value = record.cost || '';
-            document.getElementById('assignedTo').value = record.assignedTo || '';
-            document.getElementById('completedDate').value = record.completedDate || '';
-            document.getElementById('notes').value = record.notes || '';
-            document.getElementById('partsReplaced').value = record.partsReplaced || '';
-
-            // Update modal title
-            document.getElementById('modalTitle').textContent = 'Edit Maintenance Record';
-
-            // Show modal
-            maintenanceModal.classList.add('active');
-        }
-
-        // Delete record function
-        function deleteRecord(recordId) {
-            if (!confirm('Are you sure you want to delete this maintenance record?')) {
-                return;
-            }
-
-            const record = maintenanceData.find(r => r.id === recordId);
-            if (!record) return;
-
-            // Mark record as deleted and save
-            record.isDeleted = true;
-            saveRecord(record);
-        }
-
-        // Mark as complete function
-        function markAsComplete(recordId) {
-            const record = maintenanceData.find(r => r.id === recordId);
-            if (!record) return;
-
             // Update status and completion date
             record.status = 'completed';
             record.completedDate = new Date().toISOString().split('T')[0];
@@ -2450,173 +2296,6 @@
                 expandBtn.textContent = 'Hide Details';
             }
         }
-
-        // Edit vehicle notes function
-        function editVehicleNotes(vehicleNumber) {
-            const displayElement = document.getElementById(`notes-display-${vehicleNumber}`);
-            const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
-            const actionsElement = document.getElementById(`notes-actions-${vehicleNumber}`);
-            
-            // Get current notes
-            const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
-            const currentNotes = vehicle && vehicle.vehicleNotes ? vehicle.vehicleNotes.join('\n') : '';
-            
-            // Hide display, show editor
-            displayElement.style.display = 'none';
-            editorElement.style.display = 'block';
-            actionsElement.style.display = 'flex';
-            
-            // Set current value and focus
-            editorElement.value = currentNotes;
-            editorElement.focus();
-        }
-
-        // Cancel editing notes
-        function cancelEditNotes(vehicleNumber) {
-            const displayElement = document.getElementById(`notes-display-${vehicleNumber}`);
-            const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
-            const actionsElement = document.getElementById(`notes-actions-${vehicleNumber}`);
-            
-            // Show display, hide editor
-            displayElement.style.display = 'block';
-            editorElement.style.display = 'none';
-            actionsElement.style.display = 'none';
-        }
-
-        // Save vehicle notes
-        async function saveVehicleNotes(vehicleNumber) {
-            const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
-            const notesText = editorElement.value.trim();
-            
-            // Parse notes into array (split by lines, filter empty)
-            const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            
-            showLoader();
-            try {
-                const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=updateVehicleNotes&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        vehicleNumber: vehicleNumber,
-                        notes: notesArray
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update local data
-                    const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
-                    if (vehicle) {
-                        vehicle.vehicleNotes = notesArray;
-                    }
-                    
-                    // Re-render the table and cards
-                    renderOverviewTable();
-                    renderOverviewCards();
-                    
-                    showNotification('Success', 'Vehicle notes updated successfully.');
-                } else {
-                    showNotification('Error', data.error || 'Failed to update notes', true);
-                    cancelEditNotes(vehicleNumber);
-                }
-            } catch (error) {
-                console.error('Error saving notes:', error);
-                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
-                cancelEditNotes(vehicleNumber);
-            } finally {
-                hideLoader();
-            }
-        }
-
-        // Mobile card notes editing functions
-        function editCardNotes(vehicleNumber) {
-            const displayElement = document.getElementById(`card-notes-display-${vehicleNumber}`);
-            const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
-            const actionsElement = document.getElementById(`card-notes-actions-${vehicleNumber}`);
-            
-            // Get current notes
-            const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
-            const currentNotes = vehicle && vehicle.vehicleNotes ? vehicle.vehicleNotes.join('\n') : '';
-            
-            // Hide display, show editor
-            displayElement.style.display = 'none';
-            editorElement.style.display = 'block';
-            actionsElement.style.display = 'flex';
-            
-            // Set current value and focus
-            editorElement.value = currentNotes;
-            editorElement.focus();
-        }
-
-        // Cancel editing card notes
-        function cancelCardEditNotes(vehicleNumber) {
-            const displayElement = document.getElementById(`card-notes-display-${vehicleNumber}`);
-            const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
-            const actionsElement = document.getElementById(`card-notes-actions-${vehicleNumber}`);
-            
-            // Show display, hide editor
-            displayElement.style.display = 'block';
-            editorElement.style.display = 'none';
-            actionsElement.style.display = 'none';
-        }
-
-        // Save card notes
-        async function saveCardNotes(vehicleNumber) {
-            const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
-            const notesText = editorElement.value.trim();
-            
-            // Parse notes into array (split by lines, filter empty)
-            const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            
-            showLoader();
-            try {
-                const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=updateVehicleNotes&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        vehicleNumber: vehicleNumber,
-                        notes: notesArray
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update local data
-                    const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
-                    if (vehicle) {
-                        vehicle.vehicleNotes = notesArray;
-                    }
-                    
-                    // Re-render the cards to show updated notes
-                    renderOverviewCards();
-                    
-                    showNotification('Success', 'Notes updated successfully.');
-                } else {
-                    console.error('Failed to save notes:', data.error);
-                    showNotification('Error', data.error || 'Failed to save notes', true);
-                    cancelCardEditNotes(vehicleNumber);
-                }
-            } catch (error) {
-                console.error('Error saving notes:', error);
-                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
-                cancelCardEditNotes(vehicleNumber);
-            } finally {
-                hideLoader();
-            }
-        }
-
     </script>
 </body>
 </html>
