@@ -849,8 +849,7 @@ function getVehicleOverview(params) {
       // Get all data from the sheet
     const data = visioneSheet.getDataRange().getValues();
     const vehicles = [];
-    
-    Logger.log(`Found ${data.length} rows in Visione generale sheet`);
+      Logger.log(`Found ${data.length} rows in Visione generale sheet`);
     
     // Log first few rows to understand structure
     if (data.length > 0) {
@@ -859,6 +858,16 @@ function getVehicleOverview(params) {
     if (data.length > 1) {
       Logger.log('First data row:', data[1]);
     }
+    
+    // First pass: log the vehicle number to row mapping
+    Logger.log('=== VEHICLE TO ROW MAPPING ===');
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0]) {
+        Logger.log(`Vehicle N${row[0]} is in data row index ${i}, actual sheet row ${i + 1}`);
+      }
+    }
+    Logger.log('=== END MAPPING ===');
     
     // Skip header row, process data rows
     for (let i = 1; i < data.length; i++) {
@@ -888,17 +897,19 @@ function getVehicleOverview(params) {
       const notes2 = row[16]; // Column Q (Gom. post.)
       const nextCO = row[17]; // Column R (Next CO)      // Collect all notes/issues from the row (look in columns C through R)
       let vehicleNotes = [];
-      
-      Logger.log(`Processing vehicle ${vehicleNumber} (row ${i + 1})`);
+        Logger.log(`Processing vehicle N${vehicleNumber} (data row index ${i}, actual sheet row ${i + 1})`);
       
       try {
         // Get the range for this specific row to check for text formatting
-        const rowRange = visioneSheet.getRange(i + 1, 3, 1, 16); // Columns C-R (3-18)
+        // i+1 because sheet rows are 1-indexed, but our data array is 0-indexed with header at 0
+        const actualSheetRow = i + 1;
+        const rowRange = visioneSheet.getRange(actualSheetRow, 3, 1, 16); // Columns C-R (3-18)
         const textStyles = rowRange.getTextStyles();
         const richTextValues = rowRange.getRichTextValues();
         const cellValues = rowRange.getValues()[0];
         
-        Logger.log(`Vehicle ${vehicleNumber} - Row data from C-R:`, cellValues);
+        Logger.log(`Vehicle N${vehicleNumber} - Checking actual sheet row ${actualSheetRow}, columns C-R`);
+        Logger.log(`Vehicle N${vehicleNumber} - Row data from C-R:`, cellValues);
         
         // Check each cell in columns C through R for red text or long descriptive text
         for (let colIndex = 0; colIndex < cellValues.length; colIndex++) {
@@ -915,7 +926,7 @@ function getVehicleOverview(params) {
               const color = textStyle.getForegroundColor();
               isRedText = (color === '#ff0000' || color === '#cc0000' || color === '#990000' || color.toLowerCase().includes('red'));
               if (isRedText) {
-                Logger.log(`Vehicle ${vehicleNumber} - Found RED TEXT in column ${String.fromCharCode(67 + colIndex)}: ${trimmedValue}`);
+                Logger.log(`Vehicle N${vehicleNumber} - Found RED TEXT in column ${String.fromCharCode(67 + colIndex)} (sheet row ${actualSheetRow}): ${trimmedValue}`);
               }
             }
             
@@ -928,7 +939,7 @@ function getVehicleOverview(params) {
                   const runColor = runStyle.getForegroundColor();
                   if (runColor === '#ff0000' || runColor === '#cc0000' || runColor === '#990000' || runColor.toLowerCase().includes('red')) {
                     isRedText = true;
-                    Logger.log(`Vehicle ${vehicleNumber} - Found RED TEXT in rich text in column ${String.fromCharCode(67 + colIndex)}: ${trimmedValue}`);
+                    Logger.log(`Vehicle N${vehicleNumber} - Found RED TEXT in rich text in column ${String.fromCharCode(67 + colIndex)} (sheet row ${actualSheetRow}): ${trimmedValue}`);
                     break;
                   }
                 }
@@ -942,9 +953,8 @@ function getVehicleOverview(params) {
                           trimmedValue.includes('GMT') || // Date strings
                           trimmedValue.includes('Central European') ||
                           (!isNaN(Date.parse(trimmedValue)) && trimmedValue.length > 10); // Parseable dates
-            
-            if (isDate) {
-              Logger.log(`Vehicle ${vehicleNumber} - Skipping date in column ${String.fromCharCode(67 + colIndex)}: ${trimmedValue}`);
+              if (isDate) {
+              Logger.log(`Vehicle N${vehicleNumber} - Skipping date in column ${String.fromCharCode(67 + colIndex)} (sheet row ${actualSheetRow}): ${trimmedValue}`);
               continue; // Skip to next cell
             }
             
@@ -961,8 +971,7 @@ function getVehicleOverview(params) {
               trimmedValue.toLowerCase().includes('usura') ||
               trimmedValue.toLowerCase().includes('cambio') ||
               trimmedValue.toLowerCase().includes('service') ||
-              trimmedValue.toLowerCase().includes('manutenz') ||
-              trimmedValue.toLowerCase().includes('piccol') ||
+              trimmedValue.toLowerCase().includes('manutenz') ||              trimmedValue.toLowerCase().includes('piccol') ||
               trimmedValue.toLowerCase().includes('vetro') ||
               trimmedValue.toLowerCase().includes('avanti') ||
               trimmedValue.toLowerCase().includes('dietro') ||
@@ -972,22 +981,24 @@ function getVehicleOverview(params) {
               trimmedValue.toLowerCase().includes('cambiar') ||
               trimmedValue.toLowerCase().includes('controllar')
             );
-              // Include red text or notes
+            
+            // Include red text or notes
             if (isRedText) {
               const noteText = `🔴 ${trimmedValue}`;
               vehicleNotes.push(noteText);
-              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - RED TEXT: ${trimmedValue}`);
+              Logger.log(`Vehicle N${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} (sheet row ${actualSheetRow}) - RED TEXT: ${trimmedValue}`);
             } else if (looksLikeNote) {
               vehicleNotes.push(trimmedValue);
-              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - POTENTIAL NOTE: ${trimmedValue}`);
+              Logger.log(`Vehicle N${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} (sheet row ${actualSheetRow}) - POTENTIAL NOTE: ${trimmedValue}`);
             } else {
               // Log what we're skipping to understand the data better
-              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - SKIPPING: ${trimmedValue}`);
+              Logger.log(`Vehicle N${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} (sheet row ${actualSheetRow}) - SKIPPING: ${trimmedValue}`);
             }
           }
         }
       } catch (styleError) {
-        Logger.log(`Could not check text styles for vehicle ${vehicleNumber}:`, styleError);        // Fallback to simple text extraction
+        Logger.log(`Could not check text styles for vehicle N${vehicleNumber} at sheet row ${actualSheetRow}:`, styleError);
+        // Fallback to simple text extraction
         for (let colIndex = 2; colIndex <= 17; colIndex++) {
           const cellValue = row[colIndex];
           if (cellValue && typeof cellValue === 'string') {
@@ -1015,13 +1026,13 @@ function getVehicleOverview(params) {
                 trimmedValue.toLowerCase().includes('vetro') ||
                 trimmedValue.toLowerCase().includes('sostit') ||
                 trimmedValue.toLowerCase().includes('cambiar'))) {              vehicleNotes.push(trimmedValue);
-              Logger.log(`Vehicle ${vehicleNumber} - Fallback found note: ${trimmedValue}`);
+              Logger.log(`Vehicle N${vehicleNumber} - Fallback found note: ${trimmedValue}`);
             }
           }
         }
       }
       
-      Logger.log(`Vehicle ${vehicleNumber} - Final notes found:`, vehicleNotes);
+      Logger.log(`Vehicle N${vehicleNumber} - Final notes found:`, vehicleNotes);
       
       // Determine cleaning status and last cleaning date
       let cleaningStatus = 'Good';

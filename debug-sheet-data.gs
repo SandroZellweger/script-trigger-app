@@ -20,8 +20,7 @@ function debugVehicleData() {
     
     // Get all data from the sheet
     const data = visioneSheet.getDataRange().getValues();
-    
-    Logger.log(`Found ${data.length} rows in Visione generale sheet`);
+      Logger.log(`Found ${data.length} rows in Visione generale sheet`);
     
     // Log header row
     if (data.length > 0) {
@@ -31,16 +30,26 @@ function debugVehicleData() {
       });
     }
     
-    // Log first few data rows in detail
-    for (let i = 1; i < Math.min(data.length, 4); i++) {
+    // First pass: show vehicle number to row mapping
+    Logger.log('\n=== VEHICLE TO ROW MAPPING ===');
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0]) {
+        Logger.log(`Vehicle N${row[0]} -> Data row index ${i} -> Actual sheet row ${i + 1}`);
+      }
+    }
+    Logger.log('=== END MAPPING ===\n');
+    
+    // Now log detailed data for each vehicle
+    for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
       if (!row[0]) {
-        Logger.log(`Row ${i + 1}: EMPTY - skipping`);
+        Logger.log(`Data row ${i} (sheet row ${i + 1}): EMPTY - skipping`);
         continue;
       }
       
-      Logger.log(`\n=== ROW ${i + 1} - Vehicle N${row[0]} ===`);
+      Logger.log(`\n=== VEHICLE N${row[0]} - Data row ${i} - Sheet row ${i + 1} ===`);
       
       // Log all columns C through R (indices 2-17)
       for (let colIndex = 2; colIndex <= Math.min(17, row.length - 1); colIndex++) {
@@ -51,8 +60,7 @@ function debugVehicleData() {
           const valueType = typeof cellValue;
           const isDate = cellValue instanceof Date;
           const stringValue = cellValue.toString();
-          
-          Logger.log(`  ${columnLetter}${i + 1}: [${valueType}${isDate ? ' - Date' : ''}] "${stringValue}"`);
+            Logger.log(`  ${columnLetter}${i + 1}: [${valueType}${isDate ? ' - Date' : ''}] "${stringValue}"`);
           
           // If it's a date, also log the formatted version
           if (isDate) {
