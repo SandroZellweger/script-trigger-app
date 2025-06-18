@@ -604,6 +604,378 @@
         .stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
         .stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
         .stats-grid .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .vehicle-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .expand-btn {
+            background: rgba(125, 187, 53, 0.1);
+            border: 1px solid rgba(125, 187, 53, 0.3);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #7DBB35;
+            transition: all 0.2s ease;
+        }
+
+        .expand-btn:hover {
+            background: rgba(125, 187, 53, 0.2);
+            transform: scale(1.1);
+        }
+
+        .expand-btn.expanded {
+            background: rgba(125, 187, 53, 0.2);
+        }
+
+        .vehicle-details {
+            background: rgba(125, 187, 53, 0.02);
+        }
+
+        .details-content {
+            padding: 15px;
+            border: 1px solid rgba(125, 187, 53, 0.1);
+            border-radius: 8px;
+            margin: 5px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .detail-item {
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .cleaning-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .last-cleaning-date {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .status-good {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-needs-cleaning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #555;
+            font-size: 18px;
+        }        .action-button:hover {
+            background: rgba(125, 187, 53, 0.1);
+            color: #7DBB35;
+        }
+
+        .action-button.delete:hover {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+        }        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #7DBB35;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .trend-up {
+            color: #4CAF50;
+        }
+
+        .trend-down {
+            color: #f44336;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            position: relative;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .loader.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #7DBB35;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1500;
+            max-width: 400px;
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        .notification.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .notification-message {
+            font-size: 14px;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .empty-state-description {
+            max-width: 400px;
+            margin: 0 auto 20px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+                margin-top: 60px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 20px;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 600px;
+            }
+        }
+
+        /* Fade in animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        /* Staggered animations for cards */
+        .stats-grid .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stats-grid .stat-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
@@ -669,9 +1041,7 @@
             <div class="tab" data-tab="history">Maintenance History</div>
             <div class="tab" data-tab="analytics">Analytics</div>
             <div class="tab" data-tab="cleaning" onclick="window.location.href='cleaning-vans.html'">Cleaning</div>
-        </div>
-
-        <div id="overview" class="tab-content active">
+        </div>        <div id="overview" class="tab-content active">
             <div class="table-container">
                 <table id="overviewTable">
                     <thead>
@@ -679,9 +1049,9 @@
                             <th>Van #</th>
                             <th>License Plate</th>
                             <th>Brand/Model</th>
-                            <th>Last External Cleaning</th>
-                            <th>Last Internal Cleaning</th>
-                            <th>Status</th>
+                            <th>Km attuali</th>
+                            <th>Potenziale</th>
+                            <th>Cleaning Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -1176,9 +1546,7 @@
                     </tr>
                 `).join('');
             }
-        }
-
-        // Render the overview table
+        }        // Render the overview table
         function renderOverviewTable() {
             const overviewTableBody = document.getElementById('overviewTableBody');
             
@@ -1196,16 +1564,26 @@
             }
 
             overviewTableBody.innerHTML = overviewData.map(vehicle => `
-                <tr>
-                    <td><strong>${vehicle.vehicleNumber}</strong></td>
+                <tr class="vehicle-row" data-vehicle="${vehicle.vehicleNumber}">
+                    <td>
+                        <div class="vehicle-header">
+                            <strong>${vehicle.vehicleNumber}</strong>
+                            <button class="expand-btn" onclick="toggleVehicleDetails('${vehicle.vehicleNumber}')">+</button>
+                        </div>
+                    </td>
                     <td>${vehicle.licensePlate}</td>
                     <td>${vehicle.brand} ${vehicle.model}</td>
-                    <td>${vehicle.externalCleaning}</td>
-                    <td>${vehicle.internalCleaning}</td>
+                    <td>${vehicle.currentKm}</td>
+                    <td>${vehicle.potential}</td>
                     <td>
-                        <span class="status-badge ${vehicle.statusClass}">
-                            ${vehicle.status}
-                        </span>
+                        <div class="cleaning-status">
+                            <span class="status-badge ${vehicle.statusClass}">
+                                ${vehicle.cleaningStatus}
+                            </span>
+                            <div class="last-cleaning-date">
+                                ${vehicle.lastCleaningDate !== '-' ? `Last: ${vehicle.lastCleaningDate}` : 'Never cleaned'}
+                            </div>
+                        </div>
                     </td>
                     <td>
                         <div class="action-buttons">
@@ -1214,7 +1592,55 @@
                         </div>
                     </td>
                 </tr>
+                <tr class="vehicle-details" id="details-${vehicle.vehicleNumber}" style="display: none;">
+                    <td colspan="7">
+                        <div class="details-content">
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <strong>Type:</strong> ${vehicle.type}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Location:</strong> ${vehicle.location}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Purchase Date:</strong> ${vehicle.purchaseDate}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Acquisition Km:</strong> ${vehicle.acquisitionKm}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Km Date:</strong> ${vehicle.kmDate}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Next Service Km:</strong> ${vehicle.nextServiceKm}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>External Cleaning:</strong> ${vehicle.externalCleaning}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Internal Cleaning:</strong> ${vehicle.internalCleaning}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
             `).join('');
+        }
+
+        // Toggle vehicle details visibility
+        function toggleVehicleDetails(vehicleNumber) {
+            const detailsRow = document.getElementById(`details-${vehicleNumber}`);
+            const expandBtn = document.querySelector(`[data-vehicle="${vehicleNumber}"] .expand-btn`);
+            
+            if (detailsRow.style.display === 'none') {
+                detailsRow.style.display = 'table-row';
+                expandBtn.textContent = '-';
+                expandBtn.classList.add('expanded');
+            } else {
+                detailsRow.style.display = 'none';
+                expandBtn.textContent = '+';
+                expandBtn.classList.remove('expanded');
+            }
         }
 
         // Open cleaning modal for specific vehicle

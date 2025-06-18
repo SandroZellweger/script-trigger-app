@@ -855,43 +855,52 @@ function getVehicleOverview(params) {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
-      // Skip empty rows
-      if (!row[0]) continue;
+      // Skip empty rows and exclude N2 and N5
+      if (!row[0] || row[0] == 2 || row[0] == 5) continue;
       
       const vehicleNumber = row[0]; // Column A
       const licensePlate = row[2]; // Column C (Targa)
       const brand = row[3]; // Column D (Marca)
       const model = row[4]; // Column E (Modello)
+      const type = row[5]; // Column F (Tipo)
+      const location = row[6]; // Column G (Dove)
+      const purchaseDate = row[7]; // Column H (data acquisto)
+      const acquisitionKm = row[8]; // Column I (km acquisto)
+      const currentKm = row[9]; // Column J (Km attuali)
+      const kmDate = row[10]; // Column K (data km)
+      const nextServiceKm = row[11]; // Column L (km prossimo servizio)
+      const potential = row[12]; // Column M (Potenziale)
       const externalCleaning = row[13]; // Column N (Data ultima pulizia esterna)
       const internalCleaning = row[14]; // Column O (Data ultima pulizia interna)
       
-      // Determine cleaning status
-      let status = 'Good';
+      // Determine cleaning status and last cleaning date
+      let cleaningStatus = 'Good';
       let statusClass = 'status-good';
+      let lastCleaningDate = null;
       
       const today = new Date();
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       
-      let needsCleaning = false;
+      // Find the most recent cleaning date
+      const extDate = externalCleaning && externalCleaning !== '' ? new Date(externalCleaning) : null;
+      const intDate = internalCleaning && internalCleaning !== '' ? new Date(internalCleaning) : null;
       
-      // Check external cleaning
-      if (!externalCleaning || externalCleaning === '') {
-        needsCleaning = true;
-      } else {
-        const extDate = new Date(externalCleaning);
-        if (extDate < weekAgo) needsCleaning = true;
+      if (extDate && intDate) {
+        lastCleaningDate = extDate > intDate ? extDate : intDate;
+      } else if (extDate) {
+        lastCleaningDate = extDate;
+      } else if (intDate) {
+        lastCleaningDate = intDate;
       }
       
-      // Check internal cleaning
-      if (!internalCleaning || internalCleaning === '') {
+      // Determine if cleaning is needed
+      let needsCleaning = false;
+      if (!lastCleaningDate || lastCleaningDate < weekAgo) {
         needsCleaning = true;
-      } else {
-        const intDate = new Date(internalCleaning);
-        if (intDate < weekAgo) needsCleaning = true;
       }
       
       if (needsCleaning) {
-        status = 'Needs Cleaning';
+        cleaningStatus = 'Needs Cleaning';
         statusClass = 'status-needs-cleaning';
       }
       
@@ -900,9 +909,18 @@ function getVehicleOverview(params) {
         licensePlate: licensePlate || '-',
         brand: brand || '-',
         model: model || '-',
+        type: type || '-',
+        location: location || '-',
+        purchaseDate: formatDateForDisplay(purchaseDate),
+        acquisitionKm: acquisitionKm || '-',
+        currentKm: currentKm || '-',
+        kmDate: formatDateForDisplay(kmDate),
+        nextServiceKm: nextServiceKm || '-',
+        potential: potential || '-',
         externalCleaning: formatDateForDisplay(externalCleaning),
         internalCleaning: formatDateForDisplay(internalCleaning),
-        status: status,
+        lastCleaningDate: formatDateForDisplay(lastCleaningDate),
+        cleaningStatus: cleaningStatus,
         statusClass: statusClass
       });
     }
