@@ -934,6 +934,19 @@ function getVehicleOverview(params) {
                 }
               }
             }
+              // Skip dates completely - they're not notes
+            const isDate = cellValue instanceof Date || 
+                          trimmedValue.match(/^\d{2}[\./]\d{2}[\./]\d{4}$/) || // DD/MM/YYYY or DD.MM.YYYY
+                          trimmedValue.match(/^\d{4}-\d{2}-\d{2}/) || // YYYY-MM-DD
+                          trimmedValue.match(/^\d{2}\.\d{4}$/) || // MM.YYYY
+                          trimmedValue.includes('GMT') || // Date strings
+                          trimmedValue.includes('Central European') ||
+                          (!isNaN(Date.parse(trimmedValue)) && trimmedValue.length > 10); // Parseable dates
+            
+            if (isDate) {
+              Logger.log(`Vehicle ${vehicleNumber} - Skipping date in column ${String.fromCharCode(67 + colIndex)}: ${trimmedValue}`);
+              continue; // Skip to next cell
+            }
             
             // Look for text that seems like issues/notes
             const looksLikeNote = trimmedValue.length > 8 && (
@@ -955,36 +968,41 @@ function getVehicleOverview(params) {
               trimmedValue.toLowerCase().includes('dietro') ||
               trimmedValue.toLowerCase().includes('sinistr') ||
               trimmedValue.toLowerCase().includes('destro') ||
-              // Also include longer generic text that doesn't match standard data patterns
-              (trimmedValue.length > 15 && 
-               !trimmedValue.match(/^TI\s?\d+$/) && // Skip license plates
-               !trimmedValue.match(/^\d{2}[\./]\d{2}[\./]\d{4}$/) && // Skip dates
-               !trimmedValue.match(/^\d+(\.\d+)?$/) && // Skip pure numbers
-               !trimmedValue.match(/^(Opel|Peugeot|Fiat|Citroen|Renault|Ford|Mercedes|Volkswagen)$/i) && // Skip brand names
-               !trimmedValue.match(/^(Vivaro|Boxer|Ducato|Jumper|Trafic|Transit|Sprinter|Crafter)$/i) && // Skip model names
-               !trimmedValue.match(/^L\d+H\d+$/i) && // Skip type codes
-               !trimmedValue.match(/^(Losone|Bellinzona|Locarno|Minusio|Lugano|Mendrisio)$/i) && // Skip locations
-               !trimmedValue.match(/^(Buone|Good|No|YES|SI|Discreto|Ottime)$/i) && // Skip status words
-               !trimmedValue.match(/^\d+\.\d+\.\d+$/) && // Skip version numbers
-               !trimmedValue.match(/^\d{2}\.\d{4}$/) // Skip MM.YYYY dates
-              )
+              trimmedValue.toLowerCase().includes('sostit') ||
+              trimmedValue.toLowerCase().includes('cambiar') ||
+              trimmedValue.toLowerCase().includes('controllar')
             );
-            
-            // Include red text or notes
-            if (isRedText || looksLikeNote) {
-              const noteText = isRedText ? `🔴 ${trimmedValue}` : trimmedValue;
+              // Include red text or notes
+            if (isRedText) {
+              const noteText = `🔴 ${trimmedValue}`;
               vehicleNotes.push(noteText);
-              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - ${isRedText ? 'RED TEXT' : 'POTENTIAL NOTE'}: ${trimmedValue}`);
+              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - RED TEXT: ${trimmedValue}`);
+            } else if (looksLikeNote) {
+              vehicleNotes.push(trimmedValue);
+              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - POTENTIAL NOTE: ${trimmedValue}`);
+            } else {
+              // Log what we're skipping to understand the data better
+              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - SKIPPING: ${trimmedValue}`);
             }
           }
         }
       } catch (styleError) {
-        Logger.log(`Could not check text styles for vehicle ${vehicleNumber}:`, styleError);
-        // Fallback to simple text extraction
+        Logger.log(`Could not check text styles for vehicle ${vehicleNumber}:`, styleError);        // Fallback to simple text extraction
         for (let colIndex = 2; colIndex <= 17; colIndex++) {
           const cellValue = row[colIndex];
           if (cellValue && typeof cellValue === 'string') {
             const trimmedValue = cellValue.toString().trim();
+            
+            // Skip dates completely
+            const isDate = cellValue instanceof Date || 
+                          trimmedValue.match(/^\d{2}[\./]\d{2}[\./]\d{4}$/) || 
+                          trimmedValue.match(/^\d{4}-\d{2}-\d{2}/) || 
+                          trimmedValue.match(/^\d{2}\.\d{4}$/) || 
+                          trimmedValue.includes('GMT') || 
+                          trimmedValue.includes('Central European') ||
+                          (!isNaN(Date.parse(trimmedValue)) && trimmedValue.length > 10);
+            
+            if (isDate) continue;
             
             // Look for text that seems like issues/notes
             if (trimmedValue.length > 8 && (
@@ -994,8 +1012,9 @@ function getVehicleOverview(params) {
                 trimmedValue.toLowerCase().includes('problem') ||
                 trimmedValue.toLowerCase().includes('graffio') ||
                 trimmedValue.toLowerCase().includes('piccol') ||
-                trimmedValue.toLowerCase().includes('vetro'))) {
-              vehicleNotes.push(trimmedValue);
+                trimmedValue.toLowerCase().includes('vetro') ||
+                trimmedValue.toLowerCase().includes('sostit') ||
+                trimmedValue.toLowerCase().includes('cambiar'))) {              vehicleNotes.push(trimmedValue);
               Logger.log(`Vehicle ${vehicleNumber} - Fallback found note: ${trimmedValue}`);
             }
           }

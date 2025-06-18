@@ -91,6 +91,12 @@
         </div>
         
         <button class="test-button" onclick="testOverview()">Test Overview API</button>
+        <button class="test-button" style="background: #28a745;" onclick="showLogs()">Show Logs</button>
+        
+        <div id="logs" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">
+            <h4>Execution Logs:</h4>
+            <div id="logsContent">Click "Test Overview API" first to generate logs</div>
+        </div>
         
         <div id="loading" style="display: none; color: #007bff; margin: 10px 0;">
             Loading...
@@ -161,8 +167,7 @@
                             <div><strong>Model:</strong> ${vehicle.model}</div>
                             <div><strong>Location:</strong> ${vehicle.location}</div>
                             <div><strong>Cleaning Status:</strong> ${vehicle.cleaningStatus}</div>
-                            
-                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                      ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
                                 <div class="notes-section">
                                     <strong>Notes & Issues (${vehicle.vehicleNotes.length}):</strong>
                                     ${vehicle.vehicleNotes.map(note => {
@@ -171,7 +176,11 @@
                                         return `<div class="note-item ${isRedNote ? 'red-note' : ''}">${isRedNote ? '🔴 ' : ''}${noteText}</div>`;
                                     }).join('')}
                                 </div>
-                            ` : '<div style="color: #666; font-style: italic;">No notes found</div>'}
+                            ` : '<div style="color: #666; font-style: italic; margin-top: 10px;">No notes found</div>'}
+                            
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                <strong>All Data:</strong> ${JSON.stringify(vehicle, null, 2).substring(0, 200)}...
+                            </div>
                         </div>
                     `;
                 });
@@ -180,6 +189,11 @@
             }
             
             results.style.display = 'block';
+        }
+        
+        function showLogs() {
+            const logs = document.getElementById('logs');
+            logs.style.display = logs.style.display === 'none' ? 'block' : 'none';
         }
     </script>
 </body>
