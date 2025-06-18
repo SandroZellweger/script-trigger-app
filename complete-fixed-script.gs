@@ -135,10 +135,13 @@ function doPost(e) {
         break;
       case "editExpense":
         result = editExpense(requestBody);
-        break;
-      // ADD CLEANING FUNCTION TO doPost
+        break;      // ADD CLEANING FUNCTION TO doPost
       case "updateCleaningInVisioneGenerale":
         result = updateCleaningInVisioneGenerale(requestBody);
+        break;
+      // ADD VEHICLE NOTES UPDATE FUNCTION TO doPost
+      case "updateVehicleNotes":
+        result = updateVehicleNotes(requestBody);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1117,5 +1120,78 @@ function formatDateForDisplay(dateValue) {
     return date.toLocaleDateString('en-GB');
   } catch (error) {
     return '-';
+  }
+}
+
+// Update vehicle notes in Google Sheet
+function updateVehicleNotes(requestBody) {
+  try {
+    Logger.log('updateVehicleNotes called with:', requestBody);
+    
+    const { vehicleNumber, notes, sheetId } = requestBody;
+    
+    if (!vehicleNumber) {
+      return { success: false, error: 'Vehicle number is required' };
+    }
+    
+    if (!sheetId) {
+      return { success: false, error: 'Sheet ID is required' };
+    }
+    
+    // Open the sheet
+    const spreadsheet = SpreadsheetApp.openById(sheetId);
+    const sheet = spreadsheet.getSheetByName('Visione generale');
+    
+    if (!sheet) {
+      return { success: false, error: 'Sheet "Visione generale" not found' };
+    }
+    
+    // Find the vehicle's row and note cell
+    const vehicleRowMap = {
+      'N1': { row: 3, col: 3 },   // C3
+      'N3': { row: 7, col: 3 },   // C7  
+      'N4': { row: 9, col: 3 },   // C9
+      'N6': { row: 13, col: 3 },  // C13
+      'N7': { row: 15, col: 3 },  // C15
+      'N8': { row: 17, col: 3 },  // C17
+      'N9': { row: 19, col: 3 },  // C19
+      'N10': { row: 21, col: 3 }  // C21
+    };
+    
+    const vehicleInfo = vehicleRowMap[vehicleNumber];
+    if (!vehicleInfo) {
+      return { success: false, error: `Vehicle ${vehicleNumber} not found in mapping` };
+    }
+    
+    // Prepare the notes text
+    let notesText = '';
+    if (notes && Array.isArray(notes) && notes.length > 0) {
+      notesText = notes.join('\n');
+    }
+    
+    // Update the cell
+    const cell = sheet.getRange(vehicleInfo.row, vehicleInfo.col);
+    cell.setValue(notesText);
+    
+    // If the note starts with 🔴, make it red
+    if (notesText.includes('🔴')) {
+      cell.setFontColor('#d32f2f');
+    } else if (notesText.trim() === '') {
+      // Clear formatting if empty
+      cell.setFontColor('#000000');
+    }
+    
+    Logger.log(`Updated vehicle ${vehicleNumber} notes in cell ${vehicleInfo.col}${vehicleInfo.row}`);
+    
+    return { 
+      success: true, 
+      message: `Notes updated for vehicle ${vehicleNumber}`,
+      vehicleNumber: vehicleNumber,
+      notesCount: notes ? notes.length : 0
+    };
+    
+  } catch (error) {
+    Logger.log('Error in updateVehicleNotes:', error.toString());
+    return { success: false, error: error.toString() };
   }
 }
