@@ -78,6 +78,10 @@ function doGet(e) {
       case "getCleaningData":
         result = getCleaningData(e.parameter);
         break;
+      // ADD OVERVIEW FUNCTION TO doGet
+      case "getVehicleOverview":
+        result = getVehicleOverview(e.parameter);
+        break;
       default:
         result = { error: `Unknown function: ${functionName}` };
     }
@@ -95,12 +99,27 @@ function doGet(e) {
 // Main doPost handler for expense logging and editing (FIXED!)
 function doPost(e) {
   try {
-    // Parse the request body
-    const requestBody = JSON.parse(e.postData.contents);
-    const authToken = requestBody.authToken;
+    // Parse the request body based on content type
+    let requestBody;
+    const contentType = e.parameter.contentType || 'application/json';
+    
+    if (e.postData && e.postData.contents) {
+      if (e.parameter.data) {
+        // Handle form-encoded data (like from cleaning form)
+        requestBody = JSON.parse(decodeURIComponent(e.parameter.data));
+        // Add auth token and sheet ID from URL parameters
+        requestBody.authToken = e.parameter.authToken;
+        requestBody.sheetId = e.parameter.sheetId;
+      } else {
+        // Handle JSON data (like from expense forms)
+        requestBody = JSON.parse(e.postData.contents);
+      }
+    } else {
+      return createJsonResponse({ error: "No data provided" });
+    }
 
     // Validate authentication
-    if (!validateAuthToken(authToken)) {
+    if (!validateAuthToken(requestBody.authToken)) {
       return createJsonResponse({ error: "Unauthorized: Invalid auth token" });
     }
 
@@ -734,23 +753,71 @@ function getCleaningData(params) {
 
 function updateCleaningInVisioneGenerale(data) {
   try {
+    Logger.log('Received cleaning data:', JSON.stringify(data));
+    
     // Verify auth token
     if (data.authToken !== 'myAppToken2025') {
       return { success: false, error: 'Unauthorized' };
     }
     
+    // Extract cleaning data - it might be nested or direct
     const cleaningData = data.cleaningRecord || data;
+    Logger.log('Processing cleaning data:', JSON.stringify(cleaningData));
+    
+    if (!cleaningData.vehicle || !cleaningData.cleaningType || !cleaningData.date) {
+      return { success: false, error: 'Missing required fields: vehicle, cleaningType, or date' };
+    }
+    
     const sheet = SpreadsheetApp.openById(data.sheetId);
+    const visioneSheet = sheet.getSheetByName('Visione generale');
     
-    // Add to Cleaning sheet
+    if (!visioneSheet) {
+      return { success: false, error: 'Visione generale sheet not found' };
+    }
+    
+    // Get all data to find the correct row for the vehicle
+    const allData = visioneSheet.getDataRange().getValues();
+    let targetRow = -1;
+    
+    // Find the row with the matching vehicle number
+    for (let i = 0; i < allData.length; i++) {
+      const rowData = allData[i];
+      // Check column A for vehicle number (like "1", "3", "4", etc.)
+      if (rowData[0] && rowData[0].toString() === cleaningData.vehicle.replace('N', '')) {
+        targetRow = i + 1; // +1 because getRange is 1-indexed
+        break;
+      }
+    }
+    
+    if (targetRow === -1) {
+      return { success: false, error: `Vehicle ${cleaningData.vehicle} not found in sheet` };
+    }
+    
+    Logger.log(`Found vehicle ${cleaningData.vehicle} in row ${targetRow}`);
+    
+    // Determine which column to update based on cleaning type
+    let columns = [];
+    if (cleaningData.cleaningType === 'outside' || cleaningData.cleaningType === 'both') {
+      columns.push(14); // Column N (extern)
+    }
+    if (cleaningData.cleaningType === 'inside' || cleaningData.cleaningType === 'both') {
+      columns.push(15); // Column O (intern)
+    }
+    
+    // Format the date (assuming it comes as YYYY-MM-DD)
+    const formattedDate = cleaningData.date;
+    
+    // Update the appropriate cells
+    for (const column of columns) {
+      visioneSheet.getRange(targetRow, column).setValue(formattedDate);
+      Logger.log(`Updated cell ${String.fromCharCode(64 + column)}${targetRow} with date ${formattedDate}`);
+    }
+    
+    // Also log to the Cleaning sheet for record keeping
     const cleaningSheet = sheet.getSheetByName('Cleaning') || sheet.insertSheet('Cleaning');
-    
-    // Set headers if sheet is empty
     if (cleaningSheet.getLastRow() === 0) {
       cleaningSheet.getRange(1, 1, 1, 3).setValues([['Vehicle', 'CleaningType', 'Date']]);
     }
-    
-    // Add new cleaning record
     cleaningSheet.appendRow([
       cleaningData.vehicle,
       cleaningData.cleaningType,
@@ -759,6 +826,106 @@ function updateCleaningInVisioneGenerale(data) {
     
     return { success: true };
   } catch (error) {
+    Logger.log('Error in updateCleaningInVisioneGenerale:', error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+// ===== OVERVIEW FUNCTIONS =====
+
+function getVehicleOverview(params) {
+  try {
+    // Verify auth token
+    if (params.authToken !== 'myAppToken2025') {
+      return { success: false, error: 'Unauthorized' };
+    }
+    
+    const sheet = SpreadsheetApp.openById(params.sheetId);
+    const visioneSheet = sheet.getSheetByName('Visione generale');
+    
+    if (!visioneSheet) {
+      return { success: false, error: 'Visione generale sheet not found' };
+    }
+    
+    // Get all data from the sheet
+    const data = visioneSheet.getDataRange().getValues();
+    const vehicles = [];
+    
+    // Skip header row, process data rows
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      
+      // Skip empty rows
+      if (!row[0]) continue;
+      
+      const vehicleNumber = row[0]; // Column A
+      const licensePlate = row[2]; // Column C (Targa)
+      const brand = row[3]; // Column D (Marca)
+      const model = row[4]; // Column E (Modello)
+      const externalCleaning = row[13]; // Column N (Data ultima pulizia esterna)
+      const internalCleaning = row[14]; // Column O (Data ultima pulizia interna)
+      
+      // Determine cleaning status
+      let status = 'Good';
+      let statusClass = 'status-good';
+      
+      const today = new Date();
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      let needsCleaning = false;
+      
+      // Check external cleaning
+      if (!externalCleaning || externalCleaning === '') {
+        needsCleaning = true;
+      } else {
+        const extDate = new Date(externalCleaning);
+        if (extDate < weekAgo) needsCleaning = true;
+      }
+      
+      // Check internal cleaning
+      if (!internalCleaning || internalCleaning === '') {
+        needsCleaning = true;
+      } else {
+        const intDate = new Date(internalCleaning);
+        if (intDate < weekAgo) needsCleaning = true;
+      }
+      
+      if (needsCleaning) {
+        status = 'Needs Cleaning';
+        statusClass = 'status-needs-cleaning';
+      }
+      
+      vehicles.push({
+        vehicleNumber: `N${vehicleNumber}`,
+        licensePlate: licensePlate || '-',
+        brand: brand || '-',
+        model: model || '-',
+        externalCleaning: formatDateForDisplay(externalCleaning),
+        internalCleaning: formatDateForDisplay(internalCleaning),
+        status: status,
+        statusClass: statusClass
+      });
+    }
+    
+    return {
+      success: true,
+      vehicles: vehicles
+    };
+  } catch (error) {
+    Logger.log('Error in getVehicleOverview:', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function formatDateForDisplay(dateValue) {
+  if (!dateValue || dateValue === '') return '-';
+  
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return '-';
+    
+    return date.toLocaleDateString('en-GB');
+  } catch (error) {
+    return '-';
   }
 }

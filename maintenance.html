@@ -300,6 +300,18 @@
             border: 1px solid rgba(33, 150, 243, 0.3);
         }
 
+        .status-good {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-needs-cleaning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -651,15 +663,43 @@
                 </button>
             </div>
         </div>
-        
-        <div class="tabs animate-in">
-            <div class="tab active" data-tab="upcoming">Upcoming & Overdue</div>
+          <div class="tabs animate-in">
+            <div class="tab active" data-tab="overview">Overview</div>
+            <div class="tab" data-tab="upcoming">Upcoming & Overdue</div>
             <div class="tab" data-tab="history">Maintenance History</div>
             <div class="tab" data-tab="analytics">Analytics</div>
             <div class="tab" data-tab="cleaning" onclick="window.location.href='cleaning-vans.html'">Cleaning</div>
         </div>
 
-        <div id="upcoming" class="tab-content active">
+        <div id="overview" class="tab-content active">
+            <div class="table-container">
+                <table id="overviewTable">
+                    <thead>
+                        <tr>
+                            <th>Van #</th>
+                            <th>License Plate</th>
+                            <th>Brand/Model</th>
+                            <th>Last External Cleaning</th>
+                            <th>Last Internal Cleaning</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overviewTableBody">
+                        <!-- Data will be loaded dynamically -->
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-state-icon">📋</div>
+                                <div class="empty-state-title">Loading vehicle overview...</div>
+                                <div class="empty-state-description">Please wait while we fetch the vehicle data.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="upcoming" class="tab-content">
             <div class="table-container">
                 <table id="upcomingTable">
                     <thead>
@@ -854,15 +894,18 @@
         let maintenanceData = [];
         let vehicles = [];
         let filteredData = [];
+        let overviewData = [];
         let isEditing = false;
         let currentEditId = null;
 
         // Initialize the page
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Set up tab functionality
+        document.addEventListener('DOMContentLoaded', async () => {            // Set up tab functionality
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabId = tab.getAttribute('data-tab');
+                    
+                    // Skip if it's the cleaning tab (handled by onclick)
+                    if (tabId === 'cleaning') return;
                     
                     // Remove active class from all tabs and contents
                     tabs.forEach(t => t.classList.remove('active'));
@@ -870,7 +913,15 @@
                     
                     // Add active class to clicked tab and corresponding content
                     tab.classList.add('active');
-                    document.getElementById(tabId).classList.add('active');
+                    const tabContent = document.getElementById(tabId);
+                    if (tabContent) {
+                        tabContent.classList.add('active');
+                    }
+                    
+                    // Refresh overview data when overview tab is clicked
+                    if (tabId === 'overview') {
+                        loadOverviewData();
+                    }
                 });
             });
 
@@ -878,10 +929,9 @@
             addMaintenanceBtn.addEventListener('click', openAddModal);
             closeModal.addEventListener('click', closeModalHandler);
             cancelBtn.addEventListener('click', closeModalHandler);
-            maintenanceForm.addEventListener('submit', handleFormSubmit);
-
-            // Load data
+            maintenanceForm.addEventListener('submit', handleFormSubmit);            // Load data
             await loadData();
+            await loadOverviewData();
 
             // Set up filters
             searchInput.addEventListener('input', applyFilters);
@@ -932,6 +982,29 @@
                 historyTableBody.innerHTML = upcomingTableBody.innerHTML;
             } finally {
                 hideLoader();
+            }
+        }
+
+        // Load overview data from Google Sheets
+        async function loadOverviewData() {
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=getVehicleOverview&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    overviewData = data.vehicles || [];
+                    renderOverviewTable();
+                    return true;
+                } else {
+                    console.error('Failed to load overview data:', data.error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error loading overview data:', error);
+                return false;
             }
         }
 
@@ -1103,6 +1176,62 @@
                     </tr>
                 `).join('');
             }
+        }
+
+        // Render the overview table
+        function renderOverviewTable() {
+            const overviewTableBody = document.getElementById('overviewTableBody');
+            
+            if (overviewData.length === 0) {
+                overviewTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-state-icon">🚐</div>
+                            <div class="empty-state-title">No vehicle data found</div>
+                            <div class="empty-state-description">Unable to load vehicle overview data.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            overviewTableBody.innerHTML = overviewData.map(vehicle => `
+                <tr>
+                    <td><strong>${vehicle.vehicleNumber}</strong></td>
+                    <td>${vehicle.licensePlate}</td>
+                    <td>${vehicle.brand} ${vehicle.model}</td>
+                    <td>${vehicle.externalCleaning}</td>
+                    <td>${vehicle.internalCleaning}</td>
+                    <td>
+                        <span class="status-badge ${vehicle.statusClass}">
+                            ${vehicle.status}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-button clean" onclick="openCleaningModal('${vehicle.vehicleNumber}')" title="Add Cleaning">🧹</button>
+                            <button class="action-button maintenance" onclick="openMaintenanceModal('${vehicle.vehicleNumber}')" title="Add Maintenance">🔧</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Open cleaning modal for specific vehicle
+        function openCleaningModal(vehicleNumber) {
+            window.location.href = `cleaning-vans.html?vehicle=${vehicleNumber}`;
+        }
+
+        // Open maintenance modal for specific vehicle
+        function openMaintenanceModal(vehicleNumber) {
+            openAddModal();
+            // Pre-select the vehicle
+            setTimeout(() => {
+                const vehicleSelect = document.getElementById('vehicle');
+                if (vehicleSelect) {
+                    vehicleSelect.value = vehicleNumber.replace('N', ''); // Remove N prefix if needed
+                }
+            }, 100);
         }
 
         // Missing utility functions
