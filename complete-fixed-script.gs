@@ -846,17 +846,29 @@ function getVehicleOverview(params) {
     if (!visioneSheet) {
       return { success: false, error: 'Visione generale sheet not found' };
     }
-    
-    // Get all data from the sheet
+      // Get all data from the sheet
     const data = visioneSheet.getDataRange().getValues();
     const vehicles = [];
+    
+    Logger.log(`Found ${data.length} rows in Visione generale sheet`);
+    
+    // Log first few rows to understand structure
+    if (data.length > 0) {
+      Logger.log('Header row:', data[0]);
+    }
+    if (data.length > 1) {
+      Logger.log('First data row:', data[1]);
+    }
     
     // Skip header row, process data rows
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
       // Skip empty rows and exclude N2 and N5
-      if (!row[0] || row[0] == 2 || row[0] == 5) continue;
+      if (!row[0] || row[0] == 2 || row[0] == 5) {
+        Logger.log(`Skipping row ${i + 1}: empty or N2/N5`);
+        continue;
+      }
       
       const vehicleNumber = row[0]; // Column A
       const licensePlate = row[2]; // Column C (Targa)
@@ -874,32 +886,123 @@ function getVehicleOverview(params) {
       const internalCleaning = row[14]; // Column O (Data ultima pulizia interna)
       const notes1 = row[15]; // Column P (Gom. avanti)
       const notes2 = row[16]; // Column Q (Gom. post.)
-      const nextCO = row[17]; // Column R (Next CO)
-        // Collect all notes/issues from the row (look for non-empty text in various columns)
+      const nextCO = row[17]; // Column R (Next CO)      // Collect all notes/issues from the row (look in columns C through R)
       let vehicleNotes = [];
       
-      // Check for notes in columns that might contain red text/issues
-      // Look at all columns for longer text content that could be notes
-      for (let colIndex = 0; colIndex < row.length; colIndex++) {
-        const cellValue = row[colIndex];
-        if (cellValue && typeof cellValue === 'string') {
-          // Skip short values that are likely just data (dates, numbers, short codes)
-          if (cellValue.length > 20 && 
-              !cellValue.match(/^\d{2}[\./]\d{2}[\./]\d{4}$/) && // Skip dates
-              !cellValue.match(/^\d+$/) && // Skip pure numbers
-              !cellValue.match(/^[A-Z]{2}\s?\d+[A-Z]*$/) && // Skip license plates
-              !cellValue.match(/^(Buone|Good|No|YES|L\d+H\d+)$/i) && // Skip status words
-              cellValue !== licensePlate && 
-              cellValue !== brand && 
-              cellValue !== model && 
-              cellValue !== type && 
-              cellValue !== location) {
+      Logger.log(`Processing vehicle ${vehicleNumber} (row ${i + 1})`);
+      
+      try {
+        // Get the range for this specific row to check for text formatting
+        const rowRange = visioneSheet.getRange(i + 1, 3, 1, 16); // Columns C-R (3-18)
+        const textStyles = rowRange.getTextStyles();
+        const richTextValues = rowRange.getRichTextValues();
+        const cellValues = rowRange.getValues()[0];
+        
+        Logger.log(`Vehicle ${vehicleNumber} - Row data from C-R:`, cellValues);
+        
+        // Check each cell in columns C through R for red text or long descriptive text
+        for (let colIndex = 0; colIndex < cellValues.length; colIndex++) {
+          const cellValue = cellValues[colIndex];
+          const textStyle = textStyles[0][colIndex];
+          const richText = richTextValues[0][colIndex];
+          
+          if (cellValue && cellValue !== '') {
+            const trimmedValue = cellValue.toString().trim();
+            let isRedText = false;
             
-            // This looks like a note/issue, add it
-            vehicleNotes.push(cellValue);
+            // Check if text is red
+            if (textStyle && textStyle.getForegroundColor) {
+              const color = textStyle.getForegroundColor();
+              isRedText = (color === '#ff0000' || color === '#cc0000' || color === '#990000' || color.toLowerCase().includes('red'));
+              if (isRedText) {
+                Logger.log(`Vehicle ${vehicleNumber} - Found RED TEXT in column ${String.fromCharCode(67 + colIndex)}: ${trimmedValue}`);
+              }
+            }
+            
+            // Also check rich text for red formatting
+            if (!isRedText && richText && richText.getRuns) {
+              const runs = richText.getRuns();
+              for (let run of runs) {
+                const runStyle = run.getTextStyle();
+                if (runStyle && runStyle.getForegroundColor) {
+                  const runColor = runStyle.getForegroundColor();
+                  if (runColor === '#ff0000' || runColor === '#cc0000' || runColor === '#990000' || runColor.toLowerCase().includes('red')) {
+                    isRedText = true;
+                    Logger.log(`Vehicle ${vehicleNumber} - Found RED TEXT in rich text in column ${String.fromCharCode(67 + colIndex)}: ${trimmedValue}`);
+                    break;
+                  }
+                }
+              }
+            }
+            
+            // Look for text that seems like issues/notes
+            const looksLikeNote = trimmedValue.length > 8 && (
+              trimmedValue.toLowerCase().includes('schegg') ||
+              trimmedValue.toLowerCase().includes('dannegg') ||
+              trimmedValue.toLowerCase().includes('ripar') ||
+              trimmedValue.toLowerCase().includes('sostitu') ||
+              trimmedValue.toLowerCase().includes('controllo') ||
+              trimmedValue.toLowerCase().includes('problem') ||
+              trimmedValue.toLowerCase().includes('graffio') ||
+              trimmedValue.toLowerCase().includes('ammaccat') ||
+              trimmedValue.toLowerCase().includes('usura') ||
+              trimmedValue.toLowerCase().includes('cambio') ||
+              trimmedValue.toLowerCase().includes('service') ||
+              trimmedValue.toLowerCase().includes('manutenz') ||
+              trimmedValue.toLowerCase().includes('piccol') ||
+              trimmedValue.toLowerCase().includes('vetro') ||
+              trimmedValue.toLowerCase().includes('avanti') ||
+              trimmedValue.toLowerCase().includes('dietro') ||
+              trimmedValue.toLowerCase().includes('sinistr') ||
+              trimmedValue.toLowerCase().includes('destro') ||
+              // Also include longer generic text that doesn't match standard data patterns
+              (trimmedValue.length > 15 && 
+               !trimmedValue.match(/^TI\s?\d+$/) && // Skip license plates
+               !trimmedValue.match(/^\d{2}[\./]\d{2}[\./]\d{4}$/) && // Skip dates
+               !trimmedValue.match(/^\d+(\.\d+)?$/) && // Skip pure numbers
+               !trimmedValue.match(/^(Opel|Peugeot|Fiat|Citroen|Renault|Ford|Mercedes|Volkswagen)$/i) && // Skip brand names
+               !trimmedValue.match(/^(Vivaro|Boxer|Ducato|Jumper|Trafic|Transit|Sprinter|Crafter)$/i) && // Skip model names
+               !trimmedValue.match(/^L\d+H\d+$/i) && // Skip type codes
+               !trimmedValue.match(/^(Losone|Bellinzona|Locarno|Minusio|Lugano|Mendrisio)$/i) && // Skip locations
+               !trimmedValue.match(/^(Buone|Good|No|YES|SI|Discreto|Ottime)$/i) && // Skip status words
+               !trimmedValue.match(/^\d+\.\d+\.\d+$/) && // Skip version numbers
+               !trimmedValue.match(/^\d{2}\.\d{4}$/) // Skip MM.YYYY dates
+              )
+            );
+            
+            // Include red text or notes
+            if (isRedText || looksLikeNote) {
+              const noteText = isRedText ? `🔴 ${trimmedValue}` : trimmedValue;
+              vehicleNotes.push(noteText);
+              Logger.log(`Vehicle ${vehicleNumber} - Column ${String.fromCharCode(67 + colIndex)} - ${isRedText ? 'RED TEXT' : 'POTENTIAL NOTE'}: ${trimmedValue}`);
+            }
+          }
+        }
+      } catch (styleError) {
+        Logger.log(`Could not check text styles for vehicle ${vehicleNumber}:`, styleError);
+        // Fallback to simple text extraction
+        for (let colIndex = 2; colIndex <= 17; colIndex++) {
+          const cellValue = row[colIndex];
+          if (cellValue && typeof cellValue === 'string') {
+            const trimmedValue = cellValue.toString().trim();
+            
+            // Look for text that seems like issues/notes
+            if (trimmedValue.length > 8 && (
+                trimmedValue.toLowerCase().includes('schegg') ||
+                trimmedValue.toLowerCase().includes('dannegg') ||
+                trimmedValue.toLowerCase().includes('ripar') ||
+                trimmedValue.toLowerCase().includes('problem') ||
+                trimmedValue.toLowerCase().includes('graffio') ||
+                trimmedValue.toLowerCase().includes('piccol') ||
+                trimmedValue.toLowerCase().includes('vetro'))) {
+              vehicleNotes.push(trimmedValue);
+              Logger.log(`Vehicle ${vehicleNumber} - Fallback found note: ${trimmedValue}`);
+            }
           }
         }
       }
+      
+      Logger.log(`Vehicle ${vehicleNumber} - Final notes found:`, vehicleNotes);
       
       // Determine cleaning status and last cleaning date
       let cleaningStatus = 'Good';

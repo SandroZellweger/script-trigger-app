@@ -538,6 +538,18 @@
             line-height: 1.5;
         }
 
+        .note-item.red-note {
+            background: rgba(244, 67, 54, 0.1);
+            border-color: rgba(244, 67, 54, 0.4);
+            border-left-color: #d32f2f;
+            border-left-width: 5px;
+        }
+
+        .note-item.red-note .note-text {
+            color: #b71c1c;
+            font-weight: 500;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -1396,9 +1408,7 @@
             } finally {
                 hideLoader();
             }
-        }
-
-        // Load overview data from Google Sheets
+        }        // Load overview data from Google Sheets
         async function loadOverviewData() {
             try {
                 const settings = getSettings();
@@ -1409,6 +1419,15 @@
                 
                 if (data.success) {
                     overviewData = data.vehicles || [];
+                    console.log('Overview data loaded:', overviewData.length, 'vehicles');
+                    
+                    // Debug: Log vehicles with notes
+                    overviewData.forEach(vehicle => {
+                        if (vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0) {
+                            console.log(`Vehicle ${vehicle.vehicleNumber} has ${vehicle.vehicleNotes.length} notes:`, vehicle.vehicleNotes);
+                        }
+                    });
+                    
                     renderOverviewTable();
                     return true;
                 } else {
@@ -1671,17 +1690,21 @@
                                 <div class="detail-item">
                                     <strong>Next CO:</strong> ${vehicle.nextCO}
                                 </div>
-                            </div>
-                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                            </div>                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
                                 <div class="vehicle-notes-section">
                                     <h4>Issues & Notes:</h4>
                                     <div class="vehicle-notes">
-                                        ${vehicle.vehicleNotes.map(note => `
-                                            <div class="note-item">
-                                                <span class="note-icon">⚠️</span>
-                                                <span class="note-text">${note}</span>
-                                            </div>
-                                        `).join('')}
+                                        ${vehicle.vehicleNotes.map(note => {
+                                            const isRedText = note.startsWith('🔴');
+                                            const noteText = isRedText ? note.substring(2).trim() : note;
+                                            const icon = isRedText ? '🔴' : '⚠️';
+                                            return `
+                                                <div class="note-item ${isRedText ? 'red-note' : ''}">
+                                                    <span class="note-icon">${icon}</span>
+                                                    <span class="note-text">${noteText}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
                                     </div>
                                 </div>
                             ` : ''}

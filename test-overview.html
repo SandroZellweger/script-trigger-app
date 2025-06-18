@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Overview API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .results {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .vehicle-item {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background: white;
+        }
+        .vehicle-header {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .notes-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .note-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+        .red-note {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Vehicle Overview API</h1>
+        
+        <div>
+            <label for="scriptUrl">Script URL:</label><br>
+            <input type="text" id="scriptUrl" style="width: 100%; padding: 8px; margin: 5px 0;" 
+                   placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="authToken">Auth Token:</label><br>
+            <input type="text" id="authToken" style="width: 100%; padding: 8px; margin: 5px 0;" 
+                   placeholder="your-auth-token">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="sheetId">Sheet ID:</label><br>
+            <input type="text" id="sheetId" style="width: 100%; padding: 8px; margin: 5px 0;" 
+                   placeholder="your-sheet-id">
+        </div>
+        
+        <button class="test-button" onclick="testOverview()">Test Overview API</button>
+        
+        <div id="loading" style="display: none; color: #007bff; margin: 10px 0;">
+            Loading...
+        </div>
+        
+        <div id="results" class="results" style="display: none;">
+            <h3>Results:</h3>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testOverview() {
+            const scriptUrl = document.getElementById('scriptUrl').value.trim();
+            const authToken = document.getElementById('authToken').value.trim();
+            const sheetId = document.getElementById('sheetId').value.trim();
+            
+            if (!scriptUrl || !authToken || !sheetId) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            try {
+                const url = `${scriptUrl}?function=getVehicleOverview&authToken=${authToken}&sheetId=${sheetId}`;
+                console.log('Making request to:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    displayResults(data.vehicles || []);
+                } else {
+                    resultsContent.innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
+                    results.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultsContent.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+                results.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayResults(vehicles) {
+            const resultsContent = document.getElementById('resultsContent');
+            const results = document.getElementById('results');
+            
+            if (vehicles.length === 0) {
+                resultsContent.innerHTML = '<div>No vehicles found</div>';
+            } else {
+                let html = `<div><strong>Found ${vehicles.length} vehicles:</strong></div>`;
+                
+                vehicles.forEach(vehicle => {
+                    html += `
+                        <div class="vehicle-item">
+                            <div class="vehicle-header">${vehicle.vehicleNumber} - ${vehicle.licensePlate}</div>
+                            <div><strong>Brand:</strong> ${vehicle.brand}</div>
+                            <div><strong>Model:</strong> ${vehicle.model}</div>
+                            <div><strong>Location:</strong> ${vehicle.location}</div>
+                            <div><strong>Cleaning Status:</strong> ${vehicle.cleaningStatus}</div>
+                            
+                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
+                                <div class="notes-section">
+                                    <strong>Notes & Issues (${vehicle.vehicleNotes.length}):</strong>
+                                    ${vehicle.vehicleNotes.map(note => {
+                                        const isRedNote = note.startsWith('🔴');
+                                        const noteText = isRedNote ? note.substring(2).trim() : note;
+                                        return `<div class="note-item ${isRedNote ? 'red-note' : ''}">${isRedNote ? '🔴 ' : ''}${noteText}</div>`;
+                                    }).join('')}
+                                </div>
+                            ` : '<div style="color: #666; font-style: italic;">No notes found</div>'}
+                        </div>
+                    `;
+                });
+                
+                resultsContent.innerHTML = html;
+            }
+            
+            results.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
