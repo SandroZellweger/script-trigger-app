@@ -467,13 +467,59 @@
                         <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
                             Code will be valid 2 hours after this time.
                         </small>
-                    </div>
-
-                    <button type="submit" class="send-button">
+                    </div>                    <button type="submit" class="send-button">
                         <span class="button-text">Generate & Send Code</span>
                         <span class="button-spinner spinner" style="display: none;"></span>
                     </button>
-                </form>
+                </form>                <!-- Calendar Events Quick Selection -->
+                <div class="calendar-section" style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <h4 style="margin-bottom: 15px; color: #333;">📅 Quick: Select from Calendar Events</h4>
+                    <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Choose an event to auto-fill van and phone number, then set access duration.</p>
+                    
+                    <div class="event-filter-tabs" style="display: flex; margin-bottom: 15px; background: white; border-radius: 6px; padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <button type="button" class="event-filter-tab" data-period="yesterday" style="flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 13px; color: #666;">Yesterday</button>
+                        <button type="button" class="event-filter-tab active" data-period="today" style="flex: 1; padding: 8px 12px; border: none; background: #007cba; color: white; border-radius: 4px; cursor: pointer; font-size: 13px;">Today</button>
+                        <button type="button" class="event-filter-tab" data-period="tomorrow" style="flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 13px; color: #666;">Tomorrow</button>
+                    </div>
+                    
+                    <button type="button" id="loadEventsBtn" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-size: 14px;">
+                        <span id="loadEventsText">📋 Load Today's Events</span>
+                        <span id="loadEventsSpinner" style="display: none;">⏳ Loading...</span>
+                    </button>
+                    
+                    <div id="eventsContainer" style="display: none;">
+                        <div id="eventsList" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background: white;"></div>
+                          <!-- Quick access duration selector -->
+                        <div id="quickAccessSection" style="display: none; margin-top: 15px; padding: 15px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                            <h5 style="margin-bottom: 10px; color: #333;">⏱️ Access Duration</h5>
+                            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                                <label style="font-size: 14px; color: #666;">Access from:</label>
+                                <select id="quickAccessStart" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="0">Event start time</option>
+                                    <option value="-2">2 hours before</option>
+                                    <option value="-4">4 hours before</option>
+                                    <option value="-6">6 hours before</option>
+                                    <option value="-12">12 hours before</option>
+                                    <option value="-24">24 hours before</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                                <label style="font-size: 14px; color: #666;">Valid until:</label>
+                                <select id="quickAccessHours" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="2">+2 hours after event</option>
+                                    <option value="4">+4 hours after event</option>
+                                    <option value="6">+6 hours after event</option>
+                                    <option value="8">+8 hours after event</option>
+                                    <option value="12">+12 hours after event</option>
+                                    <option value="24">+24 hours after event</option>
+                                </select>
+                            </div>
+                            <button type="button" id="generateQuickCode" style="width: 100%; padding: 10px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                🔑 Generate Code for Selected Event
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="status-message"></div>
             </div>
@@ -750,10 +796,239 @@
                         hideStatus();
                     }, 5000);
                 }
-            }
-
-            function hideStatus() {
+            }            function hideStatus() {
                 statusMessage.style.display = 'none';
+            }
+        });
+
+        // Calendar Events Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadEventsBtn = document.getElementById('loadEventsBtn');
+            const eventsContainer = document.getElementById('eventsContainer');
+            const eventsList = document.getElementById('eventsList');
+            const quickAccessSection = document.getElementById('quickAccessSection');
+            const generateQuickCode = document.getElementById('generateQuickCode');
+            const loadEventsText = document.getElementById('loadEventsText');
+            const loadEventsSpinner = document.getElementById('loadEventsSpinner');
+            
+            let selectedEvent = null;
+            let currentPeriod = 'today';
+            
+            // Event filter tabs
+            document.querySelectorAll('.event-filter-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.event-filter-tab').forEach(t => {
+                        t.classList.remove('active');
+                        t.style.background = 'transparent';
+                        t.style.color = '#666';
+                    });
+                    this.classList.add('active');
+                    this.style.background = '#007cba';
+                    this.style.color = 'white';
+                    
+                    currentPeriod = this.getAttribute('data-period');
+                    loadEventsText.textContent = `📋 Load ${currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1)}'s Events`;
+                    
+                    // Hide events container when period changes
+                    eventsContainer.style.display = 'none';
+                    quickAccessSection.style.display = 'none';
+                });
+            });
+            
+            // Load events button
+            loadEventsBtn.addEventListener('click', async function() {
+                setEventsLoading(true);
+                
+                try {
+                    const settings = getSettings();
+                    const dates = getPeriodDates(currentPeriod);
+                    
+                    const url = `${settings.scriptUrl}?function=getCalendarEventsApp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.result && Array.isArray(data.result)) {
+                        displayEvents(data.result);
+                        eventsContainer.style.display = 'block';
+                    } else {
+                        showEventError('No events found for ' + currentPeriod);
+                    }
+                } catch (error) {
+                    showEventError('Failed to load events: ' + error.message);
+                } finally {
+                    setEventsLoading(false);
+                }
+            });
+              // Generate quick code button
+            generateQuickCode.addEventListener('click', async function() {
+                if (!selectedEvent) {
+                    alert('Please select an event first');
+                    return;
+                }
+                
+                const startOffset = parseInt(document.getElementById('quickAccessStart').value);
+                const endHours = parseInt(document.getElementById('quickAccessHours').value);
+                
+                const eventStartTime = new Date(selectedEvent.start.dateTime);
+                const eventEndTime = new Date(selectedEvent.end.dateTime);
+                
+                // Calculate access start time (with offset)
+                const accessStartTime = new Date(eventStartTime.getTime() + (startOffset * 60 * 60 * 1000));
+                // Calculate access end time (end hours after event end)
+                const accessEndTime = new Date(eventEndTime.getTime() + (endHours * 60 * 60 * 1000));
+                
+                // Round to full hours
+                accessStartTime.setMinutes(0, 0, 0);
+                accessEndTime.setMinutes(0, 0, 0);
+                
+                const params = {
+                    phoneNumber: selectedEvent.phoneNumber,
+                    van: selectedEvent.van,
+                    startDate: accessStartTime.toISOString().slice(0, 16),
+                    endDate: accessEndTime.toISOString().slice(0, 16)
+                };
+                
+                generateQuickCode.style.background = '#6c757d';
+                generateQuickCode.textContent = '⏳ Generating...';
+                generateQuickCode.disabled = true;
+                
+                try {
+                    const settings = getSettings();
+                    const url = `${settings.scriptUrl}?function=generateIglohomeCodeApp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(params.phoneNumber)}&van=${params.van}&startDate=${encodeURIComponent(params.startDate)}&endDate=${encodeURIComponent(params.endDate)}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const startTime = accessStartTime.toLocaleString();
+                        const endTime = accessEndTime.toLocaleString();
+                        document.querySelector('#iglohome-panel .status-message').textContent = `✅ Code ${data.pin} sent to ${params.phoneNumber} for ${params.van} (Valid: ${startTime} - ${endTime})`;
+                        document.querySelector('#iglohome-panel .status-message').className = 'status-message status-success';
+                        document.querySelector('#iglohome-panel .status-message').style.display = 'block';
+                    } else {
+                        document.querySelector('#iglohome-panel .status-message').textContent = `❌ Failed: ${data.error}`;
+                        document.querySelector('#iglohome-panel .status-message').className = 'status-message status-error';
+                        document.querySelector('#iglohome-panel .status-message').style.display = 'block';
+                    }
+                } catch (error) {
+                    document.querySelector('#iglohome-panel .status-message').textContent = `❌ Error: ${error.message}`;
+                    document.querySelector('#iglohome-panel .status-message').className = 'status-message status-error';
+                    document.querySelector('#iglohome-panel .status-message').style.display = 'block';
+                } finally {
+                    generateQuickCode.style.background = '#007cba';
+                    generateQuickCode.textContent = '🔑 Generate Code for Selected Event';
+                    generateQuickCode.disabled = false;
+                }
+            });
+            
+            function getPeriodDates(period) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                
+                switch (period) {
+                    case 'yesterday':
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yYear = yesterday.getFullYear();
+                        const yMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+                        const yDay = String(yesterday.getDate()).padStart(2, '0');
+                        return { start: `${yYear}-${yMonth}-${yDay}`, end: `${yYear}-${yMonth}-${yDay}` };
+                    case 'today':
+                        return { start: `${year}-${month}-${day}`, end: `${year}-${month}-${day}` };
+                    case 'tomorrow':
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        const tYear = tomorrow.getFullYear();
+                        const tMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                        const tDay = String(tomorrow.getDate()).padStart(2, '0');
+                        return { start: `${tYear}-${tMonth}-${tDay}`, end: `${tYear}-${tMonth}-${tDay}` };
+                }
+            }
+            
+            function displayEvents(events) {
+                if (events.length === 0) {
+                    eventsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No events found</div>';
+                    return;
+                }
+                
+                eventsList.innerHTML = events.map(event => {
+                    const eventData = extractEventData(event);
+                    const startTime = new Date(event.start.dateTime).toLocaleString();
+                    
+                    return `
+                        <div class="event-item" data-event='${JSON.stringify(eventData)}' style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;">
+                            <div style="font-weight: 500; color: #333; margin-bottom: 4px;">${event.summary}</div>
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">📅 ${startTime}</div>
+                            ${eventData.van ? `<div style="font-size: 12px; color: #007cba;">🚐 Van: ${eventData.van}</div>` : ''}
+                            ${eventData.phoneNumber ? `<div style="font-size: 12px; color: #28a745;">📱 Phone: ${eventData.phoneNumber}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click listeners to event items
+                document.querySelectorAll('.event-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        // Remove selection from other items
+                        document.querySelectorAll('.event-item').forEach(i => {
+                            i.style.background = 'white';
+                            i.style.borderLeft = 'none';
+                        });
+                        
+                        // Select this item
+                        this.style.background = '#e3f2fd';
+                        this.style.borderLeft = '4px solid #007cba';
+                        
+                        selectedEvent = JSON.parse(this.getAttribute('data-event'));
+                        quickAccessSection.style.display = 'block';
+                    });
+                    
+                    // Hover effects
+                    item.addEventListener('mouseenter', function() {
+                        if (this.style.background !== 'rgb(227, 242, 253)') {
+                            this.style.background = '#f8f9fa';
+                        }
+                    });
+                    
+                    item.addEventListener('mouseleave', function() {
+                        if (this.style.background !== 'rgb(227, 242, 253)') {
+                            this.style.background = 'white';
+                        }
+                    });
+                });
+            }
+            
+            function extractEventData(event) {
+                const title = event.summary || '';
+                const description = event.description || '';
+                const location = event.location || '';
+                
+                // Extract van information (N01, N03, etc.)
+                const vanMatch = title.match(/N\d{2}/i) || description.match(/N\d{2}/i) || location.match(/N\d{2}/i);
+                const van = vanMatch ? vanMatch[0].toUpperCase() : null;
+                
+                // Extract phone number
+                const phoneMatch = (title + ' ' + description).match(/(?:\+41|0041|0)\s*[0-9\s]{8,}/);
+                const phoneNumber = phoneMatch ? phoneMatch[0].replace(/\s/g, '') : null;
+                
+                return {
+                    ...event,
+                    van: van,
+                    phoneNumber: phoneNumber
+                };
+            }
+            
+            function setEventsLoading(loading) {
+                loadEventsBtn.disabled = loading;
+                loadEventsText.style.display = loading ? 'none' : 'block';
+                loadEventsSpinner.style.display = loading ? 'block' : 'none';
+            }
+            
+            function showEventError(message) {
+                eventsList.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc3545;">${message}</div>`;
+                eventsContainer.style.display = 'block';
             }
         });
 
