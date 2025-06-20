@@ -79,8 +79,7 @@ function doGet(e) {
         break;
       case "getCalendarEventsApp":
         result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
-        break;
-      case "getExpenses":
+        break;      case "getExpenses":
         result = getExpenses();
         break;
       case "logExpense":
@@ -91,7 +90,11 @@ function doGet(e) {
         break;
       case "deleteExpense":
         result = deleteExpense(e);
-        break;      // ADD CLEANING FUNCTIONS TO doGet
+        break;
+      // ADD IGLOHOME CODE GENERATION TO doGet
+      case "generateIglohomeCodeApp":
+        result = generateIglohomeCodeApp(e.parameter);
+        break;// ADD CLEANING FUNCTIONS TO doGet
       case "getCleaningData":
         result = getCleaningData(e.parameter);
         break;
@@ -118,6 +121,10 @@ function doGet(e) {
       // ADD JSONP VEHICLE NOTES UPDATE FUNCTION TO doGet
       case "updateVehicleNotesJsonp":
         return updateVehicleNotesJsonp(e.parameter);
+        break;
+      // GENERATE IGLOOHOME CODE FUNCTION
+      case "generateIglohomeCodeApp":
+        result = generateIglohomeCodeApp(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1334,5 +1341,194 @@ function getVehicleOverviewJsonp(params) {
     return ContentService
       .createTextOutput(jsonpResponse)
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// Generate Iglohome PIN and send via Zoko
+function generateIglohomeCodeApp(params) {
+  try {
+    Logger.log('generateIglohomeCodeApp called with:', params);
+    
+    const { phoneNumber, van, startDate, endDate } = params;
+    
+    // Validate required parameters
+    if (!phoneNumber) {
+      return { success: false, error: 'Phone number is required' };
+    }
+    if (!van) {
+      return { success: false, error: 'Van selection is required' };
+    }
+    if (!startDate) {
+      return { success: false, error: 'Start date is required' };
+    }
+    if (!endDate) {
+      return { success: false, error: 'End date is required' };
+    }
+    
+    // Device ID mapping for each van
+    const deviceMapping = {
+      'N01': 'IGK32067b80d', // Opel Vivaro (Losone)
+      'N03': 'IGK320e54802', // Peugeot Boxer (Bellinzona)
+      'N04': 'IGK322314358', // Fiat Ducato (Locarno)
+      'N06': 'IGK320decee5', // Citroen Jumper (Minusio)
+      'N07': 'IGK320803a7d', // Renault Trafic (Lugano)
+      'N08': 'IGK32298e527', // Renault Trafic (Lugano)
+      'N09': 'IGK322bd6b60', // Renault Trafic (Bellinzona)
+      'N10': 'IGK323964023', // Citroen Jumper (Losone)
+      'N11': 'IGK331c318e6'  // Citroen Jumper (Losone)
+    };
+    
+    const deviceId = deviceMapping[van];
+    if (!deviceId) {
+      return { success: false, error: `Device ID not found for van ${van}` };
+    }
+    
+    // Parse dates and adjust timing (2 hours before start, 2 hours after end)
+    const startDateTime = new Date(startDate);
+    const endDateTime = new Date(endDate);
+    
+    // Adjust startDate to 2 hours before
+    const adjustedStartDate = new Date(startDateTime.getTime());
+    adjustedStartDate.setHours(adjustedStartDate.getHours() - 2);
+    
+    // If adjusted start is in the past, use current time
+    const now = new Date();
+    const finalStartDate = adjustedStartDate < now ? now : adjustedStartDate;
+    
+    // Adjust endDate to 2 hours after
+    const finalEndDate = new Date(endDateTime.getTime());
+    finalEndDate.setHours(finalEndDate.getHours() + 2);
+    
+    // Ensure end is after start
+    if (finalEndDate <= finalStartDate) {
+      finalEndDate.setTime(finalStartDate.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
+    }
+    
+    // Iglohome API credentials
+    const clientId = '36j00aig9dco7nms0a1lfcf9t9';
+    const clientSecret = '1f6scc262em56gfvppr5m43a3k5gj5hhcc8ln7eg2a1g8sals629';
+    const tokenUrl = 'https://auth.igloohome.co/oauth2/token';
+    const apiUrl = `https://api.igloodeveloper.co/igloohome/devices/${deviceId}/algopin/hourly`;
+    
+    // Get OAuth token
+    const tokenPayload = {
+      'client_id': clientId,
+      'client_secret': clientSecret,
+      'grant_type': 'client_credentials',
+      'scope': 'igloohomeapi/algopin-hourly'
+    };
+    
+    const tokenOptions = {
+      'method': 'post',
+      'contentType': 'application/x-www-form-urlencoded',
+      'payload': tokenPayload
+    };
+    
+    const tokenResponse = UrlFetchApp.fetch(tokenUrl, tokenOptions);
+    const tokenData = JSON.parse(tokenResponse.getContentText());
+    
+    if (!tokenData.access_token) {
+      Logger.log('Failed to get access token:', tokenData);
+      return { success: false, error: 'Failed to authenticate with Iglohome API' };
+    }
+    
+    // Format dates for API request
+    const formattedStartDate = Utilities.formatDate(finalStartDate, "GMT+08:00", "yyyy-MM-dd'T'HH:00:00XXX");
+    const formattedEndDate = Utilities.formatDate(finalEndDate, "GMT+08:00", "yyyy-MM-dd'T'HH:00:00XXX");
+    
+    // Generate PIN
+    const apiPayload = JSON.stringify({
+      'variance': 1,
+      'startDate': formattedStartDate,
+      'endDate': formattedEndDate,
+      'accessName': 'Zoko Generated Access'
+    });
+    
+    const apiOptions = {
+      'method': 'post',
+      'headers': {
+        'Authorization': 'Bearer ' + tokenData.access_token,
+        'Content-Type': 'application/json'
+      },
+      'payload': apiPayload
+    };
+    
+    const pinResponse = UrlFetchApp.fetch(apiUrl, apiOptions);
+    const pinData = JSON.parse(pinResponse.getContentText());
+    
+    if (!pinData.pin) {
+      Logger.log('Failed to generate PIN:', pinData);
+      return { success: false, error: 'Failed to generate access code' };
+    }
+    
+    Logger.log(`Generated PIN ${pinData.pin} for van ${van}`);
+    
+    // Send PIN via Zoko using the igloohome_pin template
+    const zokoSuccess = sendIglohomePinMessage(phoneNumber, pinData.pin);
+    
+    if (zokoSuccess) {
+      return { 
+        success: true, 
+        message: `Access code generated and sent to ${phoneNumber}`,
+        pin: pinData.pin,
+        van: van,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate
+      };
+    } else {
+      return { 
+        success: false, 
+        error: 'PIN generated but failed to send via WhatsApp' 
+      };
+    }
+    
+  } catch (error) {
+    Logger.log('Error in generateIglohomeCodeApp:', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Send Iglohome PIN via Zoko WhatsApp
+function sendIglohomePinMessage(phoneNumber, pin) {
+  const url = "https://chat.zoko.io/v2/message";
+  const apiKey = "0a12096d-cfee-43e2-8360-b66d7b460cd3";
+  const templateId = "igloohome_pin";
+  const templateLang = "it";
+
+  const payload = {
+    channel: "whatsapp",
+    recipient: phoneNumber,
+    type: "template",
+    templateId: templateId,
+    templateLanguage: templateLang,
+    templateArgs: [pin] // Single argument: the PIN number
+  };
+
+  const options = {
+    method: "POST",
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "apikey": apiKey
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseData = JSON.parse(response.getContentText());
+
+    if (responseCode === 200 || responseCode === 202) {
+      Logger.log(`Zoko Iglohome PIN Success for ${phoneNumber}: PIN ${pin}`);
+      return true;
+    } else {
+      Logger.log(`Zoko Iglohome PIN Error - HTTP ${responseCode} for ${phoneNumber}: ${JSON.stringify(responseData)}`);
+      return false;
+    }
+  } catch (e) {
+    Logger.log(`Zoko Iglohome PIN Exception for ${phoneNumber}: ${e.toString()}`);
+    return false;
   }
 }
