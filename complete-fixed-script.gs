@@ -484,13 +484,32 @@ function getExpenses() {
 // Calendar function - fetches events from multiple calendars
 function getCalendarEventsApp(startDate, endDate) {
   try {
-    Logger.log('📅 Fetching calendar events from ' + startDate + ' to ' + endDate);
+    Logger.log('📅 Fetching calendar events from ' + startDate + ' to ' + endDate);    const calendarIds = [
+      'noleggiosemplice23@gmail.com',                                                          // Main calendar
+      'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',                               // Opel Vivaro
+      'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com', // Renault Master  
+      'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com', // Fiat Ducato
+      '25f71a841f7ac3252fc9f1ced1870596d23a1842ae48ed39ede7f3bc01e819ca@group.calendar.google.com', // Citroen Boxer
+      '8c2a425fa75bf5230dd2eee2a5cbedfcfa01279e943b5817efa25dfb359d8920@group.calendar.google.com', // Citroen Jumper
+      'aa19b3fbefcdee63ffa1b724e3a2f4c65ed49949db2e6cf3d40e13924daea94b@group.calendar.google.com', // Renault Trafic
+      '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com', // Renault Trafic2
+      '9535c25ccd3adc5dc5a908aa9055cd8893e547657d6257f0a0232d50214c8c99@group.calendar.google.com', // Renault Trafic3
+      'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com', // Citroen Jumper2
+      '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'  // Citroen Jumper3
+    ];
     
-    const calendarIds = [
-      'noleggiosemplice23@gmail.com',
-      'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com', 
-      'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
-      'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com'
+    const calendarNames = [
+      'Main Calendar',
+      'Opel Vivaro', 
+      'Renault Master',
+      'Fiat Ducato',
+      'Citroen Boxer',
+      'Citroen Jumper',
+      'Renault Trafic',
+      'Renault Trafic2',
+      'Renault Trafic3', 
+      'Citroen Jumper2',
+      'Citroen Jumper3'
     ];
     
     const allEvents = [];
@@ -516,8 +535,7 @@ function getCalendarEventsApp(startDate, endDate) {
         Logger.log('📊 Found ' + events.length + ' events in calendar ' + (index + 1));
         
         for (let i = 0; i < events.length; i++) {
-          const event = events[i];
-          allEvents.push({
+          const event = events[i];          allEvents.push({
             id: event.getId(),
             summary: event.getTitle(),
             description: event.getDescription() || '',
@@ -531,7 +549,8 @@ function getCalendarEventsApp(startDate, endDate) {
               date: event.isAllDayEvent() ? event.getEndTime().toISOString().split('T')[0] : null
             },
             calendarIndex: index,
-            calendarId: calendarId
+            calendarId: calendarId,
+            calendarName: calendarNames[index] || `Calendar ${index + 1}`
           });
         }
         

@@ -865,10 +865,17 @@
                     const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}`;
                     
                     const data = await makeJsonpRequest(url);
-                    
-                    if (data.result && Array.isArray(data.result)) {
+                      if (data.result && Array.isArray(data.result)) {
                         displayEvents(data.result);
                         eventsContainer.style.display = 'block';
+                        
+                        // Show info about calendars loaded
+                        const totalEvents = data.result.length;
+                        const uniqueCalendars = [...new Set(data.result.map(e => e.calendarName || 'Unknown'))];
+                        const calendarInfo = document.createElement('div');
+                        calendarInfo.style.cssText = 'background: #e8f4fd; padding: 8px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 12px; color: #0066cc;';
+                        calendarInfo.innerHTML = `📊 Loaded ${totalEvents} events from ${uniqueCalendars.length} calendars: ${uniqueCalendars.join(', ')}`;
+                        eventsContainer.insertBefore(calendarInfo, eventsList);
                     } else {
                         showEventError('No events found for ' + currentPeriod);
                     }
@@ -968,14 +975,17 @@
                     eventsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No events found</div>';
                     return;
                 }
-                
-                eventsList.innerHTML = events.map(event => {
+                  eventsList.innerHTML = events.map(event => {
                     const eventData = extractEventData(event);
                     const startTime = new Date(event.start.dateTime).toLocaleString();
+                    const calendarBadge = event.calendarName ? `<span style="background: #007cba; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">${event.calendarName}</span>` : '';
                     
                     return `
                         <div class="event-item" data-event='${JSON.stringify(eventData)}' style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;">
-                            <div style="font-weight: 500; color: #333; margin-bottom: 4px;">${event.summary}</div>
+                            <div style="font-weight: 500; color: #333; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                                <span>${event.summary}</span>
+                                ${calendarBadge}
+                            </div>
                             <div style="font-size: 12px; color: #666; margin-bottom: 4px;">📅 ${startTime}</div>
                             ${eventData.van ? `<div style="font-size: 12px; color: #007cba;">🚐 Van: ${eventData.van}</div>` : ''}
                             ${eventData.phoneNumber ? `<div style="font-size: 12px; color: #28a745;">📱 Phone: ${eventData.phoneNumber}</div>` : ''}
