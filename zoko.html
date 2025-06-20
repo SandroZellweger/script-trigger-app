@@ -324,10 +324,10 @@
             <p>Send WhatsApp messages to customers</p>
         </div>
 
-        <!-- Template selector tabs -->
-        <div class="template-tabs animate-in">
+        <!-- Template selector tabs -->        <div class="template-tabs animate-in">
             <div class="template-tab active" data-template="booking">📋 How to Book</div>
             <div class="template-tab" data-template="multiday">📅 Dati Multigiorno</div>
+            <div class="template-tab" data-template="iglohome">🔑 Iglohome Code</div>
         </div>
 
         <!-- Booking instructions template panel -->
@@ -392,6 +392,85 @@
 
                     <button type="submit" class="send-button">
                         <span class="button-text">Send Multiday Data Request</span>
+                        <span class="button-spinner spinner" style="display: none;"></span>
+                    </button>
+                </form>
+
+                <div class="status-message"></div>
+            </div>
+        </div>
+
+        <!-- Iglohome code generation panel -->
+        <div class="template-panel" id="iglohome-panel">
+            <div class="template-info animate-in">
+                <h3>🔑 Generate & Send Iglohome Code</h3>
+                <p>Generate a temporary access code for a specific van and send it directly to the customer via WhatsApp.</p>
+            </div>
+
+            <div class="message-form animate-in">
+                <form id="iglohomeForm" class="template-form">
+                    <div class="form-group">
+                        <label for="iglohomePhoneNumber" class="form-label">Phone Number</label>
+                        <input 
+                            type="tel" 
+                            id="iglohomePhoneNumber" 
+                            name="phoneNumber"
+                            class="form-input phone-input" 
+                            placeholder="Paste phone number here (e.g., 0781234567 or +41781234567)"
+                            required
+                            title="Paste the phone number from your calling app"
+                        >
+                        <small class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Customer's phone number for receiving the access code.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="iglohomeVan" class="form-label">Select Van</label>
+                        <select id="iglohomeVan" name="van" class="form-input" required>
+                            <option value="">Choose a van...</option>
+                            <option value="N01">N01 - Opel Vivaro (Losone)</option>
+                            <option value="N03">N03 - Peugeot Boxer (Bellinzona)</option>
+                            <option value="N04">N04 - Fiat Ducato (Locarno)</option>
+                            <option value="N06">N06 - Citroen Jumper (Minusio)</option>
+                            <option value="N07">N07 - Renault Trafic (Lugano)</option>
+                            <option value="N08">N08 - Renault Trafic (Lugano)</option>
+                            <option value="N09">N09 - Renault Trafic (Bellinzona)</option>
+                            <option value="N10">N10 - Citroen Jumper (Losone)</option>
+                            <option value="N11">N11 - Citroen Jumper (Losone)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="iglohomeStartDate" class="form-label">Start Date & Time</label>
+                        <input 
+                            type="datetime-local" 
+                            id="iglohomeStartDate" 
+                            name="startDate"
+                            class="form-input" 
+                            required
+                        >
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Code will be valid 2 hours before this time.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="iglohomeEndDate" class="form-label">End Date & Time</label>
+                        <input 
+                            type="datetime-local" 
+                            id="iglohomeEndDate" 
+                            name="endDate"
+                            class="form-input" 
+                            required
+                        >
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Code will be valid 2 hours after this time.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="send-button">
+                        <span class="button-text">Generate & Send Code</span>
                         <span class="button-spinner spinner" style="display: none;"></span>
                     </button>
                 </form>
@@ -513,13 +592,14 @@
             const buttonText = form.querySelector('.button-text');
             const buttonSpinner = form.querySelector('.button-spinner');
             const statusMessage = panel.querySelector('.status-message');
-            
-            // Set endpoint based on form ID
+              // Set endpoint based on form ID
             let endpoint = '';
             if (formId === 'bookingForm') {
                 endpoint = 'sendHowToBookMessageApp';
             } else if (formId === 'multidayForm') {
                 endpoint = 'sendDatiMultigiornoApp';
+            } else if (formId === 'iglohomeForm') {
+                endpoint = 'generateIglohomeCodeApp';
             }
             
             // Handle form submission
@@ -548,17 +628,59 @@
                 
                 // Show loading state
                 setLoading(true);
-                hideStatus();
-
-                try {
+                hideStatus();                try {
                     // Get current settings
                     const settings = getSettings();
                     
-                    // Build request URL
-                    const requestUrl = `${settings.scriptUrl}?function=${endpoint}&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
+                    // Build request URL based on form type
+                    let requestUrl;
+                    if (formId === 'iglohomeForm') {
+                        // For Iglohome, collect additional parameters
+                        const vanSelect = form.querySelector('#iglohomeVan');
+                        const startDateInput = form.querySelector('#iglohomeStartDate');
+                        const endDateInput = form.querySelector('#iglohomeEndDate');
+                        
+                        const van = vanSelect.value;
+                        const startDate = startDateInput.value;
+                        const endDate = endDateInput.value;
+                        
+                        // Validate Iglohome-specific fields
+                        if (!van) {
+                            showStatus('Please select a van', 'error');
+                            setLoading(false);
+                            return;
+                        }
+                        if (!startDate) {
+                            showStatus('Please select a start date and time', 'error');
+                            setLoading(false);
+                            return;
+                        }
+                        if (!endDate) {
+                            showStatus('Please select an end date and time', 'error');
+                            setLoading(false);
+                            return;
+                        }
+                        
+                        // Check if end date is after start date
+                        if (new Date(endDate) <= new Date(startDate)) {
+                            showStatus('End date must be after start date', 'error');
+                            setLoading(false);
+                            return;
+                        }
+                        
+                        requestUrl = `${settings.scriptUrl}?function=${endpoint}&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}&van=${van}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+                    } else {
+                        // Standard request for booking and multiday forms
+                        requestUrl = `${settings.scriptUrl}?function=${endpoint}&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
+                    }
                     
                     console.log(`🚀 Making request to: ${endpoint}`);
                     console.log('📱 Phone number:', finalPhoneNumber);
+                    if (formId === 'iglohomeForm') {
+                        console.log('🚐 Van:', form.querySelector('#iglohomeVan').value);
+                        console.log('📅 Start:', form.querySelector('#iglohomeStartDate').value);
+                        console.log('📅 End:', form.querySelector('#iglohomeEndDate').value);
+                    }
 
                     // Simple fetch without special headers
                     const response = await fetch(requestUrl);
