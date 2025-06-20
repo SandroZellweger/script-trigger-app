@@ -526,8 +526,7 @@
         </div>
     </div>
 
-    <script>
-        // Function to get settings from localStorage
+    <script>        // Function to get settings from localStorage
         function getSettings() {
             const defaultSettings = {
                 scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
@@ -536,6 +535,38 @@
             
             const savedSettings = localStorage.getItem('appSettings');
             return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
+
+        // Global callback counter for unique callback names
+        let callbackCounter = 0;
+
+        // JSONP helper function to bypass CORS
+        function makeJsonpRequest(url) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonpCallback' + (++callbackCounter);
+                
+                // Create the callback function
+                window[callbackName] = function(data) {
+                    // Clean up
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    resolve(data);
+                };
+                
+                // Create the script tag
+                const script = document.createElement('script');
+                script.src = url + '&callback=' + callbackName;
+                
+                // Handle errors
+                script.onerror = function() {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                // Add script to head to execute
+                document.head.appendChild(script);
+            });
         }
 
         // Tab switching functionality
@@ -713,14 +744,13 @@
                             setLoading(false);
                             return;
                         }
-                        
-                        requestUrl = `${settings.scriptUrl}?function=${endpoint}&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}&van=${van}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+                          requestUrl = `${settings.scriptUrl}?function=${endpoint}Jsonp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}&van=${van}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
                     } else {
                         // Standard request for booking and multiday forms
-                        requestUrl = `${settings.scriptUrl}?function=${endpoint}&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
+                        requestUrl = `${settings.scriptUrl}?function=${endpoint}Jsonp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
                     }
                     
-                    console.log(`🚀 Making request to: ${endpoint}`);
+                    console.log(`🚀 Making request to: ${endpoint}Jsonp`);
                     console.log('📱 Phone number:', finalPhoneNumber);
                     if (formId === 'iglohomeForm') {
                         console.log('🚐 Van:', form.querySelector('#iglohomeVan').value);
@@ -728,20 +758,10 @@
                         console.log('📅 End:', form.querySelector('#iglohomeEndDate').value);
                     }
 
-                    // Simple fetch without special headers
-                    const response = await fetch(requestUrl);
-
-                    console.log('📡 Response status:', response.status);
-                    console.log('📡 Response OK:', response.ok);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    const data = await response.json();
-                    console.log('✅ Parsed response:', data);
+                    // Use JSONP instead of fetch
+                    const data = await makeJsonpRequest(requestUrl);                    console.log('✅ Parsed response:', data);
                     
-                    if (data.result === true) {
+                    if (data.result === true || data.success === true) {
                         showStatus(`✅ Message sent successfully to ${finalPhoneNumber}`, 'success');
                         form.reset(); // Clear the form
                         // Reset hint text
@@ -838,15 +858,13 @@
             // Load events button
             loadEventsBtn.addEventListener('click', async function() {
                 setEventsLoading(true);
-                
-                try {
+                  try {
                     const settings = getSettings();
                     const dates = getPeriodDates(currentPeriod);
                     
-                    const url = `${settings.scriptUrl}?function=getCalendarEventsApp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}`;
+                    const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}`;
                     
-                    const response = await fetch(url);
-                    const data = await response.json();
+                    const data = await makeJsonpRequest(url);
                     
                     if (data.result && Array.isArray(data.result)) {
                         displayEvents(data.result);
@@ -892,14 +910,11 @@
                 generateQuickCode.style.background = '#6c757d';
                 generateQuickCode.textContent = '⏳ Generating...';
                 generateQuickCode.disabled = true;
-                
-                try {
+                  try {
                     const settings = getSettings();
-                    const url = `${settings.scriptUrl}?function=generateIglohomeCodeApp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(params.phoneNumber)}&van=${params.van}&startDate=${encodeURIComponent(params.startDate)}&endDate=${encodeURIComponent(params.endDate)}`;
+                    const url = `${settings.scriptUrl}?function=generateIglohomeCodeAppJsonp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(params.phoneNumber)}&van=${params.van}&startDate=${encodeURIComponent(params.startDate)}&endDate=${encodeURIComponent(params.endDate)}`;
                     
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    
+                    const data = await makeJsonpRequest(url);                    
                     if (data.success) {
                         const startTime = accessStartTime.toLocaleString();
                         const endTime = accessEndTime.toLocaleString();

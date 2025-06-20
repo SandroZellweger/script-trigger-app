@@ -66,20 +66,28 @@ function doGet(e) {
         break;
       case "triggerStripePayment":
         result = triggerStripePayment(e.parameter.amount, e.parameter.description);
-        break;
-      case "sendHowToBookMessageApp":
+        break;      case "sendHowToBookMessageApp":
         result = sendHowToBookMessageApp(e.parameter.phoneNumber);
+        break;
+      case "sendHowToBookMessageAppJsonp":
+        return sendHowToBookMessageAppJsonp(e.parameter);
         break;
       case 'sendDatiMultigiornoApp':
         const datiPhoneNumber = e.parameter.phoneNumber;
         result = sendDatiMultigiornoApp(datiPhoneNumber);
         break;
+      case 'sendDatiMultigiornoAppJsonp':
+        return sendDatiMultigiornoAppJsonp(e.parameter);
+        break;
       case "ping":
         result = { result: "Ping successful" };
-        break;
-      case "getCalendarEventsApp":
+        break;      case "getCalendarEventsApp":
         result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
-        break;      case "getExpenses":
+        break;
+      // ADD JSONP CALENDAR EVENTS FUNCTION TO doGet
+      case "getCalendarEventsAppJsonp":
+        return getCalendarEventsAppJsonp(e.parameter);
+        break;case "getExpenses":
         result = getExpenses();
         break;
       case "logExpense":
@@ -121,10 +129,12 @@ function doGet(e) {
       // ADD JSONP VEHICLE NOTES UPDATE FUNCTION TO doGet
       case "updateVehicleNotesJsonp":
         return updateVehicleNotesJsonp(e.parameter);
-        break;
-      // GENERATE IGLOOHOME CODE FUNCTION
+        break;      // GENERATE IGLOOHOME CODE FUNCTION
       case "generateIglohomeCodeApp":
         result = generateIglohomeCodeApp(e.parameter);
+        break;
+      case "generateIglohomeCodeAppJsonp":
+        return generateIglohomeCodeAppJsonp(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1530,5 +1540,91 @@ function sendIglohomePinMessage(phoneNumber, pin) {
   } catch (e) {
     Logger.log(`Zoko Iglohome PIN Exception for ${phoneNumber}: ${e.toString()}`);
     return false;
+  }
+}
+
+// JSONP versions for CORS-free messaging
+function sendHowToBookMessageAppJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = sendHowToBookMessageApp(params.phoneNumber);
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+function sendDatiMultigiornoAppJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = sendDatiMultigiornoApp(params.phoneNumber);
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+function generateIglohomeCodeAppJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = generateIglohomeCodeApp(params);
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// JSONP version of getCalendarEventsApp
+function getCalendarEventsAppJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = getCalendarEventsApp(params.startDate, params.endDate);
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 }
