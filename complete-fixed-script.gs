@@ -2141,8 +2141,97 @@ function createAnalyticsSheet(spreadsheet, customerDatabase, events) {
 }
 
 /**
- * Quick CRM database creation with limited scope for faster results
+ * Calculate CRM analytics from customer database and events
  */
+function calculateCRMAnalytics(customerDatabase, allEvents) {
+  const analytics = {
+    totalCustomers: Object.keys(customerDatabase).length,
+    totalBookings: allEvents.length,
+    totalRevenue: 0,
+    averageBookingValue: 0,
+    customerSegments: {
+      new: 0,
+      repeat: 0,
+      loyal: 0,
+      vip: 0
+    },
+    topCustomers: [],
+    monthlyTrends: {},
+    vanUtilization: {}
+  };
+
+  // Calculate revenue and customer segments
+  Object.values(customerDatabase).forEach(customer => {
+    const bookingCount = customer.bookings.length;
+    let customerRevenue = 0;
+    
+    customer.bookings.forEach(booking => {
+      // Try to extract price from title or description
+      const priceMatch = booking.title.match(/CHF[\s]?(\d+(?:\.\d{2})?)/i) || 
+                         booking.description.match(/CHF[\s]?(\d+(?:\.\d{2})?)/i);
+      if (priceMatch) {
+        customerRevenue += parseFloat(priceMatch[1]);
+      }
+    });
+    
+    analytics.totalRevenue += customerRevenue;
+    
+    // Categorize customer
+    if (bookingCount === 1) {
+      analytics.customerSegments.new++;
+    } else if (bookingCount <= 3) {
+      analytics.customerSegments.repeat++;
+    } else if (bookingCount <= 6) {
+      analytics.customerSegments.loyal++;
+    } else {
+      analytics.customerSegments.vip++;
+    }
+    
+    // Add to top customers
+    analytics.topCustomers.push({
+      name: customer.name,
+      bookings: bookingCount,
+      revenue: customerRevenue,
+      lastBooking: customer.lastBooking
+    });
+  });
+
+  // Sort top customers by revenue
+  analytics.topCustomers = analytics.topCustomers
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10);
+
+  // Calculate average booking value
+  analytics.averageBookingValue = analytics.totalRevenue / analytics.totalBookings || 0;
+
+  // Calculate monthly trends
+  allEvents.forEach(event => {
+    const month = new Date(event.startTime).toISOString().substring(0, 7); // YYYY-MM
+    if (!analytics.monthlyTrends[month]) {
+      analytics.monthlyTrends[month] = { bookings: 0, revenue: 0 };
+    }
+    analytics.monthlyTrends[month].bookings++;
+    
+    const priceMatch = event.title.match(/CHF[\s]?(\d+(?:\.\d{2})?)/i) || 
+                       event.description.match(/CHF[\s]?(\d+(?:\.\d{2})?)/i);
+    if (priceMatch) {
+      analytics.monthlyTrends[month].revenue += parseFloat(priceMatch[1]);
+    }
+  });
+
+  // Calculate van utilization
+  allEvents.forEach(event => {
+    const van = event.calendarName || 'Unknown';
+    if (!analytics.vanUtilization[van]) {
+      analytics.vanUtilization[van] = 0;
+    }
+    analytics.vanUtilization[van]++;
+  });
+
+  return analytics;
+}
+
+// QUICK CRM database creation with limited scope for faster results
 function buildQuickCustomerCRMDatabase() {
   try {
     Logger.log('⚡ Starting QUICK CRM database creation...');
@@ -2161,9 +2250,8 @@ function buildQuickCustomerCRMDatabase() {
     
     const customerDatabase = parseCustomerDataFromEvents(allEvents);
     Logger.log(`👥 Unique customers identified: ${Object.keys(customerDatabase).length}`);
-    
-    const spreadsheet = createOrUpdateCRMSpreadsheet();
-    populateCRMSpreadsheet(spreadsheet, customerDatabase, allEvents);
+      const spreadsheet = createOrUpdateCRMSpreadsheet();
+    populateCustomerDataSheets(spreadsheet, customerDatabase, allEvents);
     
     // Calculate analytics
     const analytics = calculateCRMAnalytics(customerDatabase, allEvents);

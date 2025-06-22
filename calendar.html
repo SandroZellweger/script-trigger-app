@@ -21,13 +21,87 @@
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
-        }
-
-        .container {
+        }        .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             min-height: 100vh;
+        }
+
+        /* Mobile and tablet responsive design */
+        @media screen and (max-width: 1200px) {
+            .calendar-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 10px;
+                max-width: 100%;
+            }
+            
+            .header {
+                padding: 15px;
+                text-align: center;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .calendar-section {
+                padding: 15px;
+            }
+            
+            .calendar-day {
+                min-height: 60px;
+                padding: 3px;
+            }
+            
+            .event-pill {
+                font-size: 9px;
+                padding: 1px 3px;
+            }
+            
+            /* Fix CRM buttons on mobile */
+            .crm-controls > div {
+                grid-template-columns: 1fr !important;
+                gap: 5px;
+            }
+            
+            .crm-controls button {
+                padding: 8px !important;
+                font-size: 11px !important;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .calendar-section {
+                padding: 10px;
+            }
+            
+            .calendar-day {
+                min-height: 50px;
+                padding: 2px;
+            }
         }
 
         .header {
