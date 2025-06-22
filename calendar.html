@@ -545,14 +545,52 @@
                     <div id="eventInfo" class="no-event">
                         Select an event to view details
                     </div>
-                </div>
-
-                <div class="customer-crm animate-in">
-                    <h3>👤 Customer CRM</h3>
+                </div>                <div class="customer-crm animate-in">
+                    <h3>👤 Customer CRM System</h3>
+                    
+                    <!-- CRM Controls -->
+                    <div class="crm-controls" style="margin-bottom: 20px;">
+                        <button 
+                            id="buildCrmBtn" 
+                            type="button" 
+                            style="width: 100%; padding: 12px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 10px;">
+                            📊 Build Complete CRM Database
+                        </button>
+                        
+                        <button 
+                            id="openCrmSpreadsheetBtn" 
+                            type="button" 
+                            style="width: 100%; padding: 12px; background: #34a853; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;"
+                            disabled>
+                            📋 Open CRM Spreadsheet
+                        </button>
+                    </div>
+                    
+                    <!-- CRM Status -->
+                    <div id="crmStatus" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;"></div>
+                    
+                    <!-- Customer Info (Selected from calendar) -->
                     <div id="customerInfo">
                         <div class="no-event">
-                            Select a booking to view customer data
+                            Select a booking to view customer data<br>
+                            <small style="color: #666;">Or build the CRM database for complete analytics</small>
                         </div>
+                    </div>
+                    
+                    <!-- CRM Analytics Summary -->
+                    <div id="crmAnalytics" style="display: none; margin-top: 20px;">
+                        <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;">📈 Business Analytics</h4>
+                        <div id="crmStatsGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                            <div class="stat-card" style="background: #f8f9fa; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div id="totalCustomers" style="font-size: 20px; font-weight: bold; color: #4285f4;">-</div>
+                                <div style="font-size: 11px; color: #666;">Customers</div>
+                            </div>
+                            <div class="stat-card" style="background: #f8f9fa; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div id="totalBookings" style="font-size: 20px; font-weight: bold; color: #34a853;">-</div>
+                                <div style="font-size: 11px; color: #666;">Bookings</div>
+                            </div>
+                        </div>
+                        <div id="crmInsightsList" style="background: #e3f2fd; padding: 10px; border-radius: 6px; font-size: 12px; color: #1976d2;"></div>
                     </div>
                 </div>
             </div>
@@ -881,50 +919,192 @@
             return match ? match[1].trim() : null;
         }
 
+        // =============================================================================
+        // CRM SYSTEM FUNCTIONALITY
+        // =============================================================================
+        
+        let crmSpreadsheetUrl = '';
+        
+        // JSONP helper function for CRM calls
+        function makeJsonpRequest(url) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(data);
+                };
+                
+                const script = document.createElement('script');
+                script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.body.appendChild(script);
+                
+                // Timeout after 30 seconds
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('JSONP request timed out'));
+                    }
+                }, 30000);
+            });
+        }
+        
+        // Initialize CRM functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const buildCrmBtn = document.getElementById('buildCrmBtn');
+            const openCrmSpreadsheetBtn = document.getElementById('openCrmSpreadsheetBtn');
+            const crmStatus = document.getElementById('crmStatus');
+            const crmAnalytics = document.getElementById('crmAnalytics');
+            
+            // Build CRM Database
+            buildCrmBtn.addEventListener('click', async function() {
+                try {
+                    // Show loading state
+                    buildCrmBtn.disabled = true;
+                    buildCrmBtn.style.background = '#6c757d';
+                    buildCrmBtn.innerHTML = '⏳ Building Database...';
+                    
+                    crmStatus.style.display = 'block';
+                    crmStatus.style.background = '#e3f2fd';
+                    crmStatus.innerHTML = '🚀 Starting CRM database creation...<br><small>This may take a few minutes as we analyze all your calendar events.</small>';
+                    
+                    crmAnalytics.style.display = 'none';
+                    
+                    const settings = getSettings();
+                    const url = `${settings.scriptUrl}?function=buildCustomerCRMDatabaseJsonp&authToken=${settings.authToken}`;
+                    
+                    crmStatus.innerHTML = '📡 Connecting to Google Apps Script...<br><small>Analyzing calendar events from all vans...</small>';
+                    
+                    const data = await makeJsonpRequest(url);
+                    
+                    if (data.success) {
+                        // Success state
+                        crmStatus.style.background = '#d4edda';
+                        crmStatus.innerHTML = `✅ CRM Database created successfully!<br><small>Found ${data.totalCustomers} customers and ${data.totalBookings} bookings</small>`;
+                        
+                        // Show analytics
+                        crmAnalytics.style.display = 'block';
+                        document.getElementById('totalCustomers').textContent = data.totalCustomers;
+                        document.getElementById('totalBookings').textContent = data.totalBookings;
+                        
+                        // Generate insights
+                        const insights = generateCrmInsights(data);
+                        document.getElementById('crmInsightsList').innerHTML = `<strong>💡 Key Insights:</strong><br>${insights.join('<br>')}`;
+                        
+                        // Enable spreadsheet button
+                        crmSpreadsheetUrl = data.spreadsheetUrl;
+                        openCrmSpreadsheetBtn.disabled = false;
+                        openCrmSpreadsheetBtn.style.background = '#34a853';
+                        
+                        // Auto-hide status after 5 seconds
+                        setTimeout(() => {
+                            crmStatus.style.display = 'none';
+                        }, 5000);
+                        
+                    } else {
+                        // Error state
+                        crmStatus.style.background = '#f8d7da';
+                        crmStatus.innerHTML = `❌ Failed to build CRM database<br><small>Error: ${data.error}</small>`;
+                    }
+                    
+                } catch (error) {
+                    crmStatus.style.background = '#f8d7da';
+                    crmStatus.innerHTML = `❌ Error building CRM database<br><small>Error: ${error.message}</small>`;
+                } finally {
+                    // Reset button
+                    buildCrmBtn.disabled = false;
+                    buildCrmBtn.style.background = '#4285f4';
+                    buildCrmBtn.innerHTML = '📊 Build Complete CRM Database';
+                }
+            });
+            
+            // Open CRM Spreadsheet
+            openCrmSpreadsheetBtn.addEventListener('click', function() {
+                if (crmSpreadsheetUrl) {
+                    window.open(crmSpreadsheetUrl, '_blank');
+                } else {
+                    alert('Please build the CRM database first');
+                }
+            });
+            
+            function generateCrmInsights(data) {
+                const insights = [];
+                
+                if (data.totalCustomers > 0) {
+                    const avgBookingsPerCustomer = Math.round(data.totalBookings / data.totalCustomers * 10) / 10;
+                    insights.push(`📊 ${avgBookingsPerCustomer} avg bookings per customer`);
+                }
+                
+                insights.push('🎯 Customer segments: New, Repeat, Loyal, VIP');
+                insights.push('📅 Seasonal patterns & preferred van analysis');
+                insights.push('📋 Complete booking history exported to Sheets');
+                
+                return insights;
+            }
+        });
+        
+        // Enhanced customer display for selected events
         function displayCustomerCRM(customerName) {
-            // Mock customer data - this will eventually come from your CRM system
+            if (!customerName) {
+                document.getElementById('customerInfo').innerHTML = `
+                    <div class="no-event">
+                        Select a booking to view customer data<br>
+                        <small style="color: #666;">Or build the CRM database for complete analytics</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Mock customer data for immediate display (will be replaced by real CRM data)
             const mockCustomerData = {
                 totalRentals: Math.floor(Math.random() * 10) + 1,
                 totalSpent: Math.floor(Math.random() * 5000) + 500,
-                favoriteVan: ['Van A', 'Van B', 'Van C'][Math.floor(Math.random() * 3)],
-                lastRental: '2024-11-15'
+                favoriteVan: ['N01', 'N03', 'N04', 'N06', 'N07'][Math.floor(Math.random() * 5)],
+                lastRental: '2024-11-15',
+                segment: ['New', 'Repeat', 'Loyal', 'VIP'][Math.floor(Math.random() * 4)]
             };
 
             const customerInfo = document.getElementById('customerInfo');
             customerInfo.innerHTML = `
-                <div style="margin-bottom: 15px;">
-                    <strong>${customerName}</strong>
-                </div>
-               
-                <div class="crm-stats">
-                    <div class="stat-card">
-                        <div class="stat-value">${mockCustomerData.totalRentals}</div>
-                        <div class="stat-label">Total Rentals</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">CHF ${mockCustomerData.totalSpent}</div>
-                        <div class="stat-label">Total Spent</div>
+                <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                    <strong style="color: #333;">${customerName}</strong>
+                    <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                        <span style="background: #007cba; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${mockCustomerData.segment}</span>
                     </div>
                 </div>
                
-                <div class="rental-history">
-                    <strong>Recent Rentals:</strong>
-                    <div class="history-item">
-                        <div class="history-date">2024-11-15</div>
-                        <div class="history-details">${mockCustomerData.favoriteVan} - CHF 350</div>
+                <div class="crm-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <div class="stat-card" style="background: #e3f2fd; padding: 10px; border-radius: 6px; text-align: center;">
+                        <div class="stat-value" style="font-size: 18px; font-weight: bold; color: #1976d2;">${mockCustomerData.totalRentals}</div>
+                        <div class="stat-label" style="font-size: 11px; color: #666;">Rentals</div>
                     </div>
-                    <div class="history-item">
-                        <div class="history-date">2024-09-22</div>
-                        <div class="history-details">Van B - CHF 280</div>
+                    <div class="stat-card" style="background: #e8f5e8; padding: 10px; border-radius: 6px; text-align: center;">
+                        <div class="stat-value" style="font-size: 18px; font-weight: bold; color: #2e7d32;">CHF ${mockCustomerData.totalSpent}</div>
+                        <div class="stat-label" style="font-size: 11px; color: #666;">Revenue</div>
                     </div>
-                    <div class="history-item">
-                        <div class="history-date">2024-07-10</div>
-                        <div class="history-details">Van A - CHF 420</div>
+                </div>
+               
+                <div class="rental-history" style="font-size: 13px;">
+                    <strong style="color: #333;">📅 Recent Activity:</strong>
+                    <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 6px;">
+                        <div style="color: #856404;">Last rental: ${mockCustomerData.lastRental}</div>
+                        <div style="color: #856404; font-size: 12px;">Preferred van: ${mockCustomerData.favoriteVan}</div>
                     </div>
+                </div>
+                
+                <div style="margin-top: 15px; padding: 8px; background: #d1ecf1; border-radius: 6px; font-size: 12px; color: #0c5460;">
+                    💡 <strong>Tip:</strong> Build the complete CRM database above for detailed customer analytics and insights.
                 </div>
             `;
         }
-
         async function loadCalendarData() {
             const refreshBtn = document.getElementById('refreshBtn');
             const refreshIcon = document.getElementById('refreshIcon');

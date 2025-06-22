@@ -132,9 +132,15 @@ function doGet(e) {
         break;      // GENERATE IGLOOHOME CODE FUNCTION
       case "generateIglohomeCodeApp":
         result = generateIglohomeCodeApp(e.parameter);
-        break;
-      case "generateIglohomeCodeAppJsonp":
+        break;      case "generateIglohomeCodeAppJsonp":
         return generateIglohomeCodeAppJsonp(e.parameter);
+        break;
+      // CRM SYSTEM FUNCTION
+      case "buildCustomerCRMDatabase":
+        result = buildCustomerCRMDatabase();
+        break;
+      case "buildCustomerCRMDatabaseJsonp":
+        return buildCustomerCRMDatabaseJsonp(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1640,6 +1646,480 @@ function getCalendarEventsAppJsonp(params) {
   } catch (error) {
     const callback = params.callback || 'callback';
     const errorResult = { error: error.toString() };
+    const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// =============================================================================
+// CRM SYSTEM FUNCTIONS
+// =============================================================================
+
+/**
+ * Build comprehensive CRM database from all calendar events
+ * Analyzes historical data to create customer profiles and insights
+ */
+function buildCustomerCRMDatabase() {
+  try {
+    Logger.log('🚀 Starting CRM database creation...');
+    
+    // Extract events from last 2 years to current + 3 months future
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 2);
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 3);
+    
+    Logger.log(`📅 Analyzing events from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+    
+    const allEvents = extractAllEventsForCRM(startDate, endDate);
+    Logger.log(`📊 Total events found: ${allEvents.length}`);
+    
+    const customerDatabase = parseCustomerDataFromEvents(allEvents);
+    Logger.log(`👥 Unique customers identified: ${Object.keys(customerDatabase).length}`);
+    
+    const spreadsheet = createOrUpdateCRMSpreadsheet();
+    populateCustomerDataSheets(spreadsheet, customerDatabase, allEvents);
+    
+    Logger.log('✅ CRM Database created successfully!');
+    Logger.log(`📋 Spreadsheet URL: ${spreadsheet.getUrl()}`);
+    
+    return {
+      success: true,
+      spreadsheetUrl: spreadsheet.getUrl(),
+      totalCustomers: Object.keys(customerDatabase).length,
+      totalBookings: allEvents.length,
+      message: 'CRM Database built successfully!'
+    };
+    
+  } catch (error) {
+    Logger.log('❌ Error building CRM database: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Extract all events from all calendars for CRM analysis
+ */
+function extractAllEventsForCRM(startDate, endDate) {
+  const calendarIds = [
+    'noleggiosemplice23@gmail.com',
+    'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
+    'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
+    'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com',
+    '25f71a841f7ac3252fc9f1ced1870596d23a1842ae48ed39ede7f3bc01e819ca@group.calendar.google.com',
+    '8c2a425fa75bf5230dd2eee2a5cbedfcfa01279e943b5817efa25dfb359d8920@group.calendar.google.com',
+    'aa19b3fbefcdee63ffa1b724e3a2f4c65ed49949db2e6cf3d40e13924daea94b@group.calendar.google.com',
+    '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com',
+    '9535c25ccd3adc5dc5a908aa9055cd8893e547657d6257f0a0232d50214c8c99@group.calendar.google.com',
+    'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com',
+    '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'
+  ];
+  
+  const calendarNames = [
+    'Main Calendar', 'Opel Vivaro', 'Renault Master', 'Fiat Ducato', 'Citroen Boxer',
+    'Citroen Jumper', 'Renault Trafic', 'Renault Trafic2', 'Renault Trafic3', 
+    'Citroen Jumper2', 'Citroen Jumper3'
+  ];
+  
+  const allEvents = [];
+  
+  for (let i = 0; i < calendarIds.length; i++) {
+    const calendarId = calendarIds[i];
+    const calendarName = calendarNames[i];
+    
+    try {
+      Logger.log(`📋 Processing calendar: ${calendarName}`);
+      
+      const calendar = CalendarApp.getCalendarById(calendarId);
+      if (!calendar) {
+        Logger.log(`⚠️ Calendar not found: ${calendarId}`);
+        continue;
+      }
+      
+      const events = calendar.getEvents(startDate, endDate);
+      Logger.log(`📊 Found ${events.length} events in ${calendarName}`);
+      
+      for (const event of events) {
+        allEvents.push({
+          id: event.getId(),
+          title: event.getTitle(),
+          description: event.getDescription() || '',
+          location: event.getLocation() || '',
+          startTime: event.getStartTime(),
+          endTime: event.getEndTime(),
+          calendarId: calendarId,
+          calendarName: calendarName,
+          isAllDay: event.isAllDayEvent(),
+          createdDate: event.getDateCreated(),
+          lastUpdated: event.getLastUpdated()
+        });
+      }
+      
+    } catch (error) {
+      Logger.log(`❌ Error processing calendar ${calendarName}: ${error.toString()}`);
+    }
+  }
+  
+  return allEvents;
+}
+
+/**
+ * Parse customer data from events using smart extraction
+ */
+function parseCustomerDataFromEvents(events) {
+  const customerDatabase = {};
+  
+  for (const event of events) {
+    const customerData = extractCustomerFromEventCRM(event);
+    
+    if (customerData && customerData.identifier) {
+      const customerId = customerData.identifier;
+      
+      if (!customerDatabase[customerId]) {
+        customerDatabase[customerId] = {
+          id: customerId,
+          name: customerData.name || 'Unknown',
+          phone: customerData.phone || '',
+          email: customerData.email || '',
+          firstBooking: event.startTime,
+          lastBooking: event.startTime,
+          totalBookings: 0,
+          totalDays: 0,
+          preferredVans: {},
+          bookingHistory: [],
+          averageBookingDuration: 0,
+          seasonalPattern: { spring: 0, summer: 0, autumn: 0, winter: 0 },
+          customerSegment: 'New'
+        };
+      }
+      
+      const customer = customerDatabase[customerId];
+      
+      // Update customer metrics
+      customer.totalBookings++;
+      customer.lastBooking = event.startTime > customer.lastBooking ? event.startTime : customer.lastBooking;
+      customer.firstBooking = event.startTime < customer.firstBooking ? event.startTime : customer.firstBooking;
+      
+      // Calculate booking duration
+      const durationDays = Math.ceil((event.endTime - event.startTime) / (1000 * 60 * 60 * 24));
+      customer.totalDays += durationDays;
+      
+      // Track preferred vans
+      const van = extractVanFromEventCRM(event);
+      if (van) {
+        customer.preferredVans[van] = (customer.preferredVans[van] || 0) + 1;
+      }
+      
+      // Track seasonal patterns
+      const month = event.startTime.getMonth();
+      if (month >= 2 && month <= 4) customer.seasonalPattern.spring++;
+      else if (month >= 5 && month <= 7) customer.seasonalPattern.summer++;
+      else if (month >= 8 && month <= 10) customer.seasonalPattern.autumn++;
+      else customer.seasonalPattern.winter++;
+      
+      // Add to booking history
+      customer.bookingHistory.push({
+        date: event.startTime,
+        van: van,
+        duration: durationDays,
+        calendar: event.calendarName,
+        title: event.title
+      });
+      
+      // Update averages and segments
+      customer.averageBookingDuration = customer.totalDays / customer.totalBookings;
+      
+      if (customer.totalBookings >= 5) customer.customerSegment = 'VIP';
+      else if (customer.totalBookings >= 3) customer.customerSegment = 'Loyal';
+      else if (customer.totalBookings >= 2) customer.customerSegment = 'Repeat';
+      else customer.customerSegment = 'New';
+    }
+  }
+  
+  return customerDatabase;
+}
+
+/**
+ * Extract customer data from individual event
+ */
+function extractCustomerFromEventCRM(event) {
+  const title = event.title || '';
+  const description = event.description || '';
+  const location = event.location || '';
+  const allText = `${title} ${description} ${location}`.toLowerCase();
+  
+  // Extract phone number (Swiss and international patterns)
+  const phonePatterns = [
+    /(?:\+41|0041)\s*7[5-9]\s*\d{3}\s*\d{2}\s*\d{2}/g,
+    /07[5-9]\s*\d{3}\s*\d{2}\s*\d{2}/g,
+    /\+\d{10,15}/g
+  ];
+  
+  let phone = '';
+  for (const pattern of phonePatterns) {
+    const matches = allText.match(pattern);
+    if (matches && matches[0]) {
+      phone = matches[0].replace(/\s/g, '');
+      break;
+    }
+  }
+  
+  // Extract email
+  const emailMatch = allText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const email = emailMatch ? emailMatch[0] : '';
+  
+  // Extract name (multiple patterns)
+  let name = '';
+  const namePatterns = [
+    /nome:\s*([a-zA-Z\s]+)/i,
+    /name:\s*([a-zA-Z\s]+)/i,
+    /cliente:\s*([a-zA-Z\s]+)/i,
+    /customer:\s*([a-zA-Z\s]+)/i
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = allText.match(pattern);
+    if (match && match[1]) {
+      name = match[1].trim();
+      break;
+    }
+  }
+  
+  // Create unique identifier
+  let identifier = phone || email || name;
+  if (!identifier) return null;
+  
+  identifier = identifier.replace(/\+41/, '0').replace(/\s/g, '');
+  
+  return { identifier, name, phone, email };
+}
+
+/**
+ * Extract van information from event
+ */
+function extractVanFromEventCRM(event) {
+  const allText = `${event.title} ${event.description} ${event.calendarName}`.toLowerCase();
+  
+  // Direct van patterns
+  const vanMatch = allText.match(/n0[1-9]|n1[0-1]/g);
+  if (vanMatch) return vanMatch[0].toUpperCase();
+  
+  // Infer from calendar name
+  const calendarVanMap = {
+    'opel vivaro': 'N01',
+    'renault master': 'N02', 
+    'peugeot boxer': 'N03',
+    'fiat ducato': 'N04',
+    'citroen boxer': 'N05',
+    'citroen jumper': 'N06',
+    'renault trafic': 'N07'
+  };
+  
+  for (const [key, van] of Object.entries(calendarVanMap)) {
+    if (event.calendarName.toLowerCase().includes(key)) {
+      return van;
+    }
+  }
+  
+  return '';
+}
+
+/**
+ * Create or update CRM spreadsheet
+ */
+function createOrUpdateCRMSpreadsheet() {
+  const spreadsheetName = 'Noleggio Semplice - Customer CRM Database';
+  const files = DriveApp.getFilesByName(spreadsheetName);
+  
+  let spreadsheet;
+  if (files.hasNext()) {
+    spreadsheet = SpreadsheetApp.open(files.next());
+    Logger.log('📄 Using existing CRM spreadsheet');
+  } else {
+    spreadsheet = SpreadsheetApp.create(spreadsheetName);
+    Logger.log('📄 Created new CRM spreadsheet');
+  }
+  
+  return spreadsheet;
+}
+
+/**
+ * Populate all sheets with CRM data
+ */
+function populateCustomerDataSheets(spreadsheet, customerDatabase, allEvents) {
+  // Customer Summary Sheet
+  createCustomerSummarySheet(spreadsheet, customerDatabase);
+  
+  // All Bookings Sheet
+  createAllBookingsSheet(spreadsheet, allEvents);
+  
+  // Analytics Sheet
+  createAnalyticsSheet(spreadsheet, customerDatabase, allEvents);
+}
+
+/**
+ * Create customer summary sheet
+ */
+function createCustomerSummarySheet(spreadsheet, customerDatabase) {
+  let sheet = spreadsheet.getSheetByName('Customers');
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('Customers');
+  } else {
+    sheet.clear();
+  }
+  
+  const headers = [
+    'Customer ID', 'Name', 'Phone', 'Email', 'First Booking', 'Last Booking',
+    'Total Bookings', 'Total Days', 'Avg Duration', 'Preferred Van',
+    'Customer Segment', 'Days Since Last Booking', 'Spring', 'Summer', 'Autumn', 'Winter'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4285f4').setFontColor('white');
+  
+  const customers = Object.values(customerDatabase);
+  const data = customers.map(customer => {
+    const preferredVan = Object.keys(customer.preferredVans).reduce((a, b) => 
+      customer.preferredVans[a] > customer.preferredVans[b] ? a : b, '');
+    
+    const daysSinceLastBooking = Math.floor((new Date() - customer.lastBooking) / (1000 * 60 * 60 * 24));
+    
+    return [
+      customer.id,
+      customer.name,
+      customer.phone,
+      customer.email,
+      customer.firstBooking,
+      customer.lastBooking,
+      customer.totalBookings,
+      customer.totalDays,
+      Math.round(customer.averageBookingDuration * 10) / 10,
+      preferredVan,
+      customer.customerSegment,
+      daysSinceLastBooking,
+      customer.seasonalPattern.spring,
+      customer.seasonalPattern.summer,
+      customer.seasonalPattern.autumn,
+      customer.seasonalPattern.winter
+    ];
+  });
+  
+  if (data.length > 0) {
+    sheet.getRange(2, 1, data.length, headers.length).setValues(data);
+  }
+  
+  sheet.autoResizeColumns(1, headers.length);
+  sheet.setFrozenRows(1);
+}
+
+/**
+ * Create all bookings sheet
+ */
+function createAllBookingsSheet(spreadsheet, events) {
+  let sheet = spreadsheet.getSheetByName('All Bookings');
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('All Bookings');
+  } else {
+    sheet.clear();
+  }
+  
+  const headers = [
+    'Booking Date', 'Event Title', 'Start Date', 'End Date', 'Duration (Days)',
+    'Van', 'Calendar', 'Customer Phone', 'Customer Name', 'Description'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#34a853').setFontColor('white');
+  
+  const data = events.map(event => {
+    const customer = extractCustomerFromEventCRM(event);
+    const van = extractVanFromEventCRM(event);
+    const duration = Math.ceil((event.endTime - event.startTime) / (1000 * 60 * 60 * 24));
+    
+    return [
+      event.createdDate,
+      event.title,
+      event.startTime,
+      event.endTime,
+      duration,
+      van,
+      event.calendarName,
+      customer ? customer.phone : '',
+      customer ? customer.name : '',
+      event.description
+    ];
+  });
+  
+  if (data.length > 0) {
+    sheet.getRange(2, 1, data.length, headers.length).setValues(data);
+  }
+  
+  sheet.autoResizeColumns(1, headers.length);
+  sheet.setFrozenRows(1);
+}
+
+/**
+ * Create analytics sheet
+ */
+function createAnalyticsSheet(spreadsheet, customerDatabase, events) {
+  let sheet = spreadsheet.getSheetByName('Analytics');
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('Analytics');
+  } else {
+    sheet.clear();
+  }
+  
+  const customers = Object.values(customerDatabase);
+  
+  const analytics = [
+    ['CUSTOMER ANALYTICS', ''],
+    ['Total Customers', customers.length],
+    ['VIP Customers (5+ bookings)', customers.filter(c => c.totalBookings >= 5).length],
+    ['Loyal Customers (3-4 bookings)', customers.filter(c => c.totalBookings >= 3 && c.totalBookings < 5).length],
+    ['Repeat Customers (2 bookings)', customers.filter(c => c.totalBookings === 2).length],
+    ['New Customers (1 booking)', customers.filter(c => c.totalBookings === 1).length],
+    ['', ''],
+    ['BOOKING ANALYTICS', ''],
+    ['Total Bookings', events.length],
+    ['Average Duration (days)', Math.round(customers.reduce((sum, c) => sum + c.averageBookingDuration, 0) / customers.length * 10) / 10],
+    ['Most Active Customer', customers.reduce((max, c) => c.totalBookings > max.totalBookings ? c : max, customers[0])?.name || 'N/A'],
+    ['', ''],
+    ['SEASONAL DISTRIBUTION', ''],
+    ['Spring Bookings', customers.reduce((sum, c) => sum + c.seasonalPattern.spring, 0)],
+    ['Summer Bookings', customers.reduce((sum, c) => sum + c.seasonalPattern.summer, 0)],
+    ['Autumn Bookings', customers.reduce((sum, c) => sum + c.seasonalPattern.autumn, 0)],
+    ['Winter Bookings', customers.reduce((sum, c) => sum + c.seasonalPattern.winter, 0)]
+  ];
+  
+  sheet.getRange(1, 1, analytics.length, 2).setValues(analytics);
+  
+  // Format
+  sheet.getRange(1, 1).setFontWeight('bold').setBackground('#ff9900').setFontColor('white');
+  sheet.getRange(8, 1).setFontWeight('bold').setBackground('#ff9900').setFontColor('white');
+  sheet.getRange(13, 1).setFontWeight('bold').setBackground('#ff9900').setFontColor('white');
+  
+  sheet.autoResizeColumns(1, 2);
+}
+
+/**
+ * JSONP version for CRM database creation
+ */
+function buildCustomerCRMDatabaseJsonp(params) {
+  try {
+    const callback = params.callback || 'callback';
+    const result = buildCustomerCRMDatabase();
+    const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResult = { success: false, error: error.toString() };
     const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
     
     return ContentService
