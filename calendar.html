@@ -332,12 +332,17 @@
         .event-pill:hover {
             background: #5a6fd8;
             transform: scale(1.02);
-        }
-
-        .event-pill.calendar-1 { background: #FF6B6B; }
-        .event-pill.calendar-2 { background: #4ECDC4; }
-        .event-pill.calendar-3 { background: #45B7D1; }
-        .event-pill.calendar-4 { background: #96CEB4; }
+        }        .event-pill.calendar-0 { background: #667eea; } /* Main Calendar - Blue */
+        .event-pill.calendar-1 { background: #FF6B6B; } /* Opel Vivaro - Red */
+        .event-pill.calendar-2 { background: #4ECDC4; } /* Renault Master - Teal */
+        .event-pill.calendar-3 { background: #45B7D1; } /* Fiat Ducato - Light Blue */
+        .event-pill.calendar-4 { background: #96CEB4; } /* Citroen Boxer - Green */
+        .event-pill.calendar-5 { background: #FECA57; } /* Citroen Jumper - Yellow */
+        .event-pill.calendar-6 { background: #FF9FF3; } /* Renault Trafic - Pink */
+        .event-pill.calendar-7 { background: #54A0FF; } /* Renault Trafic2 - Blue */
+        .event-pill.calendar-8 { background: #5F27CD; } /* Renault Trafic3 - Purple */
+        .event-pill.calendar-9 { background: #00D2D3; } /* Citroen Jumper2 - Cyan */
+        .event-pill.calendar-10 { background: #FF9F43; } /* Citroen Jumper3 - Orange */
 
         .sidebar {
             display: flex;
@@ -551,6 +556,39 @@
         .animate-in {
             animation: fadeInUp 0.6s ease-out forwards;
         }
+
+        .van-legend {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .van-legend h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            padding: 4px 0;
+            transition: background 0.2s ease;
+        }
+
+        .legend-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 4px;
+            padding-left: 4px;
+        }
+
+        .legend-color {
+            display: inline-block;
+            flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -567,13 +605,19 @@
 
         <div class="controls animate-in">
             <div class="control-group">
-                <label for="calendarFilter">Calendar:</label>
-                <select id="calendarFilter">
+                <label for="calendarFilter">Calendar:</label>                <select id="calendarFilter">
                     <option value="all">All Calendars</option>
                     <option value="0">Main Calendar</option>
-                    <option value="1">Van Fleet A</option>
-                    <option value="2">Van Fleet B</option>
-                    <option value="3">Van Fleet C</option>
+                    <option value="1">Opel Vivaro</option>
+                    <option value="2">Renault Master</option>
+                    <option value="3">Fiat Ducato</option>
+                    <option value="4">Citroen Boxer</option>
+                    <option value="5">Citroen Jumper</option>
+                    <option value="6">Renault Trafic</option>
+                    <option value="7">Renault Trafic2</option>
+                    <option value="8">Renault Trafic3</option>
+                    <option value="9">Citroen Jumper2</option>
+                    <option value="10">Citroen Jumper3</option>
                 </select>
             </div>
            
@@ -680,6 +724,57 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Van Fleet Legend -->
+        <div class="van-legend animate-in" style="margin-top: 20px;">
+            <h3>🚐 Van Fleet</h3>
+            <div class="legend-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #667eea;"></span>
+                    <span>Main Calendar</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FF6B6B;"></span>
+                    <span>Opel Vivaro</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #4ECDC4;"></span>
+                    <span>Renault Master</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #45B7D1;"></span>
+                    <span>Fiat Ducato</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #96CEB4;"></span>
+                    <span>Citroen Boxer</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FECA57;"></span>
+                    <span>Citroen Jumper</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FF9FF3;"></span>
+                    <span>Renault Trafic</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #54A0FF;"></span>
+                    <span>Renault Trafic2</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #5F27CD;"></span>
+                    <span>Renault Trafic3</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #00D2D3;"></span>
+                    <span>Citroen Jumper2</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
+                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FF9F43;"></span>
+                    <span>Citroen Jumper3</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -727,6 +822,20 @@
             'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
             'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
             'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com'
+        ];
+
+        const CALENDAR_NAMES = [
+            'Main Calendar',
+            'Opel Vivaro',
+            'Renault Master',
+            'Fiat Ducato',
+            'Citroen Boxer',
+            'Citroen Jumper',
+            'Renault Trafic',
+            'Renault Trafic2',
+            'Renault Trafic3',
+            'Citroen Jumper2',
+            'Citroen Jumper3'
         ];
 
         const FLEET_NAMES = {
@@ -814,34 +923,56 @@
             }
            
             renderEvents();
-        }
-
-        function renderEvents() {
+        }        function renderEvents() {
             const calendar = document.getElementById('calendarView');
             const days = calendar.querySelectorAll('.calendar-day');
+            const filterValue = document.getElementById('calendarFilter').value;
            
+            // Clear all existing events
             days.forEach(day => {
                 const eventsContainer = day.querySelector('.day-events');
-                eventsContainer.innerHTML = '';
+                if (eventsContainer) {
+                    eventsContainer.innerHTML = '';
+                }
             });
            
-            // Add events to calendar days
-            currentEvents.forEach(event => {
+            // Filter events based on current filter
+            let eventsToShow = currentEvents;
+            if (filterValue !== 'all') {
+                const calendarIndex = parseInt(filterValue);
+                eventsToShow = currentEvents.filter(event => 
+                    event.calendarIndex === calendarIndex || 
+                    event.calendarName === CALENDAR_NAMES[calendarIndex]
+                );
+            }
+           
+            // Add filtered events to calendar days
+            eventsToShow.forEach(event => {
                 const eventDate = new Date(event.start.date || event.start.dateTime);
                 const dayIndex = findDayIndex(eventDate);
                
                 if (dayIndex >= 0 && dayIndex < days.length) {
                     const eventsContainer = days[dayIndex].querySelector('.day-events');
-                    const eventPill = document.createElement('div');
-                    eventPill.className = `event-pill calendar-${event.calendarIndex}`;
-                    eventPill.textContent = event.summary || 'No title';
-                    eventPill.onclick = (e) => {
-                        e.stopPropagation();
-                        selectEvent(event);
-                    };
-                    eventsContainer.appendChild(eventPill);
+                    if (eventsContainer) {
+                        const eventPill = document.createElement('div');
+                        eventPill.className = `event-pill calendar-${event.calendarIndex || 0}`;
+                        
+                        // Show event title and calendar name
+                        const eventTitle = event.summary || 'No title';
+                        const calendarName = event.calendarName || CALENDAR_NAMES[event.calendarIndex] || '';
+                        eventPill.textContent = eventTitle;
+                        eventPill.title = `${eventTitle} (${calendarName})`; // Tooltip
+                        
+                        eventPill.onclick = (e) => {
+                            e.stopPropagation();
+                            selectEvent(event);
+                        };
+                        eventsContainer.appendChild(eventPill);
+                    }
                 }
             });
+            
+            console.log(`Rendered ${eventsToShow.length} events (filtered: ${filterValue})`);
         }
 
         function findDayIndex(date) {
@@ -881,127 +1012,82 @@
             console.log('Selected day:', date);
         }
 
+        // Enhanced event selection function
         function selectEvent(event) {
-            selectedEvent = event;
-            displayEventDetails(event);
-            loadCustomerData(event);
-        }
-
-        function displayEventDetails(event) {
             const eventInfo = document.getElementById('eventInfo');
-           
-            // Parse event description to extract structured data
-            const eventData = parseEventDescription(event.description || '');
-           
-            const startTime = new Date(event.start.dateTime || event.start.date).toLocaleString();
-            const endTime = new Date(event.end.dateTime || event.end.date).toLocaleString();
-           
+            const customerInfo = document.getElementById('customerInfo');
+            
+            // Display event details
+            const startTime = new Date(event.start.dateTime || event.start.date);
+            const endTime = new Date(event.end.dateTime || event.end.date);
+            const calendarName = event.calendarName || CALENDAR_NAMES[event.calendarIndex] || 'Unknown Calendar';
+            
             eventInfo.innerHTML = `
-                <div class="event-info">
-                    <div class="event-title">${event.summary || 'No title'}</div>
-                    <div class="event-meta">
-                        <div class="meta-item">
-                            <span class="meta-icon">📅</span>
-                            <span>${startTime}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-icon">⏰</span>
-                            <span>Until ${endTime}</span>
-                        </div>
-                        ${eventData.vehicle ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">🚐</span>
-                            <span>${eventData.vehicle}</span>
-                        </div>` : ''}
-                        ${eventData.phone ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">📱</span>
-                            <span>${eventData.phone}</span>
-                        </div>` : ''}
-                        ${eventData.email ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">📧</span>
-                            <span>${eventData.email}</span>
-                        </div>` : ''}
-                        ${eventData.amount ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">💰</span>
-                            <span>${eventData.amount}</span>
-                        </div>` : ''}
-                        ${eventData.address ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">📍</span>
-                            <span>${eventData.address}</span>
-                        </div>` : ''}
-                        ${eventData.deposit ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">🏦</span>
-                            <span>Deposit: ${eventData.deposit}</span>
-                        </div>` : ''}
-                        ${eventData.paymentMethod ? `
-                        <div class="meta-item">
-                            <span class="meta-icon">💳</span>
-                            <span>Payment: ${eventData.paymentMethod}</span>
-                        </div>` : ''}
-                        <div class="meta-item">
-                            <span class="meta-icon">📋</span>
-                            <span>${FLEET_NAMES[event.calendarIndex] || `Calendar ${event.calendarIndex + 1}`}</span>
-                        </div>
+                <div class="event-detail-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;">${event.summary || 'No Title'}</h4>
+                    <div class="event-meta" style="display: grid; gap: 8px; font-size: 13px; color: #666;">
+                        <div><strong>📅 Date:</strong> ${startTime.toLocaleDateString()}</div>
+                        <div><strong>⏰ Time:</strong> ${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}</div>
+                        <div><strong>🚐 Van:</strong> <span style="color: #333; font-weight: 500;">${calendarName}</span></div>
+                        ${event.location ? `<div><strong>📍 Location:</strong> ${event.location}</div>` : ''}
+                        ${event.description ? `<div><strong>📝 Notes:</strong> ${event.description}</div>` : ''}
                     </div>
                 </div>
             `;
-        }
-
-        function parseEventDescription(description) {
-            const data = {};
-           
-            // Extract vehicle info (Veicolo: N08 - Renault Trafic)
-            const vehicleMatch = description.match(/Veicolo:\s*([^\n]+)/i);
-            if (vehicleMatch) data.vehicle = vehicleMatch[1].trim();
-           
-            // Extract phone number
-            const phoneMatch = description.match(/Numero di cellulare:\s*([^\n]+)/i);
-            if (phoneMatch) data.phone = phoneMatch[1].trim();
-           
-            // Extract email
-            const emailMatch = description.match(/Email:\s*([^\n]+)/i);
-            if (emailMatch) data.email = emailMatch[1].trim();
-           
-            // Extract amount (Prezzo: CHF 500.00)
-            const amountMatch = description.match(/Prezzo:\s*(CHF\s*[\d,.]+)/i);
-            if (amountMatch) data.amount = amountMatch[1].trim();
-           
-            // Extract address (Indirizzo:)
-            const addressMatch = description.match(/Indirizzo:\s*([^\n]+)/i);
-            if (addressMatch) data.address = addressMatch[1].trim();
-           
-            // Extract deposit (Deposit Refund: CHF 50)
-            const depositMatch = description.match(/Deposit Refund:\s*(CHF\s*[\d,.]+)/i);
-            if (depositMatch) data.deposit = depositMatch[1].trim();
-           
-            // Extract payment method
-            const paymentMatch = description.match(/Pagamento:\s*([^\n]+)/i);
-            if (paymentMatch) data.paymentMethod = paymentMatch[1].trim();
-           
-            return data;
-        }
-
-        function loadCustomerData(event) {
-            // Extract customer name from event (you'll need to adjust this based on your data structure)
-            const customerName = extractCustomerName(event.summary || '');
-           
-            if (customerName) {
-                displayCustomerCRM(customerName);
+            
+            // Extract customer information from event
+            const customerName = extractCustomerName(event);
+            const customerPhone = extractCustomerPhone(event);
+            const customerEmail = extractCustomerEmail(event);
+            
+            if (customerName || customerPhone || customerEmail) {
+                customerInfo.innerHTML = `
+                    <div class="customer-card" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <h4 style="margin: 0 0 10px 0; color: #1976d2; font-size: 16px;">👤 Customer Information</h4>
+                        <div class="customer-details" style="font-size: 13px; color: #333; line-height: 1.4;">
+                            ${customerName ? `<div><strong>Name:</strong> ${customerName}</div>` : ''}
+                            ${customerPhone ? `<div><strong>Phone:</strong> <a href="tel:${customerPhone}" style="color: #1976d2;">${customerPhone}</a></div>` : ''}
+                            ${customerEmail ? `<div><strong>Email:</strong> <a href="mailto:${customerEmail}" style="color: #1976d2;">${customerEmail}</a></div>` : ''}
+                        </div>
+                    </div>
+                `;
             } else {
-                document.getElementById('customerInfo').innerHTML = '<div class="no-event">No customer data available</div>';
+                customerInfo.innerHTML = `
+                    <div style="padding: 15px; text-align: center; color: #666; font-size: 13px;">
+                        No customer information available for this booking
+                    </div>
+                `;
             }
         }
 
-        function extractCustomerName(eventTitle) {
-            // This is a placeholder - you'll need to adjust based on how you store customer names
-            // For example, if your events are titled "John Doe - Van Rental"
-            const match = eventTitle.match(/^([^-]+)/);
-            return match ? match[1].trim() : null;
+        // Helper functions to extract customer data from events
+        function extractCustomerName(event) {
+            const title = event.summary || '';
+            const description = event.description || '';
+            
+            // Try to extract name from title (common patterns)
+            const nameMatch = title.match(/^([A-Za-z\s]+)\s*-/) || 
+                             title.match(/([A-Za-z\s]+)\s*\(/) ||
+                             description.match(/Nome?\s*:?\s*([A-Za-z\s]+)/i);
+            
+            return nameMatch ? nameMatch[1].trim() : null;
+        }
+
+        function extractCustomerPhone(event) {
+            const text = (event.summary || '') + ' ' + (event.description || '');
+            
+            // Swiss/Italian phone number patterns
+            const phoneMatch = text.match(/(?:\+41|0041)?\s*(?:\d{2}\s*\d{3}\s*\d{2}\s*\d{2})|(?:\d{3}\s*\d{3}\s*\d{2}\s*\d{2})|(?:\d{10})/);
+            
+            return phoneMatch ? phoneMatch[0].trim() : null;
+        }
+
+        function extractCustomerEmail(event) {
+            const text = (event.summary || '') + ' ' + (event.description || '');
+            
+            const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+            
+            return emailMatch ? emailMatch[0] : null;
         }
 
         // =============================================================================
@@ -1360,12 +1446,29 @@
             }
            
             return events;
-        }
-
-        function filterCalendarView() {
-            const filter = document.getElementById('calendarFilter').value;
-            // Implement calendar filtering logic
+        }        function filterCalendarView() {
+            const filterValue = document.getElementById('calendarFilter').value;
+            
+            // If "all" is selected, show all events
+            if (filterValue === 'all') {
+                renderEvents();
+                return;
+            }
+            
+            // Filter events by calendar index
+            const calendarIndex = parseInt(filterValue);
+            const filteredEvents = currentEvents.filter(event => 
+                event.calendarIndex === calendarIndex || 
+                event.calendarName === CALENDAR_NAMES[calendarIndex]
+            );
+            
+            // Temporarily store original events and render filtered ones
+            const originalEvents = currentEvents;
+            currentEvents = filteredEvents;
             renderEvents();
+            currentEvents = originalEvents; // Restore original events
+            
+            console.log(`Filtered to show ${CALENDAR_NAMES[calendarIndex] || 'Unknown'} calendar events:`, filteredEvents.length);
         }
 
         function changeView() {
