@@ -498,30 +498,26 @@ function getCalendarEventsApp(startDate, endDate) {
   try {
     Logger.log('📅 Fetching calendar events from ' + startDate + ' to ' + endDate);    const calendarIds = [
       'noleggiosemplice23@gmail.com',                                                          // Main calendar
-      'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',                               // Opel Vivaro
-      'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com', // Renault Master  
-      'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com', // Fiat Ducato
-      '25f71a841f7ac3252fc9f1ced1870596d23a1842ae48ed39ede7f3bc01e819ca@group.calendar.google.com', // Citroen Boxer
-      '8c2a425fa75bf5230dd2eee2a5cbedfcfa01279e943b5817efa25dfb359d8920@group.calendar.google.com', // Citroen Jumper
-      'aa19b3fbefcdee63ffa1b724e3a2f4c65ed49949db2e6cf3d40e13924daea94b@group.calendar.google.com', // Renault Trafic
-      '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com', // Renault Trafic2
-      '9535c25ccd3adc5dc5a908aa9055cd8893e547657d6257f0a0232d50214c8c99@group.calendar.google.com', // Renault Trafic3
-      'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com', // Citroen Jumper2
-      '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'  // Citroen Jumper3
-    ];
-    
-    const calendarNames = [
+      'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',                               // N01 - Opel Vivaro (Losone)
+      'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com', // N03 - Peugeot Boxer (Bellinzona)
+      'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com', // N04 - Fiat Ducato (Locarno)
+      '8c2a425fa75bf5230dd2eee2a5cbedfcfa01279e943b5817efa25dfb359d8920@group.calendar.google.com', // N06 - Citroen Jumper (Minusio)
+      'aa19b3fbefcdee63ffa1b724e3a2f4c65ed49949db2e6cf3d40e13924daea94b@group.calendar.google.com', // N07 - Renault Trafic (Lugano)
+      '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com', // N08 - Renault Trafic (Lugano)
+      '9535c25ccd3adc5dc5a908aa9055cd8893e547657d6257f0a0232d50214c8c99@group.calendar.google.com', // N09 - Renault Trafic (Bellinzona)
+      'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com', // N10 - Citroen Jumper (Losone)
+      '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'  // N11 - Citroen Jumper (Losone)
+    ];    const calendarNames = [
       'Main Calendar',
-      'Opel Vivaro', 
-      'Renault Master',
-      'Fiat Ducato',
-      'Citroen Boxer',
-      'Citroen Jumper',
-      'Renault Trafic',
-      'Renault Trafic2',
-      'Renault Trafic3', 
-      'Citroen Jumper2',
-      'Citroen Jumper3'
+      'N01 - Opel Vivaro (Losone)', 
+      'N03 - Peugeot Boxer (Bellinzona)',
+      'N04 - Fiat Ducato (Locarno)',
+      'N06 - Citroen Jumper (Minusio)',
+      'N07 - Renault Trafic (Lugano)',
+      'N08 - Renault Trafic (Lugano)',
+      'N09 - Renault Trafic (Bellinzona)', 
+      'N10 - Citroen Jumper (Losone)',
+      'N11 - Citroen Jumper (Losone)'
     ];
     
     const allEvents = [];
@@ -1718,8 +1714,7 @@ function buildCustomerCRMDatabase() {
 /**
  * Extract all events from all calendars for CRM analysis
  */
-function extractAllEventsForCRM(startDate, endDate, maxEvents = 2000) {
-  const calendarIds = [
+function extractAllEventsForCRM(startDate, endDate, maxEvents = 2000) {  const calendarIds = [
     'noleggiosemplice23@gmail.com',
     'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
     'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
@@ -1732,19 +1727,18 @@ function extractAllEventsForCRM(startDate, endDate, maxEvents = 2000) {
     'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com',
     '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'
   ];
-  
-  const calendarNames = [
+    const calendarNames = [
     'Main Calendar',
-    'Opel Vivaro',
-    'Renault Master',
-    'Fiat Ducato',
-    'Citroen Boxer',
-    'Citroen Jumper',
-    'Renault Trafic',
-    'Renault Trafic2',
-    'Renault Trafic3',
-    'Citroen Jumper2',
-    'Citroen Jumper3'
+    '1 - Opel Vivaro (Losone)', 
+    '2 - Renault Master L2H2',
+    '3 - Peugeot Boxer (Lugano)',
+    '4 - Fiat Ducato (Locarno)',
+    '5 - Citroen Boxer (Quartino)',
+    '6 - Citroen Jumper L2H2',
+    '7 - Renault Trafic (Lugano)',
+    '8 - Renault Trafic Lugano',
+    '9 - Renault Trafic L1H1',
+    '10 - Citroen Jumper (Lugano)'
   ];
   
   const allEvents = [];

@@ -333,16 +333,15 @@
             background: #5a6fd8;
             transform: scale(1.02);
         }        .event-pill.calendar-0 { background: #667eea; } /* Main Calendar - Blue */
-        .event-pill.calendar-1 { background: #FF6B6B; } /* Opel Vivaro - Red */
-        .event-pill.calendar-2 { background: #4ECDC4; } /* Renault Master - Teal */
-        .event-pill.calendar-3 { background: #45B7D1; } /* Fiat Ducato - Light Blue */
-        .event-pill.calendar-4 { background: #96CEB4; } /* Citroen Boxer - Green */
-        .event-pill.calendar-5 { background: #FECA57; } /* Citroen Jumper - Yellow */
-        .event-pill.calendar-6 { background: #FF9FF3; } /* Renault Trafic - Pink */
-        .event-pill.calendar-7 { background: #54A0FF; } /* Renault Trafic2 - Blue */
-        .event-pill.calendar-8 { background: #5F27CD; } /* Renault Trafic3 - Purple */
-        .event-pill.calendar-9 { background: #00D2D3; } /* Citroen Jumper2 - Cyan */
-        .event-pill.calendar-10 { background: #FF9F43; } /* Citroen Jumper3 - Orange */
+        .event-pill.calendar-1 { background: #FF6B6B; } /* N01 - Opel Vivaro (Losone) - Red */
+        .event-pill.calendar-2 { background: #4ECDC4; } /* N03 - Peugeot Boxer (Bellinzona) - Teal */
+        .event-pill.calendar-3 { background: #45B7D1; } /* N04 - Fiat Ducato (Locarno) - Light Blue */
+        .event-pill.calendar-4 { background: #96CEB4; } /* N06 - Citroen Jumper (Minusio) - Green */
+        .event-pill.calendar-5 { background: #FECA57; } /* N07 - Renault Trafic (Lugano) - Yellow */
+        .event-pill.calendar-6 { background: #FF9FF3; } /* N08 - Renault Trafic (Lugano) - Pink */
+        .event-pill.calendar-7 { background: #54A0FF; } /* N09 - Renault Trafic (Bellinzona) - Blue */
+        .event-pill.calendar-8 { background: #5F27CD; } /* N10 - Citroen Jumper (Losone) - Purple */
+        .event-pill.calendar-9 { background: #00D2D3; } /* N11 - Citroen Jumper (Losone) - Cyan */
 
         .sidebar {
             display: flex;
@@ -608,16 +607,15 @@
                 <label for="calendarFilter">Calendar:</label>                <select id="calendarFilter">
                     <option value="all">All Calendars</option>
                     <option value="0">Main Calendar</option>
-                    <option value="1">Opel Vivaro</option>
-                    <option value="2">Renault Master</option>
-                    <option value="3">Fiat Ducato</option>
-                    <option value="4">Citroen Boxer</option>
-                    <option value="5">Citroen Jumper</option>
-                    <option value="6">Renault Trafic</option>
-                    <option value="7">Renault Trafic2</option>
-                    <option value="8">Renault Trafic3</option>
-                    <option value="9">Citroen Jumper2</option>
-                    <option value="10">Citroen Jumper3</option>
+                    <option value="1">N01 - Opel Vivaro (Losone)</option>
+                    <option value="2">N03 - Peugeot Boxer (Bellinzona)</option>
+                    <option value="3">N04 - Fiat Ducato (Locarno)</option>
+                    <option value="4">N06 - Citroen Jumper (Minusio)</option>
+                    <option value="5">N07 - Renault Trafic (Lugano)</option>
+                    <option value="6">N08 - Renault Trafic (Lugano)</option>
+                    <option value="7">N09 - Renault Trafic (Bellinzona)</option>
+                    <option value="8">N10 - Citroen Jumper (Losone)</option>
+                    <option value="9">N11 - Citroen Jumper (Losone)</option>
                 </select>
             </div>
            
@@ -727,51 +725,46 @@
         
         <!-- Van Fleet Legend -->
         <div class="van-legend animate-in" style="margin-top: 20px;">
-            <h3>🚐 Van Fleet</h3>
-            <div class="legend-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+            <h3>🚐 Van Fleet</h3>            <div class="legend-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #667eea;"></span>
                     <span>Main Calendar</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FF6B6B;"></span>
-                    <span>Opel Vivaro</span>
+                    <span>N01 - Opel Vivaro (Losone)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #4ECDC4;"></span>
-                    <span>Renault Master</span>
+                    <span>N03 - Peugeot Boxer (Bellinzona)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #45B7D1;"></span>
-                    <span>Fiat Ducato</span>
+                    <span>N04 - Fiat Ducato (Locarno)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #96CEB4;"></span>
-                    <span>Citroen Boxer</span>
+                    <span>N06 - Citroen Jumper (Minusio)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FECA57;"></span>
-                    <span>Citroen Jumper</span>
+                    <span>N07 - Renault Trafic (Lugano)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FF9FF3;"></span>
-                    <span>Renault Trafic</span>
+                    <span>N08 - Renault Trafic (Lugano)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #54A0FF;"></span>
-                    <span>Renault Trafic2</span>
+                    <span>N09 - Renault Trafic (Bellinzona)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #5F27CD;"></span>
-                    <span>Renault Trafic3</span>
+                    <span>N10 - Citroen Jumper (Losone)</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
                     <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #00D2D3;"></span>
-                    <span>Citroen Jumper2</span>
-                </div>
-                <div class="legend-item" style="display: flex; align-items: center; gap: 6px;">
-                    <span class="legend-color" style="width: 12px; height: 12px; border-radius: 50%; background: #FF9F43;"></span>
-                    <span>Citroen Jumper3</span>
+                    <span>N11 - Citroen Jumper (Losone)</span>
                 </div>
             </div>
         </div>
@@ -816,26 +809,30 @@
             }
         }
 
-        // Calendar configuration - Updated with your actual fleet numbers
-        const CALENDAR_IDS = [
+        // Calendar configuration - Updated with your actual fleet numbers        const CALENDAR_IDS = [
             'noleggiosemplice23@gmail.com',
             'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
             'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
-            'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com'
+            'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com',
+            '8c2a425fa75bf5230dd2eee2a5cbedfcfa01279e943b5817efa25dfb359d8920@group.calendar.google.com',
+            'aa19b3fbefcdee63ffa1b724e3a2f4c65ed49949db2e6cf3d40e13924daea94b@group.calendar.google.com',
+            '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com',
+            '9535c25ccd3adc5dc5a908aa9055cd8893e547657d6257f0a0232d50214c8c99@group.calendar.google.com',
+            'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com',
+            '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'
         ];
 
         const CALENDAR_NAMES = [
             'Main Calendar',
-            'Opel Vivaro',
-            'Renault Master',
-            'Fiat Ducato',
-            'Citroen Boxer',
-            'Citroen Jumper',
-            'Renault Trafic',
-            'Renault Trafic2',
-            'Renault Trafic3',
-            'Citroen Jumper2',
-            'Citroen Jumper3'
+            'N01 - Opel Vivaro (Losone)',
+            'N03 - Peugeot Boxer (Bellinzona)',
+            'N04 - Fiat Ducato (Locarno)',
+            'N06 - Citroen Jumper (Minusio)',
+            'N07 - Renault Trafic (Lugano)',
+            'N08 - Renault Trafic (Lugano)',
+            'N09 - Renault Trafic (Bellinzona)',
+            'N10 - Citroen Jumper (Losone)',
+            'N11 - Citroen Jumper (Losone)'
         ];
 
         const FLEET_NAMES = {
