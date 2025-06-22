@@ -148,6 +148,13 @@ function doGet(e) {
       case "buildQuickCustomerCRMDatabaseJsonp":
         return buildQuickCustomerCRMDatabaseJsonp(e.parameter);
         break;
+      // ADD CALENDAR NAMES FUNCTION TO doGet
+      case "getCalendarNames":
+        result = getCalendarNamesApp();
+        break;
+      case "getCalendarNamesJsonp":
+        return getCalendarNamesAppJsonp(e.parameter);
+        break;
       default:
         result = { error: `Unknown function: ${functionName}` };
     }
@@ -2294,4 +2301,87 @@ function buildQuickCustomerCRMDatabaseJsonp(params) {
       .createTextOutput(jsonpResponse)
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
+}
+
+// Get calendar names and colors dynamically from Google Calendar
+function getCalendarNamesApp() {
+  try {
+    const calendarIds = [
+      'noleggiosemplice23@gmail.com',
+      'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
+      'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
+      'd4bcd20ca384fcbbf31fc901401281942d8edbaecec4c24604c917c6f71bc43e@group.calendar.google.com',
+      '8c2a425fa75bf5230dd2eee2a5cbedfcfa01279e943b5817efa25dfb359d8920@group.calendar.google.com',
+      'aa19b3fbefcdee63ffa1b724e3a2f4c65ed49949db2e6cf3d40e13924daea94b@group.calendar.google.com',
+      '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com',
+      '9535c25ccd3adc5dc5a908aa9055cd8893e547657d6257f0a0232d50214c8c99@group.calendar.google.com',
+      'a97fc8429fc9a143475e0244ad922ce0f6dfb025a88dd68baadd116ef4f0b5cc@group.calendar.google.com',
+      '0e9a455f793914439c9ae0e5ef91790038aa8fc295e71cfacbc3b8f128def8fa@group.calendar.google.com'
+    ];
+    
+    const calendarData = [];
+    
+    // Default color palette that matches Google Calendar common colors
+    const defaultColors = [
+      '#667eea', // Blue
+      '#FF6B6B', // Red  
+      '#4ECDC4', // Teal
+      '#45B7D1', // Light Blue
+      '#96CEB4', // Green
+      '#FECA57', // Yellow
+      '#FF9FF3', // Pink
+      '#54A0FF', // Blue
+      '#5F27CD', // Purple
+      '#00D2D3'  // Cyan
+    ];
+    
+    for (let i = 0; i < calendarIds.length; i++) {
+      try {
+        const calendar = CalendarApp.getCalendarById(calendarIds[i]);
+        if (calendar) {
+          const calendarName = calendar.getName();
+          const color = calendar.getColor() || defaultColors[i % defaultColors.length];
+          
+          calendarData.push({
+            name: calendarName,
+            color: color,
+            id: calendarIds[i]
+          });
+          
+          Logger.log(`Calendar ${i}: ${calendarName} - Color: ${color}`);
+        } else {
+          calendarData.push({
+            name: `Calendar ${i + 1}`,
+            color: defaultColors[i % defaultColors.length],
+            id: calendarIds[i]
+          });
+        }
+      } catch (error) {
+        Logger.log(`Error getting details for calendar ${calendarIds[i]}: ${error}`);
+        calendarData.push({
+          name: `Calendar ${i + 1}`,
+          color: defaultColors[i % defaultColors.length],
+          id: calendarIds[i]
+        });
+      }
+    }
+    
+    // Return both old format for compatibility and new detailed format
+    return { 
+      result: calendarData.map(cal => cal.name), // Old format for compatibility
+      calendars: calendarData,  // New detailed format
+      success: true
+    };
+  } catch (error) {
+    return { error: error.toString() };
+  }
+}
+
+// JSONP version for cross-domain requests
+function getCalendarNamesAppJsonp(e) {
+  const result = getCalendarNamesApp();
+  const callback = e.parameter.callback || 'callback';
+  return ContentService
+    .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }

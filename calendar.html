@@ -32,17 +32,28 @@
                 grid-template-columns: 1fr 350px;
                 gap: 20px;
             }
-        }
-
-        /* Mobile responsive design */
+        }        /* Mobile responsive design */
         @media screen and (max-width: 900px) {
             .calendar-grid {
                 grid-template-columns: 1fr;
                 gap: 15px;
             }
-        }
-
-        @media screen and (max-width: 768px) {
+            
+            .calendar-day {
+                min-height: 80px;
+                padding: 4px;
+            }
+            
+            .day-number {
+                font-size: 12px;
+            }
+            
+            .event-pill {
+                font-size: 8px;
+                padding: 2px 4px;
+                min-height: 14px;
+            }
+        }        @media screen and (max-width: 768px) {
             .container {
                 padding: 10px;
                 max-width: 100%;
@@ -74,13 +85,28 @@
             }
             
             .calendar-day {
-                min-height: 60px;
-                padding: 3px;
+                min-height: 70px;
+                padding: 4px;
+            }
+            
+            .day-number {
+                font-size: 12px;
+                margin-bottom: 2px;
             }
             
             .event-pill {
-                font-size: 9px;
-                padding: 1px 3px;
+                font-size: 8px;
+                padding: 2px 4px;
+                min-height: 14px;
+                margin-bottom: 1px;
+            }
+            
+            /* Prevent text overflow in small screens */
+            .event-pill {
+                max-width: 100%;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
             }
             
             /* Fix CRM buttons on mobile */
@@ -282,16 +308,19 @@
             color: #666;
         }        .calendar-day {
             background: white;
-            min-height: 100px;
-            padding: 8px;
+            min-height: 110px;
+            padding: 6px;
             position: relative;
             cursor: pointer;
             transition: all 0.2s ease;
             border: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
         }
 
         .calendar-day:hover {
             background: #f0f8ff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .calendar-day.other-month {
@@ -305,34 +334,46 @@
         }
 
         .day-number {
-            font-size: 12px;
-            font-weight: 500;
-            margin-bottom: 3px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #333;
+            text-align: center;
+            flex-shrink: 0;
         }
 
         .day-events {
             display: flex;
             flex-direction: column;
-            gap: 1px;
+            gap: 2px;
+            flex-grow: 1;
+            overflow: hidden;
         }
 
         .event-pill {
             background: #667eea;
             color: white;
-            font-size: 10px;
-            padding: 2px 5px;
-            border-radius: 10px;
+            font-size: 9px;
+            padding: 3px 6px;
+            border-radius: 12px;
             text-overflow: ellipsis;
             white-space: nowrap;
             overflow: hidden;
             cursor: pointer;
             transition: all 0.2s ease;
+            line-height: 1.2;
+            min-height: 16px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
 
         .event-pill:hover {
-            background: #5a6fd8;
-            transform: scale(1.02);
-        }        .event-pill.calendar-0 { background: #667eea; } /* Main Calendar - Blue */
+            transform: scale(1.05);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+            position: relative;
+        }.event-pill.calendar-0 { background: #667eea; } /* Main Calendar - Blue */
         .event-pill.calendar-1 { background: #FF6B6B; } /* N01 - Opel Vivaro (Losone) - Red */
         .event-pill.calendar-2 { background: #4ECDC4; } /* N03 - Peugeot Boxer (Bellinzona) - Teal */
         .event-pill.calendar-3 { background: #45B7D1; } /* N04 - Fiat Ducato (Locarno) - Light Blue */
@@ -840,12 +881,11 @@
             1: 'Van Fleet 1',
             2: 'Van Fleet 3',  // Skip 2 as mentioned
             3: 'Van Fleet 4'   // Continue sequence
-        };
-
-        let currentDate = new Date();
+        };        let currentDate = new Date();
         let currentEvents = [];
         let selectedEvent = null;
         let customerData = {};
+        let dynamicCalendarNames = []; // Will be loaded from Google Calendar
 
         // Initialize calendar
         document.addEventListener('DOMContentLoaded', function() {
@@ -853,13 +893,168 @@
             const settings = getSettings();
             console.log('🔧 Initialized with script URL:', settings.scriptUrl);
             
-            generateCalendar();
-            loadCalendarData();
+            // Load calendar names first, then generate calendar and load data
+            loadCalendarNames().then(() => {
+                generateCalendar();
+                loadCalendarData();
+            });
            
             // Set up event listeners
             document.getElementById('calendarFilter').addEventListener('change', filterCalendarView);
             document.getElementById('dateRange').addEventListener('change', changeView);
         });
+
+        // Load calendar names dynamically from Google Calendar        async function loadCalendarNames() {
+            // Check if we already loaded the names
+            if (dynamicCalendarNames.length > 0) {
+                console.log('📅 Calendar names already loaded:', dynamicCalendarNames);
+                return;
+            }
+            
+            try {
+                const settings = getSettings();
+                
+                // Check if settings are properly configured
+                if (!settings.scriptUrl || !settings.authToken) {
+                    console.warn('📅 Settings not configured properly, using static calendar names');
+                    dynamicCalendarNames = [...CALENDAR_NAMES];
+                    updateCalendarDropdown();
+                    updateCalendarLegend();
+                    return;
+                }
+                
+                console.log('📅 Loading calendar names from Google Calendar...');
+                
+                // Try JSONP method first (more reliable for Google Apps Script)
+                const jsonpUrl = `${settings.scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${settings.authToken}`;
+                
+                try {
+                    const jsonpData = await makeJsonpRequest(jsonpUrl, 10000); // 10 second timeout
+                    
+                    if (jsonpData && jsonpData.success && jsonpData.result && Array.isArray(jsonpData.result)) {
+                        dynamicCalendarNames = ['Main Calendar', ...jsonpData.result.slice(1)];
+                        
+                        // Check if we have calendar color data too
+                        if (jsonpData.calendars && Array.isArray(jsonpData.calendars)) {
+                            window.dynamicCalendarData = jsonpData.calendars;
+                            console.log('📅 Successfully loaded calendar names and colors via JSONP:', dynamicCalendarNames);
+                            console.log('🎨 Calendar colors:', jsonpData.calendars.map(cal => cal.color));
+                            updateDynamicColors(jsonpData.calendars);
+                        } else {
+                            console.log('📅 Successfully loaded calendar names via JSONP (no color data):', dynamicCalendarNames);
+                        }
+                        
+                        updateCalendarDropdown();
+                        updateCalendarLegend();
+                        return;
+                    }
+                } catch (jsonpError) {
+                    console.warn('📅 JSONP method failed, trying fetch...', jsonpError);
+                }
+                
+                // Fallback to fetch method
+                const fetchUrl = `${settings.scriptUrl}?function=getCalendarNames&authToken=${settings.authToken}`;
+                const response = await fetch(fetchUrl);
+                const data = await response.json();
+                
+                if (data.result && Array.isArray(data.result)) {
+                    dynamicCalendarNames = ['Main Calendar', ...data.result.slice(1)];
+                    console.log('📅 Successfully loaded calendar names via fetch:', dynamicCalendarNames);
+                    updateCalendarDropdown();
+                    updateCalendarLegend();
+                } else {
+                    throw new Error('Invalid response format from fetch');
+                }
+                
+            } catch (error) {
+                console.warn('📅 Could not load dynamic calendar names, using static fallback:', error);
+                dynamicCalendarNames = [...CALENDAR_NAMES];
+                updateCalendarDropdown();
+                updateCalendarLegend();
+            }
+        }
+        
+        // Update colors dynamically if color data is available
+        function updateDynamicColors(calendarData) {
+            try {
+                // Create dynamic CSS for event colors
+                let dynamicCSS = '';
+                calendarData.forEach((cal, index) => {
+                    if (cal.color) {
+                        dynamicCSS += `.event-pill.calendar-${index} { background: ${cal.color} !important; }\n`;
+                    }
+                });
+                
+                // Remove any existing dynamic color styles
+                const existingStyle = document.getElementById('dynamic-calendar-colors');
+                if (existingStyle) {
+                    existingStyle.remove();
+                }
+                
+                // Add new dynamic color styles
+                const styleElement = document.createElement('style');
+                styleElement.id = 'dynamic-calendar-colors';
+                styleElement.textContent = dynamicCSS;
+                document.head.appendChild(styleElement);
+                
+                console.log('🎨 Applied dynamic calendar colors');
+            } catch (error) {
+                console.warn('🎨 Failed to apply dynamic colors:', error);
+            }
+        }
+
+        // Update calendar dropdown with dynamic names
+        function updateCalendarDropdown() {
+            const dropdown = document.getElementById('calendarFilter');
+            // Clear existing options except "All Calendars"
+            while (dropdown.children.length > 1) {
+                dropdown.removeChild(dropdown.lastChild);
+            }
+            
+            // Add dynamic calendar names
+            dynamicCalendarNames.forEach((name, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = name;
+                dropdown.appendChild(option);
+            });
+        }        // Update legend with dynamic names and colors
+        function updateCalendarLegend() {
+            const legendGrid = document.querySelector('.legend-grid');
+            if (!legendGrid) return;
+            
+            legendGrid.innerHTML = '';
+            
+            // Default colors (fallback)
+            const defaultColors = [
+                '#667eea', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+                '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'
+            ];
+            
+            dynamicCalendarNames.forEach((name, index) => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+                
+                const colorSpan = document.createElement('span');
+                colorSpan.className = 'legend-color';
+                
+                // Use dynamic color if available, otherwise use default
+                let color = defaultColors[index] || '#ccc';
+                if (window.dynamicCalendarData && window.dynamicCalendarData[index] && window.dynamicCalendarData[index].color) {
+                    color = window.dynamicCalendarData[index].color;
+                }
+                
+                colorSpan.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${color};`;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = name;
+                
+                legendItem.appendChild(colorSpan);
+                legendItem.appendChild(nameSpan);
+                legendGrid.appendChild(legendItem);
+            });
+        }
 
         function generateCalendar() {
             const calendar = document.getElementById('calendarView');
@@ -937,39 +1132,96 @@
             let eventsToShow = currentEvents;
             if (filterValue !== 'all') {
                 const calendarIndex = parseInt(filterValue);
-                eventsToShow = currentEvents.filter(event => 
-                    event.calendarIndex === calendarIndex || 
-                    event.calendarName === CALENDAR_NAMES[calendarIndex]
-                );
+                eventsToShow = currentEvents.filter(event => {
+                    // More robust filtering logic
+                    const eventCalendarIndex = event.calendarIndex;
+                    const eventCalendarName = event.calendarName;
+                    const expectedCalendarName = dynamicCalendarNames[calendarIndex] || CALENDAR_NAMES[calendarIndex];
+                    
+                    return eventCalendarIndex === calendarIndex || 
+                           eventCalendarName === expectedCalendarName ||
+                           eventCalendarName === CALENDAR_NAMES[calendarIndex];
+                });
             }
            
-            // Add filtered events to calendar days
+            // Group events by day for better layout
+            const eventsByDay = {};
             eventsToShow.forEach(event => {
                 const eventDate = new Date(event.start.date || event.start.dateTime);
+                const dayKey = eventDate.toDateString();
+                
+                if (!eventsByDay[dayKey]) {
+                    eventsByDay[dayKey] = [];
+                }
+                eventsByDay[dayKey].push(event);
+            });
+           
+            // Render events grouped by day
+            Object.keys(eventsByDay).forEach(dayKey => {
+                const dayEvents = eventsByDay[dayKey];
+                const eventDate = new Date(dayKey);
                 const dayIndex = findDayIndex(eventDate);
                
                 if (dayIndex >= 0 && dayIndex < days.length) {
                     const eventsContainer = days[dayIndex].querySelector('.day-events');
                     if (eventsContainer) {
-                        const eventPill = document.createElement('div');
-                        eventPill.className = `event-pill calendar-${event.calendarIndex || 0}`;
+                        // Limit number of visible events per day to avoid overflow
+                        const maxEventsToShow = 4;
+                        const eventsToRender = dayEvents.slice(0, maxEventsToShow);
                         
-                        // Show event title and calendar name
-                        const eventTitle = event.summary || 'No title';
-                        const calendarName = event.calendarName || CALENDAR_NAMES[event.calendarIndex] || '';
-                        eventPill.textContent = eventTitle;
-                        eventPill.title = `${eventTitle} (${calendarName})`; // Tooltip
+                        eventsToRender.forEach((event, index) => {
+                            const eventPill = document.createElement('div');
+                            eventPill.className = `event-pill calendar-${event.calendarIndex || 0}`;
+                            
+                            // Enhanced event title display
+                            const eventTitle = event.summary || 'No title';
+                            const calendarName = getCalendarDisplayName(event.calendarIndex);
+                            
+                            // Shorten title for better display
+                            const displayTitle = eventTitle.length > 25 ? eventTitle.substring(0, 25) + '...' : eventTitle;
+                            eventPill.textContent = displayTitle;
+                            
+                            // Enhanced tooltip with more information
+                            const startTime = new Date(event.start.dateTime || event.start.date);
+                            const endTime = new Date(event.end.dateTime || event.end.date);
+                            const timeString = event.start.dateTime ? 
+                                `${startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 
+                                'All day';
+                            
+                            eventPill.title = `${eventTitle}\n🚐 ${calendarName}\n⏰ ${timeString}`;
+                            
+                            eventPill.onclick = (e) => {
+                                e.stopPropagation();
+                                selectEvent(event);
+                            };
+                            
+                            eventsContainer.appendChild(eventPill);
+                        });
                         
-                        eventPill.onclick = (e) => {
-                            e.stopPropagation();
-                            selectEvent(event);
-                        };
-                        eventsContainer.appendChild(eventPill);
+                        // Show "more events" indicator if there are more events
+                        if (dayEvents.length > maxEventsToShow) {
+                            const moreIndicator = document.createElement('div');
+                            moreIndicator.className = 'event-pill';
+                            moreIndicator.style.cssText = 'background: #6c757d; font-style: italic; text-align: center;';
+                            moreIndicator.textContent = `+${dayEvents.length - maxEventsToShow} more`;
+                            moreIndicator.title = 'Click day to see all events';
+                            eventsContainer.appendChild(moreIndicator);
+                        }
                     }
                 }
             });
             
             console.log(`Rendered ${eventsToShow.length} events (filtered: ${filterValue})`);
+        }
+          // Helper function to get display name for calendar
+        function getCalendarDisplayName(calendarIndex) {
+            if (dynamicCalendarNames.length > 0 && dynamicCalendarNames[calendarIndex]) {
+                return dynamicCalendarNames[calendarIndex];
+            }
+            if (CALENDAR_NAMES[calendarIndex]) {
+                return CALENDAR_NAMES[calendarIndex];
+            }
+            return `Van ${calendarIndex}`;
         }
 
         function findDayIndex(date) {
@@ -1092,15 +1344,16 @@
         // =============================================================================
         
         let crmSpreadsheetUrl = '';
-        
-        // JSONP helper function for CRM calls
-        function makeJsonpRequest(url) {
+          // JSONP helper function for API calls with configurable timeout
+        function makeJsonpRequest(url, timeoutMs = 90000) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
                 
                 window[callbackName] = function(data) {
                     delete window[callbackName];
-                    document.body.removeChild(script);
+                    if (document.body.contains(script)) {
+                        document.body.removeChild(script);
+                    }
                     resolve(data);
                 };
                 
@@ -1108,19 +1361,24 @@
                 script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
                 script.onerror = function() {
                     delete window[callbackName];
-                    document.body.removeChild(script);
-                    reject(new Error('JSONP request failed'));
+                    if (document.body.contains(script)) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error('JSONP request failed - network or script error'));
                 };
                 
                 document.body.appendChild(script);
-                  // Timeout after 90 seconds for large data processing
+                
+                // Configurable timeout
                 setTimeout(() => {
                     if (window[callbackName]) {
                         delete window[callbackName];
-                        document.body.removeChild(script);
-                        reject(new Error('CRM processing timed out - this is normal for large datasets. The process may still be running in the background.'));
+                        if (document.body.contains(script)) {
+                            document.body.removeChild(script);
+                        }
+                        reject(new Error(`Request timed out after ${timeoutMs/1000} seconds`));
                     }
-                }, 90000);
+                }, timeoutMs);
             });
         }
         
@@ -1452,12 +1710,11 @@
                 renderEvents();
                 return;
             }
-            
-            // Filter events by calendar index
+              // Filter events by calendar index
             const calendarIndex = parseInt(filterValue);
             const filteredEvents = currentEvents.filter(event => 
                 event.calendarIndex === calendarIndex || 
-                event.calendarName === CALENDAR_NAMES[calendarIndex]
+                event.calendarName === (dynamicCalendarNames[calendarIndex] || CALENDAR_NAMES[calendarIndex])
             );
             
             // Temporarily store original events and render filtered ones
