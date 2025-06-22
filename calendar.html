@@ -22,14 +22,20 @@
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
         }        .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
             min-height: 100vh;
+        }        /* Tablet responsive design */
+        @media screen and (max-width: 1100px) {
+            .calendar-grid {
+                grid-template-columns: 1fr 350px;
+                gap: 20px;
+            }
         }
 
-        /* Mobile and tablet responsive design */
-        @media screen and (max-width: 1200px) {
+        /* Mobile responsive design */
+        @media screen and (max-width: 900px) {
             .calendar-grid {
                 grid-template-columns: 1fr;
                 gap: 15px;
@@ -204,13 +210,12 @@
             background: #ccc;
             cursor: not-allowed;
             transform: none;
-        }
-
-        .calendar-grid {
+        }        .calendar-grid {
             display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 20px;
+            grid-template-columns: 1fr 400px;
+            gap: 25px;
             margin-bottom: 20px;
+            max-width: 100%;
         }
 
         .calendar-section {
@@ -275,15 +280,14 @@
             font-weight: 600;
             font-size: 12px;
             color: #666;
-        }
-
-        .calendar-day {
+        }        .calendar-day {
             background: white;
-            min-height: 80px;
-            padding: 5px;
+            min-height: 100px;
+            padding: 8px;
             position: relative;
             cursor: pointer;
             transition: all 0.2s ease;
+            border: 1px solid #e1e5e9;
         }
 
         .calendar-day:hover {
