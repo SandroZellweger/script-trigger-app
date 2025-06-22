@@ -134,13 +134,19 @@ function doGet(e) {
         result = generateIglohomeCodeApp(e.parameter);
         break;      case "generateIglohomeCodeAppJsonp":
         return generateIglohomeCodeAppJsonp(e.parameter);
-        break;
-      // CRM SYSTEM FUNCTION
+        break;      // CRM SYSTEM FUNCTION
       case "buildCustomerCRMDatabase":
         result = buildCustomerCRMDatabase();
         break;
       case "buildCustomerCRMDatabaseJsonp":
         return buildCustomerCRMDatabaseJsonp(e.parameter);
+        break;
+      // QUICK CRM SYSTEM FUNCTION
+      case "buildQuickCustomerCRMDatabase":
+        result = buildQuickCustomerCRMDatabase();
+        break;
+      case "buildQuickCustomerCRMDatabaseJsonp":
+        return buildQuickCustomerCRMDatabaseJsonp(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };
@@ -1666,22 +1672,29 @@ function buildCustomerCRMDatabase() {
   try {
     Logger.log('🚀 Starting CRM database creation...');
     
-    // Extract events from last 2 years to current + 3 months future
+    // Reduce time window to prevent timeouts - analyze last 1 year instead of 2
     const startDate = new Date();
-    startDate.setFullYear(startDate.getFullYear() - 2);
+    startDate.setFullYear(startDate.getFullYear() - 1); // Changed from -2 to -1
     const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 3);
+    endDate.setMonth(endDate.getMonth() + 2); // Reduced from +3 to +2
     
     Logger.log(`📅 Analyzing events from ${startDate.toDateString()} to ${endDate.toDateString()}`);
     
-    const allEvents = extractAllEventsForCRM(startDate, endDate);
+    const allEvents = extractAllEventsForCRM(startDate, endDate, 2000);
     Logger.log(`📊 Total events found: ${allEvents.length}`);
     
-    const customerDatabase = parseCustomerDataFromEvents(allEvents);
+    // Limit processing to prevent timeout
+    const maxEvents = 2000; // Process max 2000 events
+    const eventsToProcess = allEvents.length > maxEvents ? allEvents.slice(0, maxEvents) : allEvents;
+    if (allEvents.length > maxEvents) {
+      Logger.log(`⚠️ Processing first ${maxEvents} events to prevent timeout`);
+    }
+    
+    const customerDatabase = parseCustomerDataFromEvents(eventsToProcess);
     Logger.log(`👥 Unique customers identified: ${Object.keys(customerDatabase).length}`);
     
     const spreadsheet = createOrUpdateCRMSpreadsheet();
-    populateCustomerDataSheets(spreadsheet, customerDatabase, allEvents);
+    populateCustomerDataSheets(spreadsheet, customerDatabase, eventsToProcess);
     
     Logger.log('✅ CRM Database created successfully!');
     Logger.log(`📋 Spreadsheet URL: ${spreadsheet.getUrl()}`);
@@ -1690,7 +1703,9 @@ function buildCustomerCRMDatabase() {
       success: true,
       spreadsheetUrl: spreadsheet.getUrl(),
       totalCustomers: Object.keys(customerDatabase).length,
-      totalBookings: allEvents.length,
+      totalBookings: eventsToProcess.length,
+      processedEvents: eventsToProcess.length,
+      totalEvents: allEvents.length,
       message: 'CRM Database built successfully!'
     };
     
@@ -1703,7 +1718,7 @@ function buildCustomerCRMDatabase() {
 /**
  * Extract all events from all calendars for CRM analysis
  */
-function extractAllEventsForCRM(startDate, endDate) {
+function extractAllEventsForCRM(startDate, endDate, maxEvents = 2000) {
   const calendarIds = [
     'noleggiosemplice23@gmail.com',
     'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
@@ -1719,19 +1734,29 @@ function extractAllEventsForCRM(startDate, endDate) {
   ];
   
   const calendarNames = [
-    'Main Calendar', 'Opel Vivaro', 'Renault Master', 'Fiat Ducato', 'Citroen Boxer',
-    'Citroen Jumper', 'Renault Trafic', 'Renault Trafic2', 'Renault Trafic3', 
-    'Citroen Jumper2', 'Citroen Jumper3'
+    'Main Calendar',
+    'Opel Vivaro',
+    'Renault Master',
+    'Fiat Ducato',
+    'Citroen Boxer',
+    'Citroen Jumper',
+    'Renault Trafic',
+    'Renault Trafic2',
+    'Renault Trafic3',
+    'Citroen Jumper2',
+    'Citroen Jumper3'
   ];
   
   const allEvents = [];
+  let processedCalendars = 0;
+  const maxEventsPerCalendar = 200; // Limit events per calendar to prevent timeout
   
   for (let i = 0; i < calendarIds.length; i++) {
     const calendarId = calendarIds[i];
     const calendarName = calendarNames[i];
     
     try {
-      Logger.log(`📋 Processing calendar: ${calendarName}`);
+      Logger.log(`📋 Processing calendar ${i + 1}/${calendarIds.length}: ${calendarName}`);
       
       const calendar = CalendarApp.getCalendarById(calendarId);
       if (!calendar) {
@@ -1740,9 +1765,11 @@ function extractAllEventsForCRM(startDate, endDate) {
       }
       
       const events = calendar.getEvents(startDate, endDate);
-      Logger.log(`📊 Found ${events.length} events in ${calendarName}`);
+      const eventsToProcess = events.length > maxEventsPerCalendar ? events.slice(0, maxEventsPerCalendar) : events;
       
-      for (const event of events) {
+      Logger.log(`📊 Found ${events.length} events in ${calendarName}, processing ${eventsToProcess.length}`);
+      
+      for (const event of eventsToProcess) {
         allEvents.push({
           id: event.getId(),
           title: event.getTitle(),
@@ -1756,13 +1783,22 @@ function extractAllEventsForCRM(startDate, endDate) {
           createdDate: event.getDateCreated(),
           lastUpdated: event.getLastUpdated()
         });
+          // Break if we have too many total events
+        if (allEvents.length >= maxEvents) {
+          Logger.log(`⚠️ Reached maximum event limit (${maxEvents}), stopping extraction`);
+          return allEvents;
+        }
       }
+      
+      processedCalendars++;
       
     } catch (error) {
       Logger.log(`❌ Error processing calendar ${calendarName}: ${error.toString()}`);
+      // Continue with other calendars even if one fails
     }
   }
   
+  Logger.log(`✅ Processed ${processedCalendars} calendars, extracted ${allEvents.length} events`);
   return allEvents;
 }
 
@@ -2105,12 +2141,62 @@ function createAnalyticsSheet(spreadsheet, customerDatabase, events) {
 }
 
 /**
- * JSONP version for CRM database creation
+ * Quick CRM database creation with limited scope for faster results
  */
-function buildCustomerCRMDatabaseJsonp(params) {
+function buildQuickCustomerCRMDatabase() {
+  try {
+    Logger.log('⚡ Starting QUICK CRM database creation...');
+    
+    // Analyze only last 3 months for quick results
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 3);
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+    
+    Logger.log(`📅 Analyzing events from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+    
+    // Extract events with more restrictive limits
+    const allEvents = extractAllEventsForCRM(startDate, endDate, 800); // Limit to 800 events max
+    Logger.log(`📊 Total events found: ${allEvents.length}`);
+    
+    const customerDatabase = parseCustomerDataFromEvents(allEvents);
+    Logger.log(`👥 Unique customers identified: ${Object.keys(customerDatabase).length}`);
+    
+    const spreadsheet = createOrUpdateCRMSpreadsheet();
+    populateCRMSpreadsheet(spreadsheet, customerDatabase, allEvents);
+    
+    // Calculate analytics
+    const analytics = calculateCRMAnalytics(customerDatabase, allEvents);
+    
+    Logger.log('✅ Quick CRM database creation completed successfully');
+    
+    return {
+      success: true,
+      totalCustomers: Object.keys(customerDatabase).length,
+      totalBookings: allEvents.length,
+      spreadsheetUrl: spreadsheet.getUrl(),
+      analytics: analytics,
+      isQuickMode: true,
+      dataScope: '3 months'
+    };
+    
+  } catch (error) {
+    Logger.log('❌ Error in quick CRM database creation: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      isQuickMode: true
+    };
+  }
+}
+
+/**
+ * JSONP version for quick CRM database creation
+ */
+function buildQuickCustomerCRMDatabaseJsonp(params) {
   try {
     const callback = params.callback || 'callback';
-    const result = buildCustomerCRMDatabase();
+    const result = buildQuickCustomerCRMDatabase();
     const jsonpResponse = `${callback}(${JSON.stringify(result)});`;
     
     return ContentService
@@ -2119,7 +2205,7 @@ function buildCustomerCRMDatabaseJsonp(params) {
       
   } catch (error) {
     const callback = params.callback || 'callback';
-    const errorResult = { success: false, error: error.toString() };
+    const errorResult = { success: false, error: error.toString(), isQuickMode: true };
     const jsonpResponse = `${callback}(${JSON.stringify(errorResult)});`;
     
     return ContentService

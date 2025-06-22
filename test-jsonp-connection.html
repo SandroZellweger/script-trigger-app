@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONP Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .loading { background: #e3f2fd; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 JSONP Connection Test</h1>
+    <p>This page tests the JSONP connection to the Google Apps Script backend to ensure CORS issues are resolved.</p>    <div class="test-panel">
+        <h3>🚀 Quick Connection Tests</h3>
+        <button onclick="testCalendarConnection()">Test Calendar Events (JSONP)</button>
+        <button onclick="testQuickCRMConnection()">Test Quick CRM (3 months)</button>
+        <button onclick="testCRMConnection()">Test Complete CRM (1 year)</button>
+        <button onclick="testIglohomeConnection()">Test Iglohome Code (JSONP)</button>
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-panel">
+        <h3>⚙️ Settings</h3>
+        <p><strong>Script URL:</strong> <span id="currentUrl"></span></p>
+        <p><strong>Auth Token:</strong> myAppToken2025</p>
+        <button onclick="resetSettings()">Reset to Default Settings</button>
+    </div>
+
+    <script>
+        // Settings management
+        function getSettings() {
+            const defaultSettings = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+                authToken: 'myAppToken2025'
+            };
+            
+            const savedSettings = localStorage.getItem('appSettings');
+            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+        }
+
+        // JSONP helper for CORS-free requests
+        function makeJsonpRequest(url, timeout = 90000) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                
+                // Create script element
+                const script = document.createElement('script');
+                script.src = url + '&callback=' + callbackName;
+                
+                // Set up timeout
+                const timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('JSONP request timed out'));
+                }, timeout);
+                
+                // Set up callback
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+                
+                // Error handling
+                script.onerror = function() {
+                    cleanup();
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                // Cleanup function
+                function cleanup() {
+                    clearTimeout(timeoutId);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    delete window[callbackName];
+                }
+                
+                // Add script to DOM
+                document.head.appendChild(script);
+            });
+        }
+
+        function showResult(content, type = 'success') {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.className = `result ${type}`;
+            result.textContent = content;
+        }
+
+        async function testCalendarConnection() {
+            showResult('⏳ Testing calendar events connection...', 'loading');
+            
+            try {
+                const settings = getSettings();
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const startDate = today.toISOString().split('T')[0];
+                const endDate = tomorrow.toISOString().split('T')[0];
+                
+                const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${startDate}&endDate=${endDate}&timestamp=${Date.now()}`;
+                
+                console.log('🔄 Testing URL:', url);
+                
+                const data = await makeJsonpRequest(url, 30000);
+                
+                if (data.result && Array.isArray(data.result)) {
+                    showResult(`✅ Calendar connection successful!\nFound ${data.result.length} events for today/tomorrow\n\nFirst event (if any): ${data.result.length > 0 ? JSON.stringify(data.result[0], null, 2) : 'No events found'}`, 'success');
+                } else if (data.error) {
+                    showResult(`❌ API Error: ${data.error}`, 'error');
+                } else {
+                    showResult(`❌ Unexpected response format: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                showResult(`❌ Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCRMConnection() {
+            showResult('⏳ Testing CRM database connection...', 'loading');
+            
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=buildCustomerCRMDatabaseJsonp&authToken=${settings.authToken}&timestamp=${Date.now()}`;
+                
+                console.log('🔄 Testing URL:', url);
+                
+                const data = await makeJsonpRequest(url, 90000);
+                
+                if (data.success) {
+                    showResult(`✅ CRM connection successful!\nTotal Customers: ${data.totalCustomers}\nTotal Bookings: ${data.totalBookings}\nSpreadsheet: ${data.spreadsheetUrl}`, 'success');
+                } else if (data.error) {
+                    showResult(`❌ CRM Error: ${data.error}`, 'error');
+                } else {
+                    showResult(`❌ Unexpected response: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                showResult(`❌ CRM connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testQuickCRMConnection() {
+            showResult('⏳ Testing quick CRM database connection...', 'loading');
+            
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=buildQuickCustomerCRMDatabaseJsonp&authToken=${settings.authToken}&timestamp=${Date.now()}`;
+                
+                console.log('🔄 Testing URL:', url);
+                
+                const data = await makeJsonpRequest(url, 45000);
+                
+                if (data.success) {
+                    showResult(`✅ Quick CRM connection successful!\nTotal Customers: ${data.totalCustomers}\nTotal Bookings: ${data.totalBookings}\nData Scope: ${data.dataScope}\nSpreadsheet: ${data.spreadsheetUrl}`, 'success');
+                } else if (data.error) {
+                    showResult(`❌ Quick CRM Error: ${data.error}`, 'error');
+                } else {
+                    showResult(`❌ Unexpected response: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                showResult(`❌ Quick CRM connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testIglohomeConnection() {
+            showResult('⏳ Testing Iglohome code generation...', 'loading');
+            
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=generateIglohomeCodeAppJsonp&authToken=${settings.authToken}&van=Van1&startTime=14:00&endTime=18:00&timestamp=${Date.now()}`;
+                
+                console.log('🔄 Testing URL:', url);
+                
+                const data = await makeJsonpRequest(url, 30000);
+                
+                if (data.success) {
+                    showResult(`✅ Iglohome connection successful!\nAccess Code: ${data.accessCode}\nValid from: ${data.formattedStartTime}\nValid until: ${data.formattedEndTime}`, 'success');
+                } else if (data.error) {
+                    showResult(`❌ Iglohome Error: ${data.error}`, 'error');
+                } else {
+                    showResult(`❌ Unexpected response: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                showResult(`❌ Iglohome connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        function resetSettings() {
+            localStorage.removeItem('appSettings');
+            location.reload();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const settings = getSettings();
+            document.getElementById('currentUrl').textContent = settings.scriptUrl;
+        });
+    </script>
+</body>
+</html>

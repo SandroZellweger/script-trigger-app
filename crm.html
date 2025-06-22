@@ -289,13 +289,17 @@
             Analyze all calendar events to build customer insights and business analytics.</p>
         </div>
 
-        <div class="main-grid">
-            <!-- Database Management -->
+        <div class="main-grid">            <!-- Database Management -->
             <div class="card animate-in">
                 <h3>🗄️ Database Management</h3>
-                <button id="buildCrmBtn" class="action-btn btn-primary">
-                    📊 Build Complete CRM Database
-                </button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <button id="buildQuickCrmBtn" class="action-btn btn-success">
+                        ⚡ Quick CRM (3 months)
+                    </button>
+                    <button id="buildCrmBtn" class="action-btn btn-primary">
+                        📊 Complete CRM (1 year)
+                    </button>
+                </div>
                 <button id="refreshAnalyticsBtn" class="action-btn btn-info" disabled>
                     🔄 Refresh Analytics
                 </button>
@@ -306,7 +310,8 @@
                 <div class="info-panel">
                     <h4>ℹ️ What This Does</h4>
                     <ul class="info-list">
-                        <li>Analyzes all calendar events from the last 2 years</li>
+                        <li><strong>Quick CRM:</strong> Fast analysis of last 3 months for quick insights</li>
+                        <li><strong>Complete CRM:</strong> Full analysis of last year for comprehensive data</li>
                         <li>Extracts customer data (names, phones, emails)</li>
                         <li>Identifies repeat customers and booking patterns</li>
                         <li>Creates customer segments (New, Repeat, Loyal, VIP)</li>
@@ -428,15 +433,14 @@
                 };
                 
                 document.body.appendChild(script);
-                
-                // Timeout after 60 seconds for large data processing
+                  // Timeout after 90 seconds for large data processing
                 setTimeout(() => {
                     if (window[callbackName]) {
                         delete window[callbackName];
                         document.body.removeChild(script);
-                        reject(new Error('Request timed out - this is normal for large datasets'));
+                        reject(new Error('CRM processing timed out - this is normal for large datasets. The process may still be running in the background.'));
                     }
-                }, 60000);
+                }, 90000);
             });
         }
 
@@ -467,8 +471,67 @@
         // Initialize CRM functionality
         document.addEventListener('DOMContentLoaded', function() {
             const buildCrmBtn = document.getElementById('buildCrmBtn');
+            const buildQuickCrmBtn = document.getElementById('buildQuickCrmBtn');
             const refreshAnalyticsBtn = document.getElementById('refreshAnalyticsBtn');
             const openSpreadsheetBtn = document.getElementById('openSpreadsheetBtn');
+
+            // Quick CRM Database (3 months)
+            buildQuickCrmBtn.addEventListener('click', async function() {
+                try {
+                    // Show loading state
+                    buildQuickCrmBtn.disabled = true;
+                    buildQuickCrmBtn.textContent = '⏳ Processing...';
+                    
+                    const settings = getSettings();
+                    const url = `${settings.scriptUrl}?function=buildQuickCustomerCRMDatabaseJsonp&authToken=${settings.authToken}&timestamp=${Date.now()}`;
+                    
+                    showStatus(`
+                        ⚡ <strong>Quick CRM processing started...</strong><br>
+                        🔄 Analyzing last 3 months of calendar events<br>
+                        📊 Building customer profiles and analytics<br>
+                        <small>This should complete much faster than the full CRM</small>
+                    `, 'loading');
+                    
+                    const data = await makeJsonpRequest(url, 45000); // Shorter timeout for quick mode
+                    
+                    if (data.success) {
+                        crmData = data;
+                        crmSpreadsheetUrl = data.spreadsheetUrl;
+                        
+                        showStatus(`
+                            ✅ <strong>Quick CRM Database created successfully!</strong><br>
+                            👥 Found ${data.totalCustomers} unique customers<br>
+                            📅 Analyzed ${data.totalBookings} total bookings (${data.dataScope})<br>
+                            📋 <a href="${data.spreadsheetUrl}" target="_blank" style="color: inherit; text-decoration: underline;">View Quick Report</a>
+                        `, 'success');
+                        
+                        // Update analytics
+                        updateAnalytics(data);
+                        
+                        // Enable other buttons
+                        refreshAnalyticsBtn.disabled = false;
+                        openSpreadsheetBtn.disabled = false;
+                        
+                    } else {
+                        showStatus(`
+                            ❌ <strong>Failed to build quick CRM database</strong><br>
+                            Error: ${data.error}<br>
+                            <small>Try the complete CRM for more comprehensive analysis</small>
+                        `, 'error');
+                    }
+                    
+                } catch (error) {
+                    showStatus(`
+                        ❌ <strong>Quick CRM processing failed</strong><br>
+                        Error: ${error.message}<br>
+                        <small>The quick mode may have timed out. Try again or use the complete CRM.</small>
+                    `, 'error');
+                } finally {
+                    // Reset button
+                    buildQuickCrmBtn.disabled = false;
+                    buildQuickCrmBtn.textContent = '⚡ Quick CRM (3 months)';
+                }
+            });
 
             // Build CRM Database
             buildCrmBtn.addEventListener('click', async function() {

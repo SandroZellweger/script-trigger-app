@@ -547,15 +547,22 @@
                     </div>
                 </div>                <div class="customer-crm animate-in">
                     <h3>👤 Customer CRM System</h3>
-                    
-                    <!-- CRM Controls -->
+                      <!-- CRM Controls -->
                     <div class="crm-controls" style="margin-bottom: 20px;">
-                        <button 
-                            id="buildCrmBtn" 
-                            type="button" 
-                            style="width: 100%; padding: 12px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 10px;">
-                            📊 Build Complete CRM Database
-                        </button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <button 
+                                id="buildQuickCrmBtn" 
+                                type="button" 
+                                style="padding: 12px; background: #34a853; color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer;">
+                                ⚡ Quick CRM (3 months)
+                            </button>
+                            <button 
+                                id="buildCrmBtn" 
+                                type="button" 
+                                style="padding: 12px; background: #4285f4; color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer;">
+                                📊 Complete CRM (1 year)
+                            </button>
+                        </div>
                         
                         <button 
                             id="openCrmSpreadsheetBtn" 
@@ -945,25 +952,87 @@
                 };
                 
                 document.body.appendChild(script);
-                
-                // Timeout after 30 seconds
+                  // Timeout after 90 seconds for large data processing
                 setTimeout(() => {
                     if (window[callbackName]) {
                         delete window[callbackName];
                         document.body.removeChild(script);
-                        reject(new Error('JSONP request timed out'));
+                        reject(new Error('CRM processing timed out - this is normal for large datasets. The process may still be running in the background.'));
                     }
-                }, 30000);
+                }, 90000);
             });
         }
         
         // Initialize CRM functionality
         document.addEventListener('DOMContentLoaded', function() {
             const buildCrmBtn = document.getElementById('buildCrmBtn');
+            const buildQuickCrmBtn = document.getElementById('buildQuickCrmBtn');
             const openCrmSpreadsheetBtn = document.getElementById('openCrmSpreadsheetBtn');
             const crmStatus = document.getElementById('crmStatus');
             const crmAnalytics = document.getElementById('crmAnalytics');
             
+            // Quick CRM Database (3 months)
+            buildQuickCrmBtn.addEventListener('click', async function() {
+                try {
+                    // Show loading state
+                    buildQuickCrmBtn.disabled = true;
+                    buildQuickCrmBtn.style.background = '#6c757d';
+                    buildQuickCrmBtn.innerHTML = '⏳ Quick Processing...';
+                    
+                    crmStatus.style.display = 'block';
+                    crmStatus.style.background = '#e3f2fd';
+                    crmStatus.innerHTML = '⚡ Starting quick CRM analysis...<br><small>Processing last 3 months of data for fast results.</small>';
+                    
+                    crmAnalytics.style.display = 'none';
+                    
+                    const settings = getSettings();
+                    const url = `${settings.scriptUrl}?function=buildQuickCustomerCRMDatabaseJsonp&authToken=${settings.authToken}`;
+                    
+                    crmStatus.innerHTML = '📡 Connecting to Google Apps Script...<br><small>Quick analysis of recent calendar events...</small>';
+                    
+                    const data = await makeJsonpRequest(url, 45000); // Shorter timeout for quick mode
+                    
+                    if (data.success) {
+                        // Success state
+                        crmStatus.style.background = '#d4edda';
+                        crmStatus.innerHTML = `✅ Quick CRM analysis completed!<br><small>Found ${data.totalCustomers} customers and ${data.totalBookings} bookings (${data.dataScope})</small>`;
+                        
+                        // Show analytics
+                        crmAnalytics.style.display = 'block';
+                        document.getElementById('totalCustomers').textContent = data.totalCustomers;
+                        document.getElementById('totalBookings').textContent = data.totalBookings;
+                        
+                        // Generate insights
+                        const insights = generateCrmInsights(data);
+                        document.getElementById('crmInsightsList').innerHTML = `<strong>💡 Key Insights (${data.dataScope}):</strong><br>${insights.join('<br>')}`;
+                        
+                        // Enable spreadsheet button
+                        crmSpreadsheetUrl = data.spreadsheetUrl;
+                        openCrmSpreadsheetBtn.disabled = false;
+                        openCrmSpreadsheetBtn.style.background = '#34a853';
+                        
+                        // Auto-hide status after 5 seconds
+                        setTimeout(() => {
+                            crmStatus.style.display = 'none';
+                        }, 5000);
+                        
+                    } else {
+                        // Error state
+                        crmStatus.style.background = '#f8d7da';
+                        crmStatus.innerHTML = `❌ Failed to build quick CRM<br><small>Error: ${data.error}</small>`;
+                    }
+                    
+                } catch (error) {
+                    crmStatus.style.background = '#f8d7da';
+                    crmStatus.innerHTML = `❌ Error in quick CRM analysis<br><small>Error: ${error.message}</small>`;
+                } finally {
+                    // Reset button
+                    buildQuickCrmBtn.disabled = false;
+                    buildQuickCrmBtn.style.background = '#34a853';
+                    buildQuickCrmBtn.innerHTML = '⚡ Quick CRM (3 months)';
+                }
+            });
+
             // Build CRM Database
             buildCrmBtn.addEventListener('click', async function() {
                 try {
@@ -1128,35 +1197,19 @@
                
                 // Add timestamp to prevent caching issues
                 const timestamp = Date.now();
-                
-                // Call Google Apps Script to fetch calendar events
-                const requestUrl = `${settings.scriptUrl}?function=getCalendarEventsApp&authToken=${settings.authToken}&startDate=${startDateStr}&endDate=${endDateStr}&timestamp=${timestamp}`;
+                  // Call Google Apps Script to fetch calendar events using JSONP
+                const requestUrl = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${startDateStr}&endDate=${endDateStr}&timestamp=${timestamp}`;
                
-                const response = await fetch(requestUrl);
-                console.log('📊 Response Status:', response.status);
-               
-                if (response.ok) {
-                    const responseText = await response.text();
-                    console.log('📄 Raw Response:', responseText.substring(0, 100) + '...');
-                    
-                    try {
-                        const data = JSON.parse(responseText);
-                        
-                        if (data.result && Array.isArray(data.result)) {
-                            currentEvents = data.result;
-                            renderEvents();
-                            console.log('✅ Calendar events loaded successfully:', currentEvents.length, 'events');
-                        } else if (data.error) {
-                            throw new Error('API Error: ' + data.error);
-                        } else {
-                            throw new Error('Invalid API response format');
-                        }
-                    } catch (parseError) {
-                        console.error('❌ JSON Parse error:', parseError);
-                        throw new Error('Failed to parse API response');
-                    }
+                const data = await makeJsonpRequest(requestUrl);
+                console.log('� JSONP Response received');
+                 if (data.result && Array.isArray(data.result)) {
+                    currentEvents = data.result;
+                    renderEvents();
+                    console.log('✅ Calendar events loaded successfully:', currentEvents.length, 'events');
+                } else if (data.error) {
+                    throw new Error('API Error: ' + data.error);
                 } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    throw new Error('Invalid response format');
                 }
                
             } catch (error) {
