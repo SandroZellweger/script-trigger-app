@@ -802,14 +802,14 @@
                 }
                 
                 // Merge with defaults and return
-                return { ...defaultSettings, ...parsedSettings };
-            } catch (error) {
+                return { ...defaultSettings, ...parsedSettings };            } catch (error) {
                 console.log('⚠️ localStorage not available or error occurred, using default settings:', error);
                 return defaultSettings;
             }
         }
 
-        // Calendar configuration - Updated with your actual fleet numbers        const CALENDAR_IDS = [
+        // Calendar configuration - Updated with your actual fleet numbers
+        const CALENDAR_IDS = [
             'noleggiosemplice23@gmail.com',
             'nijfu8k23bns6ml5rb0f7hko5o@group.calendar.google.com',
             'e48a242e31251e913222eec57efddba56d45e1efaa8346a95aa4c001699f4f5d@group.calendar.google.com',
@@ -1440,10 +1440,11 @@
                     description: 'Van rental booking',
                     calendarIndex: Math.floor(Math.random() * 4)
                 });
-            }
-           
+            }           
             return events;
-        }        function filterCalendarView() {
+        }
+        
+        function filterCalendarView() {
             const filterValue = document.getElementById('calendarFilter').value;
             
             // If "all" is selected, show all events
