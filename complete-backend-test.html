@@ -96,11 +96,13 @@
         <h2>🚀 Full Integration Test</h2>
         <button onclick="runFullTest()">Run All Tests</button>
         <div id="full-results" class="test-results"></div>
-    </div>
-
-    <script src="config.js"></script>
+    </div>    <script src="config.js"></script>
     <script>
         let testResults = [];
+
+        // Use config from config.js
+        const scriptUrl = window.APP_CONFIG?.scriptUrl || window.PRODUCTION_CONFIG?.scriptUrl;
+        const authToken = window.APP_CONFIG?.authToken || window.PRODUCTION_CONFIG?.authToken;
 
         function log(message, type = 'info') {
             const timestamp = new Date().toLocaleTimeString();

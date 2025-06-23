@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Deployment Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        .deployment-url {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Backend Deployment Verification</h1>
+        
+        <div class="info">
+            <strong>Current Status:</strong> Backend deployment required to fix CORS issues
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Current Configuration</h3>
+            <div id="current-config"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Test Current Backend</h3>
+            <button onclick="testCurrentBackend()">Test Current Backend</button>
+            <div id="current-test-results"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Deployment Instructions</h3>
+            <div class="warning">
+                <strong>⚠️ Action Required:</strong><br>
+                1. Open <a href="https://script.google.com" target="_blank">Google Apps Script Console</a><br>
+                2. Create new project or open existing<br>
+                3. Replace ALL code with content from <code>complete-fixed-script.gs</code><br>
+                4. Click "Deploy" → "New deployment" → "Web app"<br>
+                5. Set "Execute as: Me" and "Who has access: Anyone"<br>
+                6. Copy the new deployment URL<br>
+                7. Update <code>config.js</code> with the new URL
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Test New Backend</h3>
+            <input type="text" id="new-url" placeholder="Paste new deployment URL here" style="width: 100%; padding: 10px; margin: 10px 0;">
+            <button onclick="testNewBackend()">Test New Backend</button>
+            <div id="new-test-results"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Update Config File</h3>
+            <button onclick="generateConfigUpdate()">Generate Config Update</button>
+            <div id="config-update"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const currentScriptUrl = window.APP_CONFIG?.scriptUrl || window.PRODUCTION_CONFIG?.scriptUrl;
+        const authToken = window.APP_CONFIG?.authToken || window.PRODUCTION_CONFIG?.authToken;
+
+        // Display current configuration
+        function showCurrentConfig() {
+            const configDiv = document.getElementById('current-config');
+            configDiv.innerHTML = `
+                <div class="deployment-url">
+                    <strong>Current URL:</strong><br>
+                    ${currentScriptUrl}
+                </div>
+                <div class="deployment-url">
+                    <strong>Auth Token:</strong> ${authToken}
+                </div>
+            `;
+        }
+
+        async function testCurrentBackend() {
+            const resultsDiv = document.getElementById('current-test-results');
+            resultsDiv.innerHTML = '<div class="info">Testing current backend...</div>';
+
+            try {
+                const response = await fetch(`${currentScriptUrl}?function=ping&authToken=${authToken}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = '<div class="success">✅ Current backend responds, but likely missing CORS headers</div>';
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">❌ Current backend failed: HTTP ' + response.status + '</div>';
+                }
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    resultsDiv.innerHTML = '<div class="error">❌ CORS Error - Backend needs deployment with fixes</div>';
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+                }
+            }
+        }
+
+        async function testNewBackend() {
+            const newUrl = document.getElementById('new-url').value.trim();
+            const resultsDiv = document.getElementById('new-test-results');
+
+            if (!newUrl) {
+                resultsDiv.innerHTML = '<div class="error">❌ Please enter the new deployment URL</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="info">Testing new backend...</div>';
+
+            try {
+                // Test ping
+                const pingResponse = await fetch(`${newUrl}?function=ping&authToken=${authToken}`);
+                if (!pingResponse.ok) {
+                    throw new Error(`Ping failed: HTTP ${pingResponse.status}`);
+                }
+                const pingData = await pingResponse.json();
+
+                // Test calendar names
+                const calendarResponse = await fetch(`${newUrl}?function=getCalendarNames&authToken=${authToken}`);
+                if (!calendarResponse.ok) {
+                    throw new Error(`Calendar names failed: HTTP ${calendarResponse.status}`);
+                }
+                const calendarData = await calendarResponse.json();
+
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        ✅ New backend working perfectly!<br>
+                        <strong>Ping:</strong> ${JSON.stringify(pingData)}<br>
+                        <strong>Calendars:</strong> ${calendarData.calendars?.length || 0} calendars found
+                    </div>
+                `;
+
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="error">❌ New backend test failed: ' + error.message + '</div>';
+            }
+        }
+
+        function generateConfigUpdate() {
+            const newUrl = document.getElementById('new-url').value.trim();
+            const updateDiv = document.getElementById('config-update');
+
+            if (!newUrl) {
+                updateDiv.innerHTML = '<div class="error">❌ Please enter the new deployment URL first</div>';
+                return;
+            }
+
+            const configUpdate = `
+// Update this line in config.js:
+scriptUrl: '${newUrl}',
+
+// Full replacement for config.js:
+window.APP_CONFIG = {
+    scriptUrl: '${newUrl}',
+    authToken: '${authToken}',
+    // ...rest of config stays the same...
+};
+            `;
+
+            updateDiv.innerHTML = `
+                <div class="success">
+                    <strong>✅ Config Update Generated:</strong>
+                    <div class="deployment-url">${configUpdate}</div>
+                </div>
+            `;
+        }
+
+        // Initialize
+        window.addEventListener('load', showCurrentConfig);
+    </script>
+</body>
+</html>
