@@ -901,10 +901,10 @@
            
             // Set up event listeners
             document.getElementById('calendarFilter').addEventListener('change', filterCalendarView);
-            document.getElementById('dateRange').addEventListener('change', changeView);
-        });
+            document.getElementById('dateRange').addEventListener('change', changeView);        });
 
-        // Load calendar names dynamically from Google Calendar        async function loadCalendarNames() {
+        // Load calendar names dynamically from Google Calendar
+        async function loadCalendarNames() {
             // Check if we already loaded the names
             if (dynamicCalendarNames.length > 0) {
                 console.log('📅 Calendar names already loaded:', dynamicCalendarNames);
@@ -1113,9 +1113,10 @@
                
                 calendar.appendChild(dayElement);
             }
-           
-            renderEvents();
-        }        function renderEvents() {
+             renderEvents();
+        }
+
+        function renderEvents() {
             const calendar = document.getElementById('calendarView');
             const days = calendar.querySelectorAll('.calendar-day');
             const filterValue = document.getElementById('calendarFilter').value;
