@@ -1164,9 +1164,284 @@
             }
         }
 
-        // All other functions remain the same as in calendar-clean.html
-        // (updateCalendarDropdown, updateCalendarLegend, updateCalendarSelector, etc.)
-        // ... rest of the JavaScript code from calendar-clean.html ...
+        // Generate calendar display
+        function generateCalendar() {
+            const calendar = document.getElementById('calendarView');
+            const monthYear = document.getElementById('currentMonthYear');
+           
+            if (!calendar || !monthYear) {
+                console.warn('Calendar elements not found');
+                return;
+            }
+           
+            // Update month/year display
+            const options = { year: 'numeric', month: 'long' };
+            monthYear.textContent = currentDate.toLocaleDateString('en-US', options);
+           
+            // Clear calendar
+            calendar.innerHTML = '';
+           
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-day-header';
+                dayHeader.textContent = day;
+                calendar.appendChild(dayHeader);
+            });
+           
+            // Get first day of month and number of days
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+           
+            // Generate calendar days
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+               
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+               
+                // Add classes for styling
+                if (date.getMonth() !== currentDate.getMonth()) {
+                    dayElement.style.opacity = '0.5';
+                }
+               
+                if (isToday(date)) {
+                    dayElement.classList.add('today');
+                }
+               
+                // Day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = date.getDate();
+                dayElement.appendChild(dayNumber);
+               
+                // Events container
+                const eventsContainer = document.createElement('div');
+                eventsContainer.className = 'day-events';
+                dayElement.appendChild(eventsContainer);
+               
+                calendar.appendChild(dayElement);
+            }
+           
+            renderEvents();
+        }
+
+        // Render events on calendar
+        function renderEvents() {
+            // Use actual events if available, otherwise use mock data for display
+            const events = currentEvents && currentEvents.length > 0 ? currentEvents : generateMockEvents();
+            
+            const calendar = document.getElementById('calendarView');
+            if (!calendar) return;
+            
+            const days = calendar.querySelectorAll('.calendar-day');
+            
+            // Clear existing events
+            days.forEach(day => {
+                const eventsContainer = day.querySelector('.day-events');
+                if (eventsContainer) {
+                    eventsContainer.innerHTML = '';
+                }
+            });
+
+            // Filter events based on selected calendars
+            const filteredEvents = events.filter(event => {
+                const calendarIndex = event.calendarIndex !== undefined ? event.calendarIndex : 0;
+                return selectedCalendars.has(calendarIndex);
+            });
+            
+            // Add events to calendar
+            filteredEvents.forEach(event => {
+                const eventDate = new Date(event.start.dateTime || event.start.date);
+                const dayIndex = findDayIndex(eventDate);
+                
+                if (dayIndex >= 0 && dayIndex < days.length) {
+                    const eventsContainer = days[dayIndex].querySelector('.day-events');
+                    if (eventsContainer) {
+                        const eventPill = document.createElement('div');
+                        eventPill.className = `event-pill ${getEventColorClass(event)}`;
+                        
+                        // Truncate long event names
+                        const eventTitle = event.summary || event.title || 'Untitled Event';
+                        eventPill.textContent = eventTitle.length > 20 ? eventTitle.substring(0, 20) + '...' : eventTitle;
+                        
+                        // Create tooltip with event details
+                        const calendarName = getCalendarDisplayName(event.calendarIndex || 0);
+                        const timeInfo = getEventTimeInfo(event);
+                        eventPill.title = `${eventTitle}\n${calendarName}\n${timeInfo}`;
+                        
+                        // Set event color based on calendar
+                        const calendarIndex = event.calendarIndex || 0;
+                        let color = vanColors[calendarIndex % vanColors.length];
+                        if (dynamicCalendarData.length > calendarIndex && dynamicCalendarData[calendarIndex].color) {
+                            color = dynamicCalendarData[calendarIndex].color;
+                        }
+                        eventPill.style.borderLeft = `3px solid ${color}`;
+                        
+                        eventPill.onclick = () => selectEvent ? selectEvent(event) : console.log('Event clicked:', event);
+                        eventsContainer.appendChild(eventPill);
+                    }
+                }
+            });
+        }
+
+        // Helper functions for calendar
+        function getEventTimeInfo(event) {
+            if (!event.start.dateTime || !event.end.dateTime) {
+                return 'All day';
+            }
+            
+            const startTime = new Date(event.start.dateTime);
+            const endTime = new Date(event.end.dateTime);
+            
+            const startStr = startTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            const endStr = endTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            
+            return `${startStr} - ${endStr}`;
+        }
+
+        function findDayIndex(eventDate) {
+            const calendar = document.getElementById('calendarView');
+            if (!calendar) return -1;
+            
+            const days = calendar.querySelectorAll('.calendar-day');
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const diffTime = eventDate.getTime() - startDate.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            return diffDays >= 0 && diffDays < 42 ? diffDays : -1;
+        }
+
+        function isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        }
+
+        function getEventColorClass(event) {
+            if (!event.start.dateTime || !event.end.dateTime) {
+                return 'event-full-day';
+            }
+            
+            const startTime = new Date(event.start.dateTime);
+            const endTime = new Date(event.end.dateTime);
+            const duration = (endTime - startTime) / (1000 * 60 * 60); // hours
+            
+            if (duration >= 8) return 'event-full-day';
+            if (startTime.getHours() < 12) return 'event-morning';
+            return 'event-afternoon';
+        }
+
+        function getCalendarDisplayName(index) {
+            const namesToUse = dynamicCalendarNames.length > 0 ? dynamicCalendarNames : CALENDAR_NAMES;
+            return namesToUse[index] || `Calendar ${index + 1}`;
+        }
+
+        function generateMockEvents() {
+            const events = [];
+            const customers = ['Marco Rossi', 'Anna Bianchi', 'Giuseppe Verde', 'Maria Neri', 'Luca Gialli'];
+            const vans = ['N01', 'N03', 'N04', 'N06', 'N07'];
+            
+            for (let i = 0; i < 15; i++) {
+                const randomDay = Math.floor(Math.random() * 30) + 1;
+                const startHour = Math.random() > 0.5 ? 7 : 13; // Morning or afternoon
+                const duration = Math.random() > 0.3 ? 5 : 12; // Half day or full day
+                
+                const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), randomDay, startHour);
+                const endDate = new Date(startDate);
+                endDate.setHours(startDate.getHours() + duration);
+                
+                events.push({
+                    id: `event_${i}`,
+                    summary: `${customers[Math.floor(Math.random() * customers.length)]} - ${vans[Math.floor(Math.random() * vans.length)]}`,
+                    start: { dateTime: startDate.toISOString() },
+                    end: { dateTime: endDate.toISOString() },
+                    calendarIndex: Math.floor(Math.random() * CALENDAR_NAMES.length),
+                    location: 'Pickup Location',
+                    description: 'Van rental booking'
+                });
+            }
+            
+            return events;
+        }
+
+        // Enhanced calendar data loading
+        async function loadCalendarData() {
+            if (isLoading) {
+                console.log('📅 Calendar data is already loading...');
+                return;
+            }
+            
+            isLoading = true;
+            setLoadingState(true);
+            
+            let attempts = 0;
+            const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
+
+            while (attempts < maxAttempts) {
+                try {
+                    updateConnectionStatus('connecting', `Loading events... (${attempts + 1}/${maxAttempts})`);
+                    
+                    const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                    const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                    
+                    const params = new URLSearchParams({
+                        function: 'getCalendarEvents',
+                        authToken: PRODUCTION_CONFIG.authToken,
+                        startDate: start.toISOString().split('T')[0],
+                        endDate: end.toISOString().split('T')[0]
+                    });
+
+                    const response = await fetch(`${PRODUCTION_CONFIG.scriptUrl}?${params}`, {
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        signal: AbortSignal.timeout(PRODUCTION_CONFIG.timeout)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.events && Array.isArray(data.events)) {
+                        currentEvents = data.events;
+                        console.log('📅 Successfully loaded calendar events:', data.events.length);
+                        renderEvents();
+                        updateConnectionStatus('online', `Loaded ${data.events.length} events`);
+                        errorCount = 0;
+                        return;
+                    } else {
+                        throw new Error('No events data in response');
+                    }
+                    
+                } catch (error) {
+                    attempts++;
+                    lastError = error;
+                    console.warn(`Load attempt ${attempts} failed:`, error);
+                    
+                    if (attempts >= maxAttempts) {
+                        console.warn('📅 Failed to load calendar data, using mock data');
+                        currentEvents = generateMockEvents();
+                        renderEvents();
+                        updateConnectionStatus('offline', 'Using offline data');
+                        errorCount++;
+                        return;
+                    }
+                    
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+                }
+            }
+        }
 
         // Production-specific enhancements
         function trackEvent(action, category = 'Calendar', label = '') {

@@ -3,9 +3,8 @@
  * Update the Google Apps Script URL here and all HTML files will use the new URL
  */
 
-window.APP_CONFIG = {
-    // Google Apps Script Configuration
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbzuM6QlsIbT8l8GZa19WxKJOYHyryecuz1rpg1wkEKJXFs6cvZggICnrhg1gzir2tEv/exec',
+window.APP_CONFIG = {    // Google Apps Script Configuration
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbyrXtwb_ZZla_9HtOEjyCsTgS9HgIqmzcUNC6lQqIxWAZlZe2bDC44o8d0y7mhXMYPI/exec',
     authToken: 'myAppToken2025',
     
     // Application Settings
