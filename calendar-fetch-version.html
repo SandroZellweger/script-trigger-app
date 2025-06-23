@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar - Fetch API Version</title>
+    <script src="./config.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .status-bar {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status-online { background-color: #d4edda; color: #155724; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+        .status-connecting { background-color: #fff3cd; color: #856404; }
+        .calendar-info {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .van-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .van-item {
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚐 Van Fleet Calendar - Fetch API Version</h1>
+        <p>This version uses Fetch API instead of JSONP to bypass browser restrictions.</p>
+        
+        <div id="status" class="status-bar status-connecting">⏳ Initializing...</div>
+        
+        <button onclick="loadCalendarData()">Load Calendar Data</button>
+        <button onclick="testConnectivity()">Test Connectivity</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="calendar-info" class="calendar-info">
+            <h3>📋 Calendar Information</h3>
+            <div id="info-content">No data loaded yet</div>
+        </div>
+        
+        <div id="van-list" class="van-list"></div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let scriptUrl = '';
+        let calendarData = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (typeof SCRIPT_URL !== 'undefined') {
+                    scriptUrl = SCRIPT_URL;
+                    updateStatus('online', `✅ Config loaded - Script URL ready`);
+                    console.log('📋 Script URL:', scriptUrl);
+                } else {
+                    updateStatus('error', '❌ Config not loaded - SCRIPT_URL undefined');
+                }
+            }, 100);
+        });
+
+        function updateStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status-bar status-${type}`;
+            statusEl.textContent = message;
+        }
+
+        function addResult(message) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.innerHTML = `<p><strong>${new Date().toLocaleTimeString()}:</strong> ${message}</p>`;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testConnectivity() {
+            addResult('🔄 Testing backend connectivity...');
+            
+            try {
+                const pingUrl = `${scriptUrl}?function=ping&authToken=myAppToken2025`;
+                const response = await fetch(pingUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Ping successful: ${JSON.stringify(data)}`);
+                    updateStatus('online', '✅ Backend connectivity confirmed');
+                } else {
+                    addResult(`❌ Ping failed: ${response.status} ${response.statusText}`);
+                    updateStatus('error', `❌ Backend error: ${response.status}`);
+                }
+            } catch (error) {
+                addResult(`❌ Connection error: ${error.message}`);
+                updateStatus('error', `❌ Connection failed: ${error.message}`);
+            }
+        }
+
+        async function loadCalendarData() {
+            updateStatus('connecting', '⏳ Loading calendar data...');
+            addResult('🔄 Loading calendar names...');
+            
+            try {
+                const calendarUrl = `${scriptUrl}?function=getCalendarNames&authToken=myAppToken2025`;
+                console.log('📡 Fetching from:', calendarUrl);
+                
+                const response = await fetch(calendarUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', response.headers);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📊 Calendar data received:', data);
+                    
+                    if (data.success && data.result && Array.isArray(data.result)) {
+                        calendarData = data;
+                        displayCalendarData(data);
+                        addResult(`✅ Successfully loaded ${data.result.length} calendars`);
+                        updateStatus('online', `✅ Loaded ${data.result.length} van calendars`);
+                    } else {
+                        throw new Error('Invalid data format received');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+            } catch (error) {
+                console.error('❌ Load error:', error);
+                addResult(`❌ Failed to load calendar data: ${error.message}`);
+                updateStatus('error', `❌ Load failed: ${error.message}`);
+            }
+        }
+
+        function displayCalendarData(data) {
+            // Update info section
+            const infoContent = document.getElementById('info-content');
+            infoContent.innerHTML = `
+                <p><strong>📊 Total Calendars:</strong> ${data.result.length}</p>
+                <p><strong>📅 Calendar Names:</strong></p>
+                <ul>
+                    ${data.result.map(name => `<li>${name}</li>`).join('')}
+                </ul>
+                <p><strong>🎨 With Color Data:</strong> ${data.calendars ? data.calendars.length : 0}</p>
+            `;
+            
+            // Display van list with colors
+            const vanList = document.getElementById('van-list');
+            vanList.innerHTML = '';
+            
+            if (data.calendars && Array.isArray(data.calendars)) {
+                data.calendars.forEach((calendar, index) => {
+                    const vanItem = document.createElement('div');
+                    vanItem.className = 'van-item';
+                    vanItem.style.backgroundColor = calendar.color;
+                    vanItem.innerHTML = `
+                        <div><strong>${calendar.name}</strong></div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">${calendar.color}</div>
+                    `;
+                    vanList.appendChild(vanItem);
+                });
+            }
+            
+            // Log raw data
+            addResult(`<pre>Raw data: ${JSON.stringify(data, null, 2)}</pre>`);
+        }
+
+        // Auto-load on startup
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (scriptUrl) {
+                    loadCalendarData();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

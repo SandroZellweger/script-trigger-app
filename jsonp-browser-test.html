@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONP Browser Test</title>
+    <script src="./config.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 3px; 
+            overflow-x: auto; 
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 JSONP Browser Test</h1>
+    <p>This test will help identify why JSONP is failing in the browser but working in curl.</p>
+    
+    <div id="url-display" class="test-result info">
+        <strong>Testing URL:</strong>
+        <pre id="test-url"></pre>
+    </div>
+
+    <button onclick="testJsonpDirect()">Test JSONP Direct</button>
+    <button onclick="testFetchDirect()">Test Fetch API</button>
+    <button onclick="testOpenUrl()">Open URL in Browser</button>
+    <button onclick="clearResults()">Clear Results</button>
+
+    <div id="results"></div>
+
+    <script>
+        let scriptUrl = '';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (typeof SCRIPT_URL !== 'undefined') {
+                    scriptUrl = SCRIPT_URL;
+                    const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=testCallback`;
+                    document.getElementById('test-url').textContent = testUrl;
+                } else {
+                    addResult('error', 'Config not loaded - SCRIPT_URL undefined');
+                }
+            }, 100);
+        });
+
+        function addResult(type, message) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function testJsonpDirect() {
+            clearResults();
+            addResult('info', '🔄 Testing JSONP with dynamic callback...');
+            
+            const callbackName = 'testCallback_' + Date.now();
+            const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=${callbackName}`;
+            
+            console.log('JSONP Test URL:', testUrl);
+            
+            // Set up callback
+            window[callbackName] = function(data) {
+                addResult('success', '✅ JSONP callback received successfully!');
+                addResult('info', `<strong>Data received:</strong><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                
+                if (data.result && Array.isArray(data.result)) {
+                    addResult('success', `✅ Found ${data.result.length} calendars`);
+                }
+                if (data.calendars && Array.isArray(data.calendars)) {
+                    addResult('success', `✅ Found ${data.calendars.length} calendar objects with colors`);
+                }
+                
+                delete window[callbackName];
+            };
+            
+            // Create script tag
+            const script = document.createElement('script');
+            script.src = testUrl;
+            script.onload = function() {
+                console.log('JSONP script loaded successfully');
+            };
+            script.onerror = function(error) {
+                console.error('JSONP script error:', error);
+                addResult('error', `❌ JSONP script failed to load: ${error.toString()}`);
+                addResult('error', `URL: ${testUrl}`);
+                delete window[callbackName];
+            };
+            
+            document.head.appendChild(script);
+            
+            // Clean up after 10 seconds
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    addResult('error', '❌ JSONP timeout - callback not received');
+                    delete window[callbackName];
+                }
+                if (script.parentNode) {
+                    document.head.removeChild(script);
+                }
+            }, 10000);
+        }
+
+        async function testFetchDirect() {
+            addResult('info', '🔄 Testing with Fetch API...');
+            
+            const testUrl = `${scriptUrl}?function=getCalendarNames&authToken=myAppToken2025`;
+            
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('success', '✅ Fetch API successful!');
+                    addResult('info', `<strong>Response:</strong><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                } else {
+                    addResult('error', `❌ Fetch failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Fetch error: ${error.message}`);
+                console.error('Fetch error:', error);
+            }
+        }
+
+        function testOpenUrl() {
+            const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=test`;
+            addResult('info', `🔗 Opening URL in new tab: ${testUrl}`);
+            window.open(testUrl, '_blank');
+        }
+
+        // Log current environment info
+        console.log('Current protocol:', window.location.protocol);
+        console.log('Current host:', window.location.host);
+        console.log('User agent:', navigator.userAgent);
+    </script>
+</body>
+</html>

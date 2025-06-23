@@ -945,11 +945,19 @@
                     cleanup();
                     resolve(data);
                 };
+                  script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+                console.log('🔗 JSONP URL:', script.src);
                 
-                script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
-                script.onerror = () => {
+                script.onerror = (event) => {
+                    console.error('❌ JSONP script error:', event);
+                    console.error('❌ Failed URL:', script.src);
+                    console.error('❌ Error details:', {
+                        type: event.type,
+                        target: event.target,
+                        currentTarget: event.currentTarget
+                    });
                     cleanup();
-                    reject(new Error('JSONP script load failed'));
+                    reject(new Error(`JSONP script load failed: ${event.type}`));
                 };
                 
                 document.head.appendChild(script);
@@ -988,6 +996,41 @@
                     attempts++;
                     lastError = error;
                     console.warn(`Attempt ${attempts} failed:`, error);
+                    
+                    if (attempts >= maxAttempts) {
+                        console.warn('📅 JSONP failed, trying Fetch API as fallback...');
+                        try {
+                            const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
+                            const response = await fetch(fetchUrl, { 
+                                method: 'GET',
+                                mode: 'cors',
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            
+                            if (response.ok) {
+                                const fetchData = await response.json();
+                                if (fetchData && fetchData.success && fetchData.result && Array.isArray(fetchData.result)) {
+                                    dynamicCalendarNames = ['Main Calendar', ...fetchData.result.slice(1)];
+                                    
+                                    if (fetchData.calendars && Array.isArray(fetchData.calendars)) {
+                                        dynamicCalendarData = fetchData.calendars;
+                                        console.log('📅 Successfully loaded calendar names via Fetch API:', dynamicCalendarNames);
+                                    }
+                                    
+                                    updateCalendarDropdown();
+                                    updateCalendarLegend();
+                                    updateCalendarSelector();
+                                    
+                                    errorCount = 0;
+                                    return;
+                                }
+                            }
+                        } catch (fetchError) {
+                            console.warn('📅 Fetch API also failed:', fetchError);
+                        }
+                    }
                     
                     // Update connection status based on error type
                     if (error.message.includes('404') || error.message.includes('Not Found')) {
