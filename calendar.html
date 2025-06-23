@@ -11,9 +11,56 @@
     <style>
         * {
             margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }        body {
+            padding: 0;            box-sizing: border-box;
+        }
+
+        /* Calendar Selector Styles */
+        .calendar-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .calendar-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+            border: 1px solid #e1e5e9;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-checkbox-item:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .calendar-checkbox-item input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .calendar-checkbox-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        .calendar-checkbox-item label {
+            font-size: 12px;
+            color: #333;
+            cursor: pointer;
+            margin: 0;
+            flex-grow: 1;
+            user-select: none;
+        }
+
+        body {
             font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #7DBB35 0%, #5a8827 100%);
             color: #333;
@@ -629,6 +676,63 @@
             flex-shrink: 0;
             border: 1px solid rgba(0,0,0,0.1);
         }
+
+        .calendar-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .calendar-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        .calendar-checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .calendar-checkbox-item input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .calendar-checkbox-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .calendar-checkbox-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media screen and (max-width: 768px) {
+            .calendar-selector {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .calendar-checkbox-item {
+                font-size: 12px;
+                padding: 5px 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -641,13 +745,21 @@
         <div class="header animate-in">
             <h1>📅 Van Rental Calendar & CRM</h1>
             <p>Manage bookings and customer relationships</p>
-        </div>
-
-        <div class="controls animate-in">
+        </div>        <div class="controls animate-in">
             <div class="control-group">
-                <label for="calendarFilter">Calendar:</label>                <select id="calendarFilter">
+                <label for="calendarFilter">Calendar Filter:</label>
+                <select id="calendarFilter">
                     <option value="all">All Calendars</option>
                     <option value="0">Main Calendar</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Select Calendars to Display:</label>
+                <div class="calendar-selector" id="calendarSelector">
+                    <!-- Dynamic calendar checkboxes will be added here -->
+                </div>
+            </div>
                     <option value="1">N01 - Opel Vivaro (Losone)</option>
                     <option value="2">N03 - Peugeot Boxer (Bellinzona)</option>
                     <option value="3">N04 - Fiat Ducato (Locarno)</option>
@@ -892,9 +1004,12 @@
             // Check localStorage on load and make sure we have the correct script URL
             const settings = getSettings();
             console.log('🔧 Initialized with script URL:', settings.scriptUrl);
+              // Initialize selected calendars first
+            initializeSelectedCalendars();
             
             // Load calendar names first, then generate calendar and load data
             loadCalendarNames().then(() => {
+                updateCalendarSelector(); // Initialize the calendar selector
                 generateCalendar();
                 loadCalendarData();
             });
@@ -916,10 +1031,10 @@
                 
                 // Check if settings are properly configured
                 if (!settings.scriptUrl || !settings.authToken) {
-                    console.warn('📅 Settings not configured properly, using static calendar names');
-                    dynamicCalendarNames = [...CALENDAR_NAMES];
+                    console.warn('📅 Settings not configured properly, using static calendar names');                    dynamicCalendarNames = [...CALENDAR_NAMES];
                     updateCalendarDropdown();
                     updateCalendarLegend();
+                    updateCalendarSelector();
                     return;
                 }
                 
@@ -942,10 +1057,10 @@
                             updateDynamicColors(jsonpData.calendars);
                         } else {
                             console.log('📅 Successfully loaded calendar names via JSONP (no color data):', dynamicCalendarNames);
-                        }
-                        
+                        }                        
                         updateCalendarDropdown();
                         updateCalendarLegend();
+                        updateCalendarSelector(); // Add calendar selector
                         return;
                     }
                 } catch (jsonpError) {
@@ -957,20 +1072,20 @@
                 const response = await fetch(fetchUrl);
                 const data = await response.json();
                 
-                if (data.result && Array.isArray(data.result)) {
-                    dynamicCalendarNames = ['Main Calendar', ...data.result.slice(1)];
+                if (data.result && Array.isArray(data.result)) {                    dynamicCalendarNames = ['Main Calendar', ...data.result.slice(1)];
                     console.log('📅 Successfully loaded calendar names via fetch:', dynamicCalendarNames);
                     updateCalendarDropdown();
                     updateCalendarLegend();
+                    updateCalendarSelector();
                 } else {
                     throw new Error('Invalid response format from fetch');
                 }
                 
-            } catch (error) {
-                console.warn('📅 Could not load dynamic calendar names, using static fallback:', error);
+            } catch (error) {                console.warn('📅 Could not load dynamic calendar names, using static fallback:', error);
                 dynamicCalendarNames = [...CALENDAR_NAMES];
                 updateCalendarDropdown();
                 updateCalendarLegend();
+                updateCalendarSelector();
             }
         }
         
@@ -1056,6 +1171,59 @@
             });
         }
 
+        // Create calendar selector checkboxes
+        function updateCalendarSelector() {
+            const selectorContainer = document.getElementById('calendarSelector');
+            if (!selectorContainer) return;
+            
+            selectorContainer.innerHTML = '';
+            
+            const defaultColors = [
+                '#667eea', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+                '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'
+            ];
+            
+            dynamicCalendarNames.forEach((name, index) => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'calendar-checkbox-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `calendar-${index}`;
+                checkbox.value = index;
+                checkbox.checked = selectedCalendars.has(index);
+                
+                const colorSpan = document.createElement('span');
+                colorSpan.className = 'calendar-checkbox-color';
+                
+                // Use dynamic color if available, otherwise use default
+                let color = defaultColors[index] || '#ccc';
+                if (window.dynamicCalendarData && window.dynamicCalendarData[index] && window.dynamicCalendarData[index].color) {
+                    color = window.dynamicCalendarData[index].color;
+                }
+                colorSpan.style.backgroundColor = color;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `calendar-${index}`;
+                label.textContent = name;
+                label.style.cursor = 'pointer';
+                
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedCalendars.add(index);
+                    } else {
+                        selectedCalendars.delete(index);
+                    }
+                    renderEvents(); // Re-render events based on selection
+                });
+                
+                checkboxItem.appendChild(checkbox);
+                checkboxItem.appendChild(colorSpan);
+                checkboxItem.appendChild(label);
+                selectorContainer.appendChild(checkboxItem);
+            });
+        }
+
         function generateCalendar() {
             const calendar = document.getElementById('calendarView');
             const monthYear = document.getElementById('currentMonthYear');
@@ -1114,9 +1282,7 @@
                 calendar.appendChild(dayElement);
             }
              renderEvents();
-        }
-
-        function renderEvents() {
+        }        function renderEvents() {
             const calendar = document.getElementById('calendarView');
             const days = calendar.querySelectorAll('.calendar-day');
             const filterValue = document.getElementById('calendarFilter').value;
@@ -1129,12 +1295,13 @@
                 }
             });
            
-            // Filter events based on current filter
+            // Filter events based on both dropdown filter AND checkbox selection
             let eventsToShow = currentEvents;
+            
+            // First apply dropdown filter
             if (filterValue !== 'all') {
                 const calendarIndex = parseInt(filterValue);
-                eventsToShow = currentEvents.filter(event => {
-                    // More robust filtering logic
+                eventsToShow = eventsToShow.filter(event => {
                     const eventCalendarIndex = event.calendarIndex;
                     const eventCalendarName = event.calendarName;
                     const expectedCalendarName = dynamicCalendarNames[calendarIndex] || CALENDAR_NAMES[calendarIndex];
@@ -1142,6 +1309,13 @@
                     return eventCalendarIndex === calendarIndex || 
                            eventCalendarName === expectedCalendarName ||
                            eventCalendarName === CALENDAR_NAMES[calendarIndex];
+                });
+            }
+            
+            // Then apply checkbox selection filter (only if checkboxes are being used)
+            if (selectedCalendars.size > 0 && selectedCalendars.size < dynamicCalendarNames.length) {
+                eventsToShow = eventsToShow.filter(event => {
+                    return selectedCalendars.has(event.calendarIndex);
                 });
             }
            
@@ -1172,7 +1346,11 @@
                         
                         eventsToRender.forEach((event, index) => {
                             const eventPill = document.createElement('div');
+                            
+                            // Apply color based on time duration (Import Mails.js logic)
+                            const eventColor = getEventColor(event);
                             eventPill.className = `event-pill calendar-${event.calendarIndex || 0}`;
+                            eventPill.style.backgroundColor = eventColor;
                             
                             // Enhanced event title display
                             const eventTitle = event.summary || 'No title';
@@ -1212,7 +1390,7 @@
                 }
             });
             
-            console.log(`Rendered ${eventsToShow.length} events (filtered: ${filterValue})`);
+            console.log(`Rendered ${eventsToShow.length} events (filtered: ${filterValue}, selected calendars: ${selectedCalendars.size})`);
         }
           // Helper function to get display name for calendar
         function getCalendarDisplayName(calendarIndex) {
@@ -1594,6 +1772,52 @@
                 </div>
             `;
         }
+        // Color system matching your Import Mails.js logic
+        const EVENT_COLORS = {
+            FULL_DAY: '#FF6B6B',      // Red - 7:00-19:00 (Color "11")
+            MORNING: '#96CEB4',       // Green - Morning half day (Color "10") 
+            AFTERNOON: '#FECA57',     // Orange - Afternoon half day (Color "5")
+            DEFAULT: '#667eea'        // Blue - Default for other times
+        };
+
+        let selectedCalendars = new Set(); // Track which calendars are selected for display
+
+        // Initialize with all calendars selected
+        function initializeSelectedCalendars() {
+            selectedCalendars.clear();
+            for (let i = 0; i < CALENDAR_NAMES.length; i++) {
+                selectedCalendars.add(i);
+            }
+        }
+
+        // Get event color based on time (matching Import Mails.js logic)
+        function getEventColor(event) {
+            if (!event.start.dateTime || !event.end.dateTime) {
+                return EVENT_COLORS.DEFAULT;
+            }
+
+            const startTime = new Date(event.start.dateTime);
+            const endTime = new Date(event.end.dateTime);
+            const startHour = startTime.getHours();
+            const endHour = endTime.getHours();
+
+            // Full day: 7:00-19:00
+            if (startHour === 7 && endHour === 19) {
+                return EVENT_COLORS.FULL_DAY; // Red
+            }
+            // Morning half day: 7:00-12:00 or 1:00-12:00
+            else if ((startHour === 7 && endHour === 12) || (startHour === 1 && endHour === 12)) {
+                return EVENT_COLORS.MORNING; // Green
+            }
+            // Afternoon half day: 13:00-19:00, 13:00-0:00, or 20:00-0:00
+            else if ((startHour === 13 && endHour === 19) || 
+                     (startHour === 13 && endHour === 0) || 
+                     (startHour === 20 && endHour === 0)) {
+                return EVENT_COLORS.AFTERNOON; // Orange
+            }
+            
+            return EVENT_COLORS.DEFAULT; // Blue for other times
+        }
         async function loadCalendarData() {
             const refreshBtn = document.getElementById('refreshBtn');
             const refreshIcon = document.getElementById('refreshIcon');
@@ -1635,59 +1859,6 @@
             } catch (error) {
                 console.error('❌ Error loading calendar data:', error);
                
-                // Check if it's a CORS/network error
-                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    console.log('🌐 CORS issue detected - attempt to fix by verifying localStorage settings');
-                    
-                    // Force update localStorage with the correct URL
-                    const defaultSettings = {
-                        scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
-                        authToken: 'myAppToken2025'
-                    };
-                    
-                    localStorage.setItem('appSettings', JSON.stringify(defaultSettings));
-                    console.log('🔧 Updated localStorage with correct script URL');
-                    
-                    // Show message to user
-                    const calendarView = document.getElementById('calendarView');
-                    calendarView.innerHTML = `
-                        <div style="grid-column: span 7; padding: 20px; text-align: center; background: #fff;">
-                            <h3>📡 Connection Issue Detected</h3>
-                            <p>The calendar is having trouble connecting to the server.</p>
-                            <p>We've attempted to fix the issue. Please try refreshing the page.</p>
-                            <button onclick="window.location.reload()" style="margin-top: 15px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                Refresh Page
-                            </button>
-                        </div>
-                    `;
-                    
-                    // No mock data in this case, just show the error message
-                    return;
-                }
-               
-                // Use mock data for testing or when there's an error
-                console.log('📝 Using mock data due to API error...');
-                currentEvents = generateMockEvents();
-                renderEvents();
-            } finally {
-                refreshBtn.disabled = false;
-                refreshIcon.innerHTML = '🔄';
-            }
-        }
-
-        function generateMockEvents() {
-            const events = [];
-            const today = new Date();
-           
-            // Generate some mock events for testing
-            for (let i = 0; i < 15; i++) {
-                const startDate = new Date(today);
-                startDate.setDate(today.getDate() + Math.floor(Math.random() * 30) - 15);
-               
-                const endDate = new Date(startDate);
-                endDate.setHours(startDate.getHours() + Math.floor(Math.random() * 8) + 2);
-               
-                const customers = ['John Smith', 'Maria Garcia', 'David Wilson', 'Sarah Johnson', 'Mike Brown'];
                 const vans = ['Van A', 'Van B', 'Van C', 'Van D'];
                
                 events.push({
