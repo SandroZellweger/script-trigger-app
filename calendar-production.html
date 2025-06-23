@@ -835,12 +835,43 @@
                 updateConnectionStatus('error', 'Failed to connect to Google Calendar');
                 showLoadingOverlay(false);
             });
-        });
-
-        function showLoadingOverlay(show) {
+        });        function showLoadingOverlay(show) {
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) {
                 overlay.classList.toggle('active', show);
+            }
+        }
+
+        // Tab switching function
+        function switchTab(tabName) {
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Remove active class from all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Add active class to clicked tab button
+            const clickedBtn = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+            
+            // Show corresponding tab content
+            const tabId = tabName === 'calendar' ? 'calendar-tab' : 'dashboard-tab';
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Track tab switch for analytics
+            if (PRODUCTION_CONFIG.enableAnalytics && typeof gtag !== 'undefined') {
+                gtag('event', 'tab_switch', {
+                    'tab_name': tabName
+                });
             }
         }
 
@@ -1061,11 +1092,9 @@
             if (errorCount > 5) {
                 updateConnectionStatus('error', 'Multiple errors detected');
             }
-        });
-
-        // Service Worker registration
+        });        // Service Worker registration
         if ('serviceWorker' in navigator && PRODUCTION_CONFIG.environment === 'production') {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('./sw.js')
                 .then(registration => console.log('SW registered:', registration))
                 .catch(error => console.log('SW registration failed:', error));
         }

@@ -5,9 +5,9 @@ const API_CACHE_NAME = 'van-calendar-api-v1.0.0';
 
 // Resources to cache immediately
 const STATIC_RESOURCES = [
-    '/',
-    '/calendar-production.html',
-    '/manifest.json',
+    './',
+    './calendar-production.html',
+    './manifest.json',
     'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'
 ];
 
