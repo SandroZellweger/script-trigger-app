@@ -78,10 +78,10 @@ function doGet(e) {
         break;
       case 'sendDatiMultigiornoAppJsonp':
         return sendDatiMultigiornoAppJsonp(e.parameter);
-        break;
-      case "ping":
+        break;      case "ping":
         result = { result: "Ping successful" };
-        break;      case "getCalendarEventsApp":
+        break;
+      case "getCalendarEventsApp":
         result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
         break;
       // ADD JSONP CALENDAR EVENTS FUNCTION TO doGet
@@ -151,8 +151,10 @@ function doGet(e) {
       // ADD CALENDAR NAMES FUNCTION TO doGet
       case "getCalendarNames":
         result = getCalendarNamesApp();
+        break;      case "getCalendarNamesJsonp":
+        return getCalendarNamesAppJsonp(e.parameter);
         break;
-      case "getCalendarNamesJsonp":
+      case "getCalendarNamesAppJsonp":
         return getCalendarNamesAppJsonp(e.parameter);
         break;
       default:
@@ -2383,5 +2385,10 @@ function getCalendarNamesAppJsonp(e) {
   const callback = e.parameter.callback || 'callback';
   return ContentService
     .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    .setMimeType(ContentService.MimeType.JAVASCRIPT)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    });
 }

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Backend Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        .test-results {
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .json-display {
+            background-color: #f1f3f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Complete Backend Test Suite</h1>
+    <p>Testing all backend endpoints with CORS, JSONP, and authentication</p>
+
+    <!-- Configuration Test -->
+    <div class="test-section">
+        <h2>📋 Configuration Test</h2>
+        <button onclick="testConfig()">Test Config Loading</button>
+        <div id="config-results" class="test-results"></div>
+    </div>
+
+    <!-- Ping Test -->
+    <div class="test-section">
+        <h2>🏓 Ping Test</h2>
+        <button onclick="testPing()">Test Ping (Fetch)</button>
+        <button onclick="testPingJsonp()">Test Ping (JSONP)</button>
+        <div id="ping-results" class="test-results"></div>
+    </div>
+
+    <!-- Calendar Names Test -->
+    <div class="test-section">
+        <h2>📅 Calendar Names Test</h2>
+        <button onclick="testCalendarNames()">Test Calendar Names (Fetch)</button>
+        <button onclick="testCalendarNamesJsonp()">Test Calendar Names (JSONP)</button>
+        <div id="calendar-results" class="test-results"></div>
+    </div>
+
+    <!-- CORS Headers Test -->
+    <div class="test-section">
+        <h2>🌐 CORS Headers Test</h2>
+        <button onclick="testCorsHeaders()">Test CORS Headers</button>
+        <div id="cors-results" class="test-results"></div>
+    </div>
+
+    <!-- Full Integration Test -->
+    <div class="test-section">
+        <h2>🚀 Full Integration Test</h2>
+        <button onclick="runFullTest()">Run All Tests</button>
+        <div id="full-results" class="test-results"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push({ timestamp, message, type });
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function displayResults(containerId, results = testResults) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = results.map(result => 
+                `<div class="status ${result.type}">[${result.timestamp}] ${result.message}</div>`
+            ).join('');
+        }
+
+        function testConfig() {
+            log('Testing configuration loading...', 'info');
+            const configResults = [];
+            
+            if (typeof scriptUrl !== 'undefined') {
+                configResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ Script URL loaded: ${scriptUrl}`, type: 'success' });
+            } else {
+                configResults.push({ timestamp: new Date().toLocaleTimeString(), message: '❌ Script URL not found', type: 'error' });
+            }
+            
+            if (typeof authToken !== 'undefined') {
+                configResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ Auth Token loaded: ${authToken}`, type: 'success' });
+            } else {
+                configResults.push({ timestamp: new Date().toLocaleTimeString(), message: '❌ Auth Token not found', type: 'error' });
+            }
+            
+            displayResults('config-results', configResults);
+        }
+
+        async function testPing() {
+            log('Testing ping endpoint with fetch...', 'info');
+            const pingResults = [];
+            
+            try {
+                const url = `${scriptUrl}?function=ping&authToken=${authToken}`;
+                log(`Fetching: ${url}`, 'info');
+                
+                const response = await fetch(url);
+                log(`Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                log(`Response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                const data = await response.json();
+                log(`Response data: ${JSON.stringify(data, null, 2)}`, 'success');
+                pingResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ Ping successful: ${JSON.stringify(data)}`, type: 'success' });
+                
+            } catch (error) {
+                log(`Ping error: ${error.message}`, 'error');
+                pingResults.push({ timestamp: new Date().toLocaleTimeString(), message: `❌ Ping failed: ${error.message}`, type: 'error' });
+            }
+            
+            displayResults('ping-results', pingResults);
+        }
+
+        function testPingJsonp() {
+            log('Testing ping endpoint with JSONP...', 'info');
+            const pingResults = [];
+            
+            const callbackName = 'pingCallback_' + Date.now();
+            window[callbackName] = function(data) {
+                log(`JSONP Ping response: ${JSON.stringify(data, null, 2)}`, 'success');
+                pingResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ JSONP Ping successful: ${JSON.stringify(data)}`, type: 'success' });
+                displayResults('ping-results', pingResults);
+                cleanup();
+            };
+            
+            const script = document.createElement('script');
+            const url = `${scriptUrl}?function=ping&authToken=${authToken}&callback=${callbackName}`;
+            log(`JSONP URL: ${url}`, 'info');
+            script.src = url;
+            
+            const cleanup = () => {
+                document.head.removeChild(script);
+                delete window[callbackName];
+            };
+            
+            script.onerror = function() {
+                log('JSONP Ping failed to load', 'error');
+                pingResults.push({ timestamp: new Date().toLocaleTimeString(), message: '❌ JSONP Ping failed to load', type: 'error' });
+                displayResults('ping-results', pingResults);
+                cleanup();
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        async function testCalendarNames() {
+            log('Testing calendar names endpoint with fetch...', 'info');
+            const calendarResults = [];
+            
+            try {
+                const url = `${scriptUrl}?function=getCalendarNames&authToken=${authToken}`;
+                log(`Fetching: ${url}`, 'info');
+                
+                const response = await fetch(url);
+                log(`Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                log(`Response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                const data = await response.json();
+                log(`Calendar names data: ${JSON.stringify(data, null, 2)}`, 'success');
+                calendarResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ Calendar names: ${JSON.stringify(data)}`, type: 'success' });
+                
+            } catch (error) {
+                log(`Calendar names error: ${error.message}`, 'error');
+                calendarResults.push({ timestamp: new Date().toLocaleTimeString(), message: `❌ Calendar names failed: ${error.message}`, type: 'error' });
+            }
+            
+            displayResults('calendar-results', calendarResults);
+        }
+
+        function testCalendarNamesJsonp() {
+            log('Testing calendar names endpoint with JSONP...', 'info');
+            const calendarResults = [];
+            
+            const callbackName = 'calendarCallback_' + Date.now();
+            window[callbackName] = function(data) {
+                log(`JSONP Calendar names response: ${JSON.stringify(data, null, 2)}`, 'success');
+                calendarResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ JSONP Calendar names: ${JSON.stringify(data)}`, type: 'success' });
+                displayResults('calendar-results', calendarResults);
+                cleanup();
+            };
+            
+            const script = document.createElement('script');
+            const url = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${authToken}&callback=${callbackName}`;
+            log(`JSONP URL: ${url}`, 'info');
+            script.src = url;
+            
+            const cleanup = () => {
+                document.head.removeChild(script);
+                delete window[callbackName];
+            };
+            
+            script.onerror = function() {
+                log('JSONP Calendar names failed to load', 'error');
+                calendarResults.push({ timestamp: new Date().toLocaleTimeString(), message: '❌ JSONP Calendar names failed to load', type: 'error' });
+                displayResults('calendar-results', calendarResults);
+                cleanup();
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        async function testCorsHeaders() {
+            log('Testing CORS headers...', 'info');
+            const corsResults = [];
+            
+            try {
+                const url = `${scriptUrl}?function=ping&authToken=${authToken}`;
+                const response = await fetch(url, {
+                    method: 'OPTIONS'
+                });
+                
+                const headers = [...response.headers.entries()];
+                log(`OPTIONS response headers: ${JSON.stringify(headers)}`, 'info');
+                
+                const corsHeader = response.headers.get('Access-Control-Allow-Origin');
+                if (corsHeader) {
+                    corsResults.push({ timestamp: new Date().toLocaleTimeString(), message: `✅ CORS headers present: ${corsHeader}`, type: 'success' });
+                } else {
+                    corsResults.push({ timestamp: new Date().toLocaleTimeString(), message: '❌ CORS headers missing', type: 'error' });
+                }
+                
+            } catch (error) {
+                log(`CORS test error: ${error.message}`, 'error');
+                corsResults.push({ timestamp: new Date().toLocaleTimeString(), message: `❌ CORS test failed: ${error.message}`, type: 'error' });
+            }
+            
+            displayResults('cors-results', corsResults);
+        }
+
+        async function runFullTest() {
+            log('🚀 Running full integration test...', 'info');
+            testResults = [];
+            
+            // Test configuration
+            testConfig();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Test ping
+            await testPing();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Test JSONP ping
+            testPingJsonp();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Test calendar names
+            await testCalendarNames();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Test JSONP calendar names
+            testCalendarNamesJsonp();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Test CORS
+            await testCorsHeaders();
+            
+            log('✅ Full test suite completed!', 'success');
+            displayResults('full-results');
+        }
+
+        // Auto-load config test on page load
+        window.addEventListener('load', function() {
+            testConfig();
+        });
+    </script>
+</body>
+</html>
