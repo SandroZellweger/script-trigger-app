@@ -4,7 +4,7 @@
  */
 
 window.APP_CONFIG = {    // Google Apps Script Configuration
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxm5twxW3EKlCZMYiXrX0Dldb4vDjrKjUKgGa7zSSgoYR1HKOTWC2pPMMRbevLWBpJH_g/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbyrXtwb_ZZla_9HtOEjyCsTgS9HgIqmzcUNC6lQqIxWAZlZe2bDC44o8d0y7mhXMYPI/exec',
     authToken: 'myAppToken2025',
       // Application Settings
     environment: 'production',
