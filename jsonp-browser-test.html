@@ -81,10 +81,14 @@
 
         function clearResults() {
             document.getElementById('results').innerHTML = '';
-        }
-
-        function testJsonpDirect() {
+        }        function testJsonpDirect() {
             clearResults();
+            
+            if (!scriptUrl) {
+                addResult('error', '❌ Script URL not loaded. Please wait for config to load.');
+                return;
+            }
+            
             addResult('info', '🔄 Testing JSONP with dynamic callback...');
             
             const callbackName = 'testCallback_' + Date.now();
@@ -132,9 +136,12 @@
                     document.head.removeChild(script);
                 }
             }, 10000);
-        }
-
-        async function testFetchDirect() {
+        }        async function testFetchDirect() {
+            if (!scriptUrl) {
+                addResult('error', '❌ Script URL not loaded. Please wait for config to load.');
+                return;
+            }
+            
             addResult('info', '🔄 Testing with Fetch API...');
             
             const testUrl = `${scriptUrl}?function=getCalendarNames&authToken=myAppToken2025`;

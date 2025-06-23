@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Debug Test</title>
+    <script src="./config.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 5px; border: 1px solid #ddd; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Configuration Debug Test</h1>
+    <p>This will help debug why the script URL is not being loaded properly.</p>
+    
+    <button onclick="checkConfig()">Check Config</button>
+    <button onclick="testUrl()">Test URL</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(type, message) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function checkConfig() {
+            clearResults();
+            addResult('info', '<strong>🔍 Configuration Check</strong>');
+            
+            // Check if config script loaded
+            addResult('info', `Config script tag exists: ${document.querySelector('script[src="./config.js"]') ? 'Yes' : 'No'}`);
+            
+            // Check window properties
+            addResult('info', `Window SCRIPT_URL: ${typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : 'undefined'}`);
+            addResult('info', `Window APP_CONFIG: ${typeof APP_CONFIG !== 'undefined' ? JSON.stringify(APP_CONFIG, null, 2) : 'undefined'}`);
+            
+            // Check current location
+            addResult('info', `Current URL: ${window.location.href}`);
+            addResult('info', `Protocol: ${window.location.protocol}`);
+            addResult('info', `Host: ${window.location.host}`);
+            addResult('info', `Pathname: ${window.location.pathname}`);
+            
+            // Check all global variables
+            const globalVars = ['SCRIPT_URL', 'APP_CONFIG', 'PRODUCTION_CONFIG'];
+            globalVars.forEach(varName => {
+                const value = window[varName];
+                const type = typeof value;
+                if (type !== 'undefined') {
+                    addResult('success', `✅ ${varName}: ${type === 'object' ? JSON.stringify(value, null, 2) : value}`);
+                } else {
+                    addResult('error', `❌ ${varName}: undefined`);
+                }
+            });
+        }
+
+        async function testUrl() {
+            if (typeof SCRIPT_URL === 'undefined') {
+                addResult('error', '❌ SCRIPT_URL is undefined - cannot test');
+                return;
+            }
+            
+            addResult('info', '<strong>🧪 URL Test</strong>');
+            const testUrl = `${SCRIPT_URL}?function=ping&authToken=myAppToken2025`;
+            addResult('info', `Test URL: <pre>${testUrl}</pre>`);
+            
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('success', `✅ Response: <pre>${JSON.stringify(data, null, 2)}</pre>`);
+                } else {
+                    const text = await response.text();
+                    addResult('error', `❌ HTTP ${response.status}: <pre>${text.substring(0, 200)}...</pre>`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Fetch error: ${error.message}`);
+            }
+        }
+
+        // Auto-check on load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(checkConfig, 200);
+        });
+
+        // Debug info
+        console.log('🔍 Debug - Document loaded');
+        console.log('🔍 Config script src:', document.querySelector('script[src="./config.js"]')?.src);
+        console.log('🔍 All script tags:', Array.from(document.querySelectorAll('script')).map(s => s.src || s.textContent.substring(0, 50)));
+    </script>
+</body>
+</html>

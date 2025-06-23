@@ -92,13 +92,17 @@
     <script>
         let scriptUrl = '';
         let calendarData = null;
-        
-        document.addEventListener('DOMContentLoaded', function() {
+          document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 if (typeof SCRIPT_URL !== 'undefined') {
                     scriptUrl = SCRIPT_URL;
                     updateStatus('online', `✅ Config loaded - Script URL ready`);
                     console.log('📋 Script URL:', scriptUrl);
+                    
+                    // Auto-load after config is ready
+                    setTimeout(() => {
+                        loadCalendarData();
+                    }, 200);
                 } else {
                     updateStatus('error', '❌ Config not loaded - SCRIPT_URL undefined');
                 }
@@ -147,9 +151,13 @@
                 addResult(`❌ Connection error: ${error.message}`);
                 updateStatus('error', `❌ Connection failed: ${error.message}`);
             }
-        }
-
-        async function loadCalendarData() {
+        }        async function loadCalendarData() {
+            if (!scriptUrl) {
+                addResult('❌ Script URL not loaded yet. Please wait or click "Load Calendar Data" again.');
+                updateStatus('error', '❌ Script URL not ready');
+                return;
+            }
+            
             updateStatus('connecting', '⏳ Loading calendar data...');
             addResult('🔄 Loading calendar names...');
             
@@ -222,17 +230,15 @@
             }
             
             // Log raw data
-            addResult(`<pre>Raw data: ${JSON.stringify(data, null, 2)}</pre>`);
-        }
+            addResult(`<pre>Raw data: ${JSON.stringify(data, null, 2)}</pre>`);        }
 
-        // Auto-load on startup
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                if (scriptUrl) {
-                    loadCalendarData();
-                }
-            }, 500);
-        });
+        // Additional debugging function
+        function debugScriptUrl() {
+            console.log('🔍 Debug Info:');
+            console.log('- scriptUrl variable:', scriptUrl);
+            console.log('- SCRIPT_URL from config:', typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : 'undefined');
+            console.log('- Current location:', window.location.href);
+        }
     </script>
 </body>
 </html>
