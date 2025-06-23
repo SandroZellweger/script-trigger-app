@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Quick Deploy Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        .url-display {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Deploy Test for Your URL</h1>
+        
+        <div class="info">
+            <strong>Testing URL from config.js:</strong>
+            <div class="url-display" id="current-url">Loading...</div>
+        </div>
+
+        <div>
+            <h3>🧪 Quick Backend Tests</h3>
+            <button onclick="testPing()">Test Ping</button>
+            <button onclick="testCalendarNames()">Test Calendar Names</button>
+            <button onclick="testJsonp()">Test JSONP</button>
+            <button onclick="testAll()">Test Everything</button>
+        </div>
+
+        <div id="test-results"></div>
+
+        <div class="warning">
+            <h3>📋 Deployment Steps</h3>
+            <ol>
+                <li>🔗 <a href="https://script.google.com" target="_blank">Open Google Apps Script</a></li>
+                <li>Find project with ID: <code>AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl</code></li>
+                <li>Select ALL existing code (Ctrl+A) and delete it</li>
+                <li>Paste the entire content from <code>complete-fixed-script.gs</code></li>
+                <li>Save (Ctrl+S) and deploy as new version</li>
+                <li>Come back here and test!</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const scriptUrl = window.APP_CONFIG?.scriptUrl;
+        const authToken = window.APP_CONFIG?.authToken;
+        
+        // Display current URL
+        document.getElementById('current-url').textContent = scriptUrl;
+
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${content}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testPing() {
+            addResult('🔄 Testing Ping...', 'Checking backend connectivity...');
+            
+            try {
+                const response = await fetch(`${scriptUrl}?function=ping&authToken=${authToken}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ Ping Success!', `Response: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    addResult('❌ Ping Failed', `HTTP ${response.status}: ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    addResult('❌ CORS Error', 'Backend needs to be updated with CORS fixes', 'error');
+                } else {
+                    addResult('❌ Network Error', error.message, 'error');
+                }
+            }
+        }
+
+        async function testCalendarNames() {
+            addResult('🔄 Testing Calendar Names...', 'Fetching calendar data...');
+            
+            try {
+                const response = await fetch(`${scriptUrl}?function=getCalendarNames&authToken=${authToken}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const calendarCount = data.calendars?.length || 0;
+                    addResult('✅ Calendar Names Success!', `Found ${calendarCount} calendars`, 'success');
+                } else {
+                    addResult('❌ Calendar Names Failed', `HTTP ${response.status}: ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Calendar Names Error', error.message, 'error');
+            }
+        }
+
+        function testJsonp() {
+            addResult('🔄 Testing JSONP...', 'Testing cross-domain compatibility...');
+            
+            const callbackName = 'jsonpTest_' + Date.now();
+            window[callbackName] = function(data) {
+                addResult('✅ JSONP Success!', `JSONP endpoint working: ${JSON.stringify(data).substring(0, 100)}...`, 'success');
+                cleanup();
+            };
+
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${authToken}&callback=${callbackName}`;
+            
+            const cleanup = () => {
+                if (script.parentNode) script.parentNode.removeChild(script);
+                delete window[callbackName];
+            };
+
+            script.onerror = function() {
+                addResult('❌ JSONP Failed', 'Endpoint not found (404) - backend needs update', 'error');
+                cleanup();
+            };
+
+            document.head.appendChild(script);
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    addResult('❌ JSONP Timeout', 'No response after 10 seconds', 'error');
+                    cleanup();
+                }
+            }, 10000);
+        }
+
+        async function testAll() {
+            document.getElementById('test-results').innerHTML = '';
+            addResult('🚀 Running Complete Test Suite...', 'Testing all endpoints...', 'info');
+            
+            await testPing();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testCalendarNames();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            testJsonp();
+            
+            setTimeout(() => {
+                addResult('✅ Test Suite Complete', 'Check results above. If any tests fail, deploy the updated script!', 'info');
+            }, 3000);
+        }
+
+        // Auto-test on load after a short delay
+        setTimeout(() => {
+            addResult('🔄 Auto-testing current backend...', 'Testing if deployment is needed...', 'info');
+            testPing();
+        }, 1000);
+    </script>
+</body>
+</html>

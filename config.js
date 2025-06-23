@@ -4,7 +4,7 @@
  */
 
 window.APP_CONFIG = {    // Google Apps Script Configuration
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbxm5twxW3EKlCZMYiXrX0Dldb4vDjrKjUKgGa7zSSgoYR1HKOTWC2pPMMRbevLWBpJH_g/exec',
     authToken: 'myAppToken2025',
     
     // Application Settings
