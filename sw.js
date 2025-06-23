@@ -1,7 +1,7 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_NAME = 'van-calendar-v1.2.0';
-const STATIC_CACHE_NAME = 'van-calendar-static-v1.2.0';
-const API_CACHE_NAME = 'van-calendar-api-v1.2.0';
+const CACHE_NAME = 'van-calendar-v1.2.1';
+const STATIC_CACHE_NAME = 'van-calendar-static-v1.2.1';
+const API_CACHE_NAME = 'van-calendar-api-v1.2.1';
 
 // Resources to cache immediately
 const STATIC_RESOURCES = [
@@ -14,7 +14,7 @@ const STATIC_RESOURCES = [
 
 // API endpoints to cache (will be dynamically determined from config.js)
 const API_ENDPOINTS = [
-    'https://script.google.com/macros/s/AKfycbyrXtwb_ZZla_9HtOEjyCsTgS9HgIqmzcUNC6lQqIxWAZlZe2bDC44o8d0y7mhXMYPI/exec'
+    'https://script.google.com/macros/s/AKfycbxm5twxW3EKlCZMYiXrX0Dldb4vDjrKjUKgGa7zSSgoYR1HKOTWC2pPMMRbevLWBpJH_g/exec'
 ];
 
 // Install event - cache static resources
