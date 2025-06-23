@@ -1038,9 +1038,51 @@
                     } else if (error.message.includes('load failed')) {
                         updateConnectionStatus('error', `Script loading failed. Check CORS or network connectivity.`);
                     }
-                    
-                    if (attempts >= maxAttempts) {
-                        console.warn('📅 Could not load dynamic calendar names, using static fallback');
+                      if (attempts >= maxAttempts) {
+                        console.warn('📅 JSONP failed completely, trying Fetch API as final fallback...');
+                        
+                        try {
+                            const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
+                            console.log('📡 Fetch fallback URL:', fetchUrl);
+                            
+                            const response = await fetch(fetchUrl, { 
+                                method: 'GET',
+                                mode: 'cors',
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            
+                            if (response.ok) {
+                                const fetchData = await response.json();
+                                console.log('📊 Fetch fallback data:', fetchData);
+                                
+                                if (fetchData && fetchData.success && fetchData.result && Array.isArray(fetchData.result)) {
+                                    dynamicCalendarNames = ['Main Calendar', ...fetchData.result.slice(1)];
+                                    
+                                    if (fetchData.calendars && Array.isArray(fetchData.calendars)) {
+                                        dynamicCalendarData = fetchData.calendars;
+                                        console.log('📅 ✅ SUCCESS: Loaded via Fetch API fallback:', dynamicCalendarNames);
+                                    }
+                                    
+                                    updateCalendarDropdown();
+                                    updateCalendarLegend();
+                                    updateCalendarSelector();
+                                    
+                                    errorCount = 0;
+                                    return; // Success!
+                                } else {
+                                    console.warn('📡 Fetch returned invalid data format');
+                                }
+                            } else {
+                                console.error('📡 Fetch fallback HTTP error:', response.status, response.statusText);
+                            }
+                        } catch (fetchError) {
+                            console.error('📅 Fetch API fallback failed:', fetchError);
+                        }
+                        
+                        // Only use static fallback if everything else failed
+                        console.warn('📅 All connection methods failed, using static fallback');
                         
                         // Show helpful error message to user
                         if (PRODUCTION_CONFIG.enableDiagnostics) {
