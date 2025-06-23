@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Backend URL Test</title>
+    <script src="./config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-box {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Direct Backend URL Test</h1>
+    
+    <div id="url-info" class="test-box info">
+        <h3>URL Being Tested:</h3>
+        <div id="current-url"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>🔗 Direct URL Tests</h3>
+        <button onclick="testBasicUrl()">Test Basic URL</button>
+        <button onclick="testJsonpUrl()">Test JSONP URL</button>
+        <button onclick="testInBrowser()">Open URL in Browser</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let baseUrl = '';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (typeof SCRIPT_URL !== 'undefined') {
+                    baseUrl = SCRIPT_URL;
+                    document.getElementById('current-url').innerHTML = `<pre>${baseUrl}</pre>`;
+                } else {
+                    document.getElementById('current-url').innerHTML = '<span style="color: red;">Config not loaded!</span>';
+                }
+            }, 100);
+        });
+
+        function addResult(type, message) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-box ${type}`;
+            div.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${message}`;
+            resultsDiv.appendChild(div);
+        }
+
+        async function testBasicUrl() {
+            document.getElementById('results').innerHTML = '';
+            addResult('info', 'Testing basic URL connectivity...');
+            
+            try {
+                const testUrl = `${baseUrl}?function=ping&authToken=myAppToken2025`;
+                console.log('Testing URL:', testUrl);
+                
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    addResult('success', `✅ Basic URL works! Status: ${response.status}`);
+                    addResult('info', `Response: <pre>${text}</pre>`);
+                    
+                    // Check CORS headers
+                    const corsHeader = response.headers.get('Access-Control-Allow-Origin');
+                    if (corsHeader) {
+                        addResult('success', `✅ CORS header present: ${corsHeader}`);
+                    } else {
+                        addResult('error', '❌ No CORS headers found');
+                    }
+                } else {
+                    addResult('error', `❌ HTTP Error: ${response.status} - ${response.statusText}`);
+                    addResult('info', `Response: <pre>${text}</pre>`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Network error: ${error.message}`);
+                console.error('Network error:', error);
+            }
+        }
+
+        function testJsonpUrl() {
+            addResult('info', 'Testing JSONP URL...');
+            
+            // Set up JSONP callback
+            window.testJsonpCallback = function(data) {
+                addResult('success', '✅ JSONP callback received!');
+                addResult('info', `Data: <pre>${JSON.stringify(data, null, 2)}</pre>`);
+                delete window.testJsonpCallback;
+            };
+            
+            // Create script tag for JSONP
+            const script = document.createElement('script');
+            const jsonpUrl = `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=testJsonpCallback`;
+            
+            console.log('Testing JSONP URL:', jsonpUrl);
+            script.src = jsonpUrl;
+            
+            script.onerror = function() {
+                addResult('error', '❌ JSONP script failed to load');
+                addResult('info', `URL tried: <pre>${jsonpUrl}</pre>`);
+                delete window.testJsonpCallback;
+            };
+            
+            document.head.appendChild(script);
+            
+            // Clean up after 10 seconds
+            setTimeout(() => {
+                if (window.testJsonpCallback) {
+                    addResult('error', '❌ JSONP timeout - no callback received');
+                    delete window.testJsonpCallback;
+                }
+                if (script.parentNode) {
+                    document.head.removeChild(script);
+                }
+            }, 10000);
+        }
+
+        function testInBrowser() {
+            const testUrl = `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025`;
+            addResult('info', `Opening URL in browser: <pre>${testUrl}</pre>`);
+            window.open(testUrl, '_blank');
+        }
+
+        // Also log the URLs to console for easy copying
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (baseUrl) {
+                    console.log('Base URL:', baseUrl);
+                    console.log('Test ping URL:', `${baseUrl}?function=ping&authToken=myAppToken2025`);
+                    console.log('Test JSONP URL:', `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=testCallback`);
+                }
+            }, 200);
+        });
+    </script>
+</body>
+</html>

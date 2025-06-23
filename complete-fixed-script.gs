@@ -14,29 +14,18 @@ function validateAuthToken(token) {
   return token === AUTH_TOKEN;
 }
 
-// Helper function to create proper JSON response with CORS headers (FIXED!)
+// Helper function to create proper JSON response (Google Apps Script handles CORS automatically)
 function createJsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    });
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Handle OPTIONS requests for CORS preflight
+// Handle OPTIONS requests for CORS preflight (Google Apps Script handles CORS automatically)
 function doOptions(e) {
   return ContentService
     .createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400'
-    });
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 // Main doGet handler for script triggers and fetching expenses
@@ -2380,15 +2369,10 @@ function getCalendarNamesApp() {
 }
 
 // JSONP version for cross-domain requests
-function getCalendarNamesAppJsonp(e) {
+function getCalendarNamesAppJsonp(params) {
   const result = getCalendarNamesApp();
-  const callback = e.parameter.callback || 'callback';
+  const callback = params.callback || 'callback';
   return ContentService
     .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
-    .setMimeType(ContentService.MimeType.JAVASCRIPT)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    });
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }

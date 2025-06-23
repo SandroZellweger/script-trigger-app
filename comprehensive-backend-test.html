@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Backend Test</title>
+    <script src="./config.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .url-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .endpoint-test {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: white;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online { background-color: #28a745; }
+        .status-offline { background-color: #dc3545; }
+        .status-unknown { background-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Comprehensive Backend Test</h1>
+        <p>This test will verify all Google Apps Script endpoints and CORS functionality.</p>
+        
+        <div class="test-section">
+            <h2>📍 Current Configuration</h2>
+            <div id="configInfo"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 URL Connectivity Tests</h2>
+            <button onclick="testBasicConnectivity()">Test Basic URL</button>
+            <button onclick="testCorsOptions()">Test CORS Options</button>
+            <button onclick="testAllEndpoints()">Test All Endpoints</button>
+            <div id="connectivityResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 JSONP Endpoints</h2>
+            <button onclick="testJsonpCalendarNames()">Test Calendar Names JSONP</button>
+            <button onclick="testJsonpCalendarData()">Test Calendar Data JSONP</button>
+            <div id="jsonpResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🗂️ Required Functions Check</h2>
+            <button onclick="checkRequiredFunctions()">Check All Functions</button>
+            <div id="functionResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Deployment Status</h2>
+            <div id="deploymentStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        let scriptUrl = '';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for config to load
+            setTimeout(() => {
+                if (typeof SCRIPT_URL !== 'undefined') {
+                    scriptUrl = SCRIPT_URL;
+                    showConfigInfo();
+                } else {
+                    showError('configInfo', 'Config.js not loaded or SCRIPT_URL not defined');
+                }
+            }, 100);
+        });
+
+        function showConfigInfo() {
+            const configDiv = document.getElementById('configInfo');
+            configDiv.innerHTML = `
+                <div class="info test-result">
+                    <strong>Script URL:</strong>
+                    <div class="url-display">${scriptUrl}</div>
+                </div>
+                <div class="info test-result">
+                    <strong>Expected Endpoints:</strong>
+                    <ul>
+                        <li>GET ${scriptUrl} (basic response)</li>
+                        <li>OPTIONS ${scriptUrl} (CORS preflight)</li>
+                        <li>GET ${scriptUrl}?action=getCalendarNames</li>
+                        <li>GET ${scriptUrl}?action=getCalendarData</li>
+                        <li>GET ${scriptUrl}?action=getCalendarNamesAppJsonp</li>
+                        <li>GET ${scriptUrl}?action=getCalendarDataJsonp</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function showResult(containerId, type, message) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<span class="status-indicator status-${type === 'success' ? 'online' : type === 'error' ? 'offline' : 'unknown'}"></span>${message}`;
+            container.appendChild(resultDiv);
+        }
+
+        function showError(containerId, message) {
+            showResult(containerId, 'error', message);
+        }
+
+        function showSuccess(containerId, message) {
+            showResult(containerId, 'success', message);
+        }
+
+        function showInfo(containerId, message) {
+            showResult(containerId, 'info', message);
+        }
+
+        async function testBasicConnectivity() {
+            const resultsDiv = document.getElementById('connectivityResults');
+            resultsDiv.innerHTML = '';
+            
+            showInfo('connectivityResults', 'Testing basic URL connectivity...');
+            
+            try {
+                const response = await fetch(scriptUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    showSuccess('connectivityResults', `✅ Basic connectivity successful (${response.status})`);
+                    showInfo('connectivityResults', `Response: ${text.substring(0, 200)}${text.length > 200 ? '...' : ''}`);
+                    
+                    // Check for CORS headers
+                    const corsHeader = response.headers.get('Access-Control-Allow-Origin');
+                    if (corsHeader) {
+                        showSuccess('connectivityResults', `✅ CORS header present: ${corsHeader}`);
+                    } else {
+                        showError('connectivityResults', '❌ No CORS headers found');
+                    }
+                } else {
+                    showError('connectivityResults', `❌ HTTP Error: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showError('connectivityResults', `❌ Connection failed: ${error.message}`);
+            }
+        }
+
+        async function testCorsOptions() {
+            const resultsDiv = document.getElementById('connectivityResults');
+            
+            showInfo('connectivityResults', 'Testing CORS OPTIONS request...');
+            
+            try {
+                const response = await fetch(scriptUrl, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                if (response.ok) {
+                    showSuccess('connectivityResults', `✅ OPTIONS request successful (${response.status})`);
+                    
+                    const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
+                    const allowMethods = response.headers.get('Access-Control-Allow-Methods');
+                    const allowHeaders = response.headers.get('Access-Control-Allow-Headers');
+                    
+                    showInfo('connectivityResults', `Allow-Origin: ${allowOrigin || 'Not set'}`);
+                    showInfo('connectivityResults', `Allow-Methods: ${allowMethods || 'Not set'}`);
+                    showInfo('connectivityResults', `Allow-Headers: ${allowHeaders || 'Not set'}`);
+                } else {
+                    showError('connectivityResults', `❌ OPTIONS failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showError('connectivityResults', `❌ OPTIONS request failed: ${error.message}`);
+            }
+        }
+
+        async function testAllEndpoints() {
+            const resultsDiv = document.getElementById('connectivityResults');
+            
+            const endpoints = [
+                { action: 'getCalendarNames', description: 'Calendar Names' },
+                { action: 'getCalendarData', description: 'Calendar Data' },
+                { action: 'getCalendarNamesAppJsonp', description: 'Calendar Names JSONP' },
+                { action: 'getCalendarDataJsonp', description: 'Calendar Data JSONP' }
+            ];
+            
+            for (const endpoint of endpoints) {
+                showInfo('connectivityResults', `Testing ${endpoint.description}...`);
+                
+                try {
+                    const url = `${scriptUrl}?action=${endpoint.action}`;
+                    const response = await fetch(url, { method: 'GET', mode: 'cors' });
+                    const text = await response.text();
+                    
+                    if (response.ok) {
+                        showSuccess('connectivityResults', `✅ ${endpoint.description} successful`);
+                        
+                        // Try to parse as JSON if not JSONP
+                        if (!endpoint.action.includes('Jsonp')) {
+                            try {
+                                const json = JSON.parse(text);
+                                showInfo('connectivityResults', `Response type: Valid JSON (${Object.keys(json).length} properties)`);
+                            } catch (e) {
+                                showError('connectivityResults', `Response not valid JSON: ${text.substring(0, 100)}`);
+                            }
+                        } else {
+                            showInfo('connectivityResults', `JSONP Response: ${text.substring(0, 100)}...`);
+                        }
+                    } else {
+                        showError('connectivityResults', `❌ ${endpoint.description} failed: ${response.status}`);
+                    }
+                } catch (error) {
+                    showError('connectivityResults', `❌ ${endpoint.description} error: ${error.message}`);
+                }
+            }
+        }
+
+        function testJsonpCalendarNames() {
+            const resultsDiv = document.getElementById('jsonpResults');
+            resultsDiv.innerHTML = '';
+            
+            showInfo('jsonpResults', 'Testing Calendar Names JSONP...');
+            
+            // Set up callback
+            window.handleCalendarNamesJsonp = function(data) {
+                showSuccess('jsonpResults', '✅ Calendar Names JSONP callback received');
+                showInfo('jsonpResults', `Data received: ${JSON.stringify(data, null, 2)}`);
+                delete window.handleCalendarNamesJsonp;
+            };
+            
+            // Create script tag
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?action=getCalendarNamesAppJsonp&callback=handleCalendarNamesJsonp`;
+            script.onerror = function() {
+                showError('jsonpResults', '❌ Calendar Names JSONP script failed to load');
+                delete window.handleCalendarNamesJsonp;
+            };
+            
+            document.head.appendChild(script);
+            
+            // Clean up after timeout
+            setTimeout(() => {
+                if (window.handleCalendarNamesJsonp) {
+                    showError('jsonpResults', '❌ Calendar Names JSONP timeout - no callback received');
+                    delete window.handleCalendarNamesJsonp;
+                }
+                document.head.removeChild(script);
+            }, 10000);
+        }
+
+        function testJsonpCalendarData() {
+            const resultsDiv = document.getElementById('jsonpResults');
+            
+            showInfo('jsonpResults', 'Testing Calendar Data JSONP...');
+            
+            // Set up callback
+            window.handleCalendarDataJsonp = function(data) {
+                showSuccess('jsonpResults', '✅ Calendar Data JSONP callback received');
+                showInfo('jsonpResults', `Events received: ${data.events ? data.events.length : 0}`);
+                delete window.handleCalendarDataJsonp;
+            };
+            
+            // Create script tag
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?action=getCalendarDataJsonp&callback=handleCalendarDataJsonp`;
+            script.onerror = function() {
+                showError('jsonpResults', '❌ Calendar Data JSONP script failed to load');
+                delete window.handleCalendarDataJsonp;
+            };
+            
+            document.head.appendChild(script);
+            
+            // Clean up after timeout
+            setTimeout(() => {
+                if (window.handleCalendarDataJsonp) {
+                    showError('jsonpResults', '❌ Calendar Data JSONP timeout - no callback received');
+                    delete window.handleCalendarDataJsonp;
+                }
+                document.head.removeChild(script);
+            }, 10000);
+        }
+
+        async function checkRequiredFunctions() {
+            const resultsDiv = document.getElementById('functionResults');
+            resultsDiv.innerHTML = '';
+            
+            showInfo('functionResults', 'Checking for required backend functions...');
+            
+            const requiredFunctions = [
+                'doGet',
+                'doOptions', 
+                'getCalendarNames',
+                'getCalendarData',
+                'getCalendarNamesAppJsonp',
+                'getCalendarDataJsonp',
+                'createJsonResponse'
+            ];
+            
+            // Try to infer function presence from endpoint tests
+            for (const func of requiredFunctions) {
+                if (func === 'doGet') {
+                    showInfo('functionResults', `${func}: Required for basic GET requests`);
+                } else if (func === 'doOptions') {
+                    showInfo('functionResults', `${func}: Required for CORS preflight`);
+                } else if (func === 'getCalendarNamesAppJsonp') {
+                    showInfo('functionResults', `${func}: Required for JSONP calendar names`);
+                } else if (func === 'getCalendarDataJsonp') {
+                    showInfo('functionResults', `${func}: Required for JSONP calendar data`);
+                } else {
+                    showInfo('functionResults', `${func}: Required function`);
+                }
+            }
+            
+            showInfo('functionResults', 'Note: Run endpoint tests to verify function availability');
+        }
+
+        function updateDeploymentStatus() {
+            const statusDiv = document.getElementById('deploymentStatus');
+            statusDiv.innerHTML = `
+                <div class="info test-result">
+                    <strong>Current Script URL:</strong>
+                    <div class="url-display">${scriptUrl}</div>
+                </div>
+                <div class="warning test-result">
+                    <strong>⚠️ If tests fail:</strong>
+                    <ol>
+                        <li>Open Google Apps Script console</li>
+                        <li>Verify complete-fixed-script.gs is deployed</li>
+                        <li>Check for getCalendarNamesAppJsonp function</li>
+                        <li>Deploy as NEW VERSION (not just save)</li>
+                        <li>Update web app permissions if needed</li>
+                    </ol>
+                </div>
+                <div class="info test-result">
+                    <strong>Expected Functions in Google Apps Script:</strong>
+                    <pre>function doGet(e) { ... }
+function doOptions(e) { ... }
+function getCalendarNames() { ... }
+function getCalendarData() { ... }
+function getCalendarNamesAppJsonp(callback) { ... }
+function getCalendarDataJsonp(callback) { ... }
+function createJsonResponse(data) { ... }</pre>
+                </div>
+            `;
+        }
+
+        // Initialize deployment status
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updateDeploymentStatus, 200);
+        });
+    </script>
+</body>
+</html>

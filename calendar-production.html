@@ -829,12 +829,29 @@
             }).catch(error => {
                 console.error('Initialization failed:', error);
                 updateConnectionStatus('error', 'Failed to connect to Google Calendar');
-                showLoadingOverlay(false);
-            });
-        });        function showLoadingOverlay(show) {
+                showLoadingOverlay(false);            });
+        });
+
+        function showLoadingOverlay(show) {
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) {
                 overlay.classList.toggle('active', show);
+            }
+        }
+
+        // Loading state management function
+        function setLoadingState(isLoading) {
+            const calendar = document.getElementById('calendar');
+            const loadingIndicator = document.querySelector('.loading-indicator');
+            
+            if (isLoading) {
+                if (calendar) calendar.style.opacity = '0.5';
+                if (loadingIndicator) loadingIndicator.style.display = 'block';
+                console.log('🔄 Loading calendar data...');
+            } else {
+                if (calendar) calendar.style.opacity = '1';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                console.log('✅ Calendar data loaded');
             }
         }
 
