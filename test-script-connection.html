@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Apps Script Test</title>
+</head>
+<body>
+    <h1>Google Apps Script Connection Test</h1>
+    <div id="status">Testing...</div>
+    <div id="result"></div>
+    
+    <script>
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec';
+        const authToken = 'myAppToken2025';
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+        
+        function showResult(data) {
+            document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+        
+        // Test 1: Simple ping
+        async function testPing() {
+            updateStatus('Testing ping endpoint...');
+            try {
+                const response = await fetch(`${scriptUrl}?function=ping&authToken=${authToken}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult({ ping: data });
+                    updateStatus('✅ Ping successful');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult({ ping_error: error.message });
+                updateStatus('❌ Ping failed');
+                return false;
+            }
+        }
+        
+        // Test 2: Calendar names endpoint
+        async function testCalendarNames() {
+            updateStatus('Testing calendar names endpoint...');
+            try {
+                const response = await fetch(`${scriptUrl}?function=getCalendarNames&authToken=${authToken}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult({ calendar_names: data });
+                    updateStatus('✅ Calendar names successful');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult({ calendar_error: error.message });
+                updateStatus('❌ Calendar names failed');
+                return false;
+            }
+        }
+        
+        // Test 3: JSONP endpoint
+        function testJsonp() {
+            return new Promise((resolve) => {
+                updateStatus('Testing JSONP endpoint...');
+                
+                window.jsonp_test_callback = function(data) {
+                    showResult({ jsonp: data });
+                    updateStatus('✅ JSONP successful');
+                    resolve(true);
+                };
+                
+                const script = document.createElement('script');
+                script.src = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${authToken}&callback=jsonp_test_callback`;
+                script.onerror = function() {
+                    showResult({ jsonp_error: 'Script load failed' });
+                    updateStatus('❌ JSONP failed');
+                    resolve(false);
+                };
+                
+                document.head.appendChild(script);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    if (document.getElementById('status').textContent.includes('Testing JSONP')) {
+                        showResult({ jsonp_error: 'Timeout' });
+                        updateStatus('❌ JSONP timeout');
+                        resolve(false);
+                    }
+                }, 10000);
+            });
+        }
+        
+        // Run all tests
+        async function runTests() {
+            const pingSuccess = await testPing();
+            if (pingSuccess) {
+                const calendarSuccess = await testCalendarNames();
+                await testJsonp();
+            }
+        }
+        
+        // Start tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

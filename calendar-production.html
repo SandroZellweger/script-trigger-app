@@ -754,8 +754,7 @@
         </div>
     </div>
 
-    <script>
-        // Production Configuration
+    <script>        // Production Configuration
         const PRODUCTION_CONFIG = {
             scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
             authToken: 'myAppToken2025',
@@ -763,7 +762,8 @@
             enableAnalytics: true,
             corsMode: 'jsonp-primary',
             retryAttempts: 3,
-            timeout: 15000
+            timeout: 15000,
+            enableDiagnostics: true
         };
 
         // Calendar IDs - Your actual van fleet
@@ -971,14 +971,29 @@
                         return;
                     } else {
                         throw new Error('Invalid response format');
-                    }
-                } catch (error) {
+                    }                } catch (error) {
                     attempts++;
                     lastError = error;
                     console.warn(`Attempt ${attempts} failed:`, error);
                     
+                    // Update connection status based on error type
+                    if (error.message.includes('404') || error.message.includes('Not Found')) {
+                        updateConnectionStatus('error', `Google Apps Script not found (404). Script may need redeployment.`);
+                    } else if (error.message.includes('load failed')) {
+                        updateConnectionStatus('error', `Script loading failed. Check CORS or network connectivity.`);
+                    }
+                    
                     if (attempts >= maxAttempts) {
                         console.warn('📅 Could not load dynamic calendar names, using static fallback');
+                        
+                        // Show helpful error message to user
+                        if (PRODUCTION_CONFIG.enableDiagnostics) {
+                            const errorMsg = lastError.message.includes('404') 
+                                ? 'Google Apps Script needs to be redeployed. Using offline mode.'
+                                : 'Connection failed. Using offline mode.';
+                            updateConnectionStatus('offline', errorMsg);
+                        }
+                        
                         dynamicCalendarNames = [...CALENDAR_NAMES];
                         updateCalendarDropdown();
                         updateCalendarLegend();
@@ -990,6 +1005,93 @@
                     // Wait before retry
                     await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
                 }
+            }
+        }
+
+        // Update calendar dropdown with dynamic names
+        function updateCalendarDropdown() {
+            const dropdown = document.getElementById('calendarFilter');
+            if (!dropdown) return;
+            
+            // Clear existing options
+            dropdown.innerHTML = '<option value="all">All Calendars</option>';
+            
+            // Add calendar options using dynamic names
+            const namesToUse = dynamicCalendarNames.length > 0 ? dynamicCalendarNames : CALENDAR_NAMES;
+            namesToUse.forEach((name, index) => {
+                const option = document.createElement('option');
+                option.value = index.toString();
+                option.textContent = name;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Update calendar legend with dynamic names and colors
+        function updateCalendarLegend() {
+            const legend = document.getElementById('vanLegend');
+            if (!legend) return;
+            
+            legend.innerHTML = '';
+            const namesToUse = dynamicCalendarNames.length > 0 ? dynamicCalendarNames : CALENDAR_NAMES;
+            
+            namesToUse.forEach((name, index) => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                
+                // Determine color
+                let color = vanColors[index % vanColors.length];
+                if (dynamicCalendarData.length > index && dynamicCalendarData[index].color) {
+                    color = dynamicCalendarData[index].color;
+                }
+                
+                legendItem.innerHTML = `
+                    <div class="legend-color" style="background-color: ${color}"></div>
+                    <span class="legend-text">${name}</span>
+                `;
+                legend.appendChild(legendItem);
+            });
+        }
+
+        // Update calendar selector with checkboxes
+        function updateCalendarSelector() {
+            const selector = document.querySelector('.calendar-selector');
+            if (!selector) return;
+            
+            selector.innerHTML = '';
+            const namesToUse = dynamicCalendarNames.length > 0 ? dynamicCalendarNames : CALENDAR_NAMES;
+            
+            namesToUse.forEach((name, index) => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'calendar-checkbox-item';
+                
+                // Determine color
+                let color = vanColors[index % vanColors.length];
+                if (dynamicCalendarData.length > index && dynamicCalendarData[index].color) {
+                    color = dynamicCalendarData[index].color;
+                }
+                
+                checkboxItem.innerHTML = `
+                    <input type="checkbox" id="cal_${index}" ${selectedCalendars.has(index) ? 'checked' : ''} 
+                           onchange="toggleCalendarSelection(${index})">
+                    <div class="calendar-checkbox-color" style="background-color: ${color}"></div>
+                    <label for="cal_${index}">${name}</label>
+                `;
+                
+                selector.appendChild(checkboxItem);
+            });
+        }
+
+        // Toggle calendar selection
+        function toggleCalendarSelection(index) {
+            if (selectedCalendars.has(index)) {
+                selectedCalendars.delete(index);
+            } else {
+                selectedCalendars.add(index);
+            }
+            
+            // Re-render events with updated selection
+            if (typeof renderEvents === 'function') {
+                renderEvents();
             }
         }
 
