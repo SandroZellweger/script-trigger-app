@@ -1,64 +1,66 @@
 # 🔧 GOOGLE APPS SCRIPT CONNECTION ISSUE - DIAGNOSIS & SOLUTION
 
-## 🚨 **Current Issue**
+# � CENTRALIZED URL CONFIGURATION - ONE URL FOR ALL PAGES
 
-**Problem**: Google Apps Script returning 404 error
-**URL**: `https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec`
-**Error**: `net::ERR_ABORTED 404 (Not Found)`
+## ✅ **Current Setup - Centralized Configuration**
 
-## ✅ **Frontend Fixes Applied**
+**Perfect!** Your project uses a **centralized configuration system** where you only need to update the URL in **ONE place** and all pages automatically use it.
 
-### 1. **Missing JavaScript Functions Fixed** ✅
-- Added `updateCalendarDropdown()` function
-- Added `updateCalendarLegend()` function  
-- Added `updateCalendarSelector()` function
-- Added `toggleCalendarSelection()` function
+**Current URL**: `https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec`
 
-### 2. **Enhanced Error Handling** ✅
-- Better error messages for 404 errors
-- Graceful fallback to static calendar names
-- Diagnostic mode for troubleshooting
-- Improved connection status indicators
+## 🎯 **How It Works**
 
-### 3. **Service Worker Paths Fixed** ✅
-- Fixed relative paths in service worker registration
-- Updated cache resource paths
-
-## 🎯 **Root Cause: Google Apps Script Deployment**
-
-The 404 error indicates that the Google Apps Script needs to be **redeployed** with a new web app URL.
-
-### **Why This Happens:**
-1. Google Apps Script URLs can change when scripts are modified
-2. Deployment settings may have been changed
-3. Permissions may have been updated
-4. Script may have been accidentally undeployed
-
-## 🚀 **SOLUTION: Redeploy Google Apps Script**
-
-### **Step 1: Open Google Apps Script**
-1. Go to https://script.google.com
-2. Open your `complete-fixed-script.gs` project
-
-### **Step 2: Redeploy as Web App**
-1. Click **Deploy** → **New Deployment**
-2. Choose type: **Web app**
-3. Set these settings:
-   - **Execute as**: Me (your email)
-   - **Who has access**: Anyone
-4. Click **Deploy**
-5. **Copy the new web app URL**
-
-### **Step 3: Update Frontend Configuration**
-Replace the URL in `calendar-production.html`:
-
+### **Single Source of Truth: `config.js`**
 ```javascript
-// Find this line (around line 760):
-scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+window.APP_CONFIG = {
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec',
+    authToken: 'myAppToken2025',
+    // ... other settings
+};
+```
 
-// Replace with your new URL:
+### **All Pages Load This Config:**
+- ✅ `calendar-production.html` 
+- ✅ `index.html`
+- ✅ `settings.html`
+- ✅ Service Worker (`sw.js`)
+- ✅ All test pages
+
+## 🚀 **To Update URL for ALL Pages:**
+
+### **Step 1: Update Only `config.js`**
+```javascript
+// Change this ONE line in config.js:
 scriptUrl: 'YOUR_NEW_GOOGLE_APPS_SCRIPT_URL_HERE',
 ```
+
+### **Step 2: That's It!**
+All pages automatically use the new URL. No need to update multiple files!
+
+## 🔧 **Current Issue: Backend Deployment**
+
+The URL is correct, but the **backend at that URL needs to be updated** with the fixed script.
+
+## 🚀 **SOLUTION: Deploy Fixed Script to Current URL**
+
+### **Step 1: Copy the Fixed Script**
+1. Open `complete-fixed-script.gs` (2395 lines)
+2. Select all content (Ctrl+A) and copy (Ctrl+C)
+
+### **Step 2: Deploy to Your Google Apps Script**
+1. Go to https://script.google.com
+2. Find your project with deployment ID: `AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl`
+3. Replace ALL existing code with the fixed script
+4. Save and deploy as new version
+
+### **Step 3: That's It!**
+Since you use centralized config, **no frontend changes needed**. All pages will automatically use the updated backend!
+
+## ✅ **What the Fixed Script Includes:**
+- 🔧 **CORS headers** (fixes fetch errors)
+- 🔧 **getCalendarNamesAppJsonp** endpoint (fixes 404s)
+- 🔧 **Proper authentication** 
+- 🔧 **Real van calendar data**
 
 ## 🧪 **Testing Tools Created**
 

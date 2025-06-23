@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 Centralized URL Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .url-display {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        .deployment-id {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Centralized URL Configuration Test</h1>
+        <p>Testing that all pages use the same URL from config.js</p>
+
+        <div class="info">
+            <strong>✅ Centralized System Benefits:</strong><br>
+            • Update URL in ONE place (config.js)<br>
+            • All pages automatically use the new URL<br>
+            • No need to edit multiple files<br>
+            • Consistent configuration across the entire app
+        </div>
+
+        <h3>📋 Current Configuration</h3>
+        <div id="config-status"></div>
+
+        <h3>🧪 Backend Test</h3>
+        <button onclick="testBackend()">Test Current URL</button>
+        <div id="test-results"></div>
+
+        <h3>🚀 Next Steps</h3>
+        <div id="deployment-guide"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        function showConfig() {
+            const configDiv = document.getElementById('config-status');
+            const deploymentDiv = document.getElementById('deployment-guide');
+            
+            const scriptUrl = window.APP_CONFIG?.scriptUrl;
+            const authToken = window.APP_CONFIG?.authToken;
+            const version = window.APP_CONFIG?.version;
+            
+            if (!scriptUrl) {
+                configDiv.innerHTML = '<div class="error">❌ Config.js not loaded properly</div>';
+                return;
+            }
+            
+            // Extract deployment ID
+            const deploymentMatch = scriptUrl.match(/\/s\/([^\/]+)\/exec/);
+            const deploymentId = deploymentMatch ? deploymentMatch[1] : 'Not found';
+            
+            configDiv.innerHTML = `
+                <div class="success">
+                    ✅ <strong>Centralized Config Loaded!</strong><br>
+                    <strong>Version:</strong> ${version}<br>
+                    <strong>Auth Token:</strong> ${authToken}<br><br>
+                    <strong>Google Apps Script URL:</strong><br>
+                    <div class="url-display">${scriptUrl}</div>
+                </div>
+                <div class="deployment-id">
+                    <strong>🎯 Deployment ID:</strong> ${deploymentId}<br>
+                    <small>Use this ID to find your project in Google Apps Script</small>
+                </div>
+            `;
+
+            deploymentDiv.innerHTML = `
+                <div class="info">
+                    <strong>🚀 To update the backend:</strong><br>
+                    1. Copy content from <code>complete-fixed-script.gs</code><br>
+                    2. Open <a href="https://script.google.com" target="_blank">Google Apps Script</a><br>
+                    3. Find project with ID: <code>${deploymentId}</code><br>
+                    4. Replace ALL code and deploy new version<br>
+                    5. ✅ <strong>No frontend changes needed!</strong> All pages will automatically use the updated backend.
+                </div>
+            `;
+        }
+
+        async function testBackend() {
+            const resultsDiv = document.getElementById('test-results');
+            const scriptUrl = window.APP_CONFIG?.scriptUrl;
+            const authToken = window.APP_CONFIG?.authToken;
+            
+            if (!scriptUrl) {
+                resultsDiv.innerHTML = '<div class="error">❌ No script URL found in config</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<div class="info">🧪 Testing backend connection...</div>';
+            
+            try {
+                const pingUrl = `${scriptUrl}?function=ping&authToken=${authToken}`;
+                console.log('Testing URL:', pingUrl);
+                
+                const response = await fetch(pingUrl);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const corsHeader = response.headers.get('Access-Control-Allow-Origin');
+                    
+                    if (data.error && data.error === 'Offline') {
+                        resultsDiv.innerHTML = `
+                            <div class="error">
+                                ❌ <strong>Backend needs updating!</strong><br>
+                                Current response: ${JSON.stringify(data)}<br>
+                                <strong>Solution:</strong> Deploy the fixed script to add CORS headers and proper endpoints
+                            </div>
+                        `;
+                    } else {
+                        resultsDiv.innerHTML = `
+                            <div class="success">
+                                ✅ <strong>Backend is working!</strong><br>
+                                Response: ${JSON.stringify(data)}<br>
+                                CORS Headers: ${corsHeader ? 'Present ✅' : 'Missing ❌'}
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>Backend error:</strong> HTTP ${response.status}<br>
+                            The script needs to be deployed with the fixed code
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    resultsDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>CORS Error:</strong> ${error.message}<br>
+                            <strong>Solution:</strong> Deploy complete-fixed-script.gs to add CORS headers
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>Network error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', showConfig);
+    </script>
+</body>
+</html>
