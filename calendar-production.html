@@ -751,20 +751,13 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </div>    </div>
 
-    <script>        // Production Configuration
-        const PRODUCTION_CONFIG = {
-            scriptUrl: 'https://script.google.com/macros/s/AKfycbzuM6QlsIbT8l8GZa19WxKJOYHyryecuz1rpg1wkEKJXFs6cvZggICnrhg1gzir2tEv/exec',
-            authToken: 'myAppToken2025',
-            environment: 'production',
-            enableAnalytics: true,
-            corsMode: 'jsonp-primary',
-            retryAttempts: 3,
-            timeout: 15000,
-            enableDiagnostics: true
-        };
+    <!-- Centralized Configuration -->
+    <script src="./config.js"></script>
+    
+    <script>        // Use centralized configuration
+        const PRODUCTION_CONFIG = window.APP_CONFIG;
 
         // Calendar IDs - Your actual van fleet
         const CALENDAR_IDS = [
@@ -810,10 +803,13 @@
 
         // Error tracking
         let errorCount = 0;
-        let lastError = null;
-
-        // Initialize application
+        let lastError = null;        // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
+            // Debug: Verify configuration is loaded correctly
+            console.log('🔧 Production Config Loaded:', PRODUCTION_CONFIG);
+            console.log('🔗 Script URL:', PRODUCTION_CONFIG.scriptUrl);
+            console.log('📱 Version:', PRODUCTION_CONFIG.version);
+            
             showLoadingOverlay(true);
             updateConnectionStatus('connecting', 'Initializing application...');
             

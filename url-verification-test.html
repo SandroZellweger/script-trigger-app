@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Verification Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+        .status { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Google Apps Script URL Verification</h1>
+        <div class="info">
+            <strong>Page loaded at:</strong> <span id="timestamp"></span><br>
+            <strong>File version:</strong> 1.1.0 (Updated URL)
+        </div>
+        
+        <h2>📋 Configuration Check</h2>
+        <div id="configStatus"></div>
+        
+        <h2>🧪 Connection Tests</h2>
+        <button onclick="testPing()">Test Ping</button>
+        <button onclick="testCalendarNames()">Test Calendar Names</button>
+        <button onclick="testJsonp()">Test JSONP</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // UPDATED URL - Version 1.1.0
+        const PRODUCTION_CONFIG = {
+            scriptUrl: 'https://script.google.com/macros/s/AKfycbzuM6QlsIbT8l8GZa19WxKJOYHyryecuz1rpg1wkEKJXFs6cvZggICnrhg1gzir2tEv/exec',
+            authToken: 'myAppToken2025',
+            version: '1.1.0'
+        };
+
+        // Show timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Display configuration
+        function showConfig() {
+            const configDiv = document.getElementById('configStatus');
+            const isNewUrl = PRODUCTION_CONFIG.scriptUrl.includes('AKfycbzuM6QlsIbT8l8GZa19WxKJOYHyryecuz1rpg1wkEKJXFs6cvZggICnrhg1gzir2tEv');
+            
+            if (isNewUrl) {
+                configDiv.className = 'status success';
+                configDiv.innerHTML = `
+                    <strong>✅ Correct URL Loaded!</strong><br>
+                    <pre>${PRODUCTION_CONFIG.scriptUrl}</pre>
+                    Version: ${PRODUCTION_CONFIG.version}
+                `;
+            } else {
+                configDiv.className = 'status error';
+                configDiv.innerHTML = `
+                    <strong>❌ Wrong URL Loaded!</strong><br>
+                    <pre>${PRODUCTION_CONFIG.scriptUrl}</pre>
+                    This is still the old URL. Clear browser cache!
+                `;
+            }
+        }
+        
+        function addResult(title, content, isSuccess = null) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            
+            let className = 'status info';
+            if (isSuccess === true) className = 'status success';
+            if (isSuccess === false) className = 'status error';
+            
+            resultDiv.className = className;
+            resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${content}</pre>`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function testPing() {
+            addResult('🔄 Testing Ping...', 'Connecting to Google Apps Script...');
+            
+            try {
+                const response = await fetch(`${PRODUCTION_CONFIG.scriptUrl}?function=ping&authToken=${PRODUCTION_CONFIG.authToken}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ Ping Success', JSON.stringify(data, null, 2), true);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('❌ Ping Failed', error.message, false);
+            }
+        }
+        
+        async function testCalendarNames() {
+            addResult('🔄 Testing Calendar Names...', 'Fetching van calendar names...');
+            
+            try {
+                const response = await fetch(`${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ Calendar Names Success', JSON.stringify(data, null, 2), true);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('❌ Calendar Names Failed', error.message, false);
+            }
+        }
+        
+        function testJsonp() {
+            addResult('🔄 Testing JSONP...', 'Testing CORS-bypass method...');
+            
+            window.jsonp_test_callback = function(data) {
+                addResult('✅ JSONP Success', JSON.stringify(data, null, 2), true);
+            };
+            
+            const script = document.createElement('script');
+            script.src = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${PRODUCTION_CONFIG.authToken}&callback=jsonp_test_callback`;
+            script.onerror = function() {
+                addResult('❌ JSONP Failed', 'Script load failed - likely 404 error', false);
+            };
+            
+            document.head.appendChild(script);
+            
+            setTimeout(() => {
+                if (!window.jsonp_test_callback.called) {
+                    addResult('❌ JSONP Timeout', 'No response within 10 seconds', false);
+                }
+            }, 10000);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Initialize
+        showConfig();
+    </script>
+</body>
+</html>

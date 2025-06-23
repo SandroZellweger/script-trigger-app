@@ -264,13 +264,18 @@
             <div class="status-item version">
                 v2.0
             </div>
-        </div>
-    </div>    <script>
-        // Function to get settings from localStorage
+        </div>    </div>    
+    
+    <!-- Centralized Configuration -->
+    <script src="./config.js"></script>
+    
+    <script>
+        // Function to get settings (now uses centralized config)
         function getSettings() {
+            // Use centralized config as default, allow localStorage overrides
             const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
-                authToken: 'myAppToken2025'
+                scriptUrl: window.APP_CONFIG.scriptUrl,
+                authToken: window.APP_CONFIG.authToken
             };
             
             const savedSettings = localStorage.getItem('appSettings');

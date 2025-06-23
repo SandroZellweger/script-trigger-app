@@ -341,17 +341,21 @@
         <div class="header">
             <h1>⚙️ Settings</h1>
             <p>Configure your app preferences</p>
-        </div>
-
-        <!-- Core Configuration -->
+        </div>        <!-- Core Configuration -->
         <div class="settings-section">
             <div class="section-title">
                 🔧 Core Configuration
+                <div style="font-size: 12px; color: #666; font-weight: normal; margin-top: 5px;">
+                    ✅ Now centralized in config.js - applies to all pages
+                </div>
             </div>
             
             <div class="input-group">
                 <label for="scriptUrl">Google Apps Script URL:</label>
                 <textarea id="scriptUrl" placeholder="https://script.google.com/macros/s/..."></textarea>
+                <div class="help-text">
+                    💡 This URL is now shared across all HTML files via config.js
+                </div>
             </div>
             
             <div class="input-group">
@@ -465,12 +469,16 @@
                 <button class="btn btn-secondary" onclick="showAbout()">📖 About</button>
                 <button class="btn btn-secondary" onclick="installPWA()">📱 Install App</button>
             </div>
-        </div>
-    </div>    <script>
-        // Default settings
+        </div>    </div>    
+    
+    <!-- Centralized Configuration -->
+    <script src="./config.js"></script>
+    
+    <script>
+        // Default settings (now uses centralized config)
         const defaultSettings = {
-            scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
-            authToken: 'myAppToken2025',
+            scriptUrl: window.APP_CONFIG.scriptUrl,
+            authToken: window.APP_CONFIG.authToken,
             defaultAmount: '100.00',
             defaultDescription: 'Noleggio Furgone',
             soundEnabled: true,
