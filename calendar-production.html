@@ -799,11 +799,42 @@
         let dynamicCalendarNames = [...CALENDAR_NAMES];
         let dynamicCalendarData = [];
         let isLoading = false;
-        let connectionStatus = 'connecting';
-
-        // Error tracking
+        let connectionStatus = 'connecting';        // Error tracking
         let errorCount = 0;
-        let lastError = null;        // Initialize application
+        let lastError = null;
+
+        // Loading state management function - defined early
+        function setLoadingState(isLoading) {
+            const calendar = document.getElementById('calendarView');
+            const loadingIndicator = document.querySelector('.loading-indicator');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            if (isLoading) {
+                if (calendar) calendar.style.opacity = '0.5';
+                if (loadingIndicator) loadingIndicator.style.display = 'block';
+                if (refreshBtn) {
+                    refreshBtn.disabled = true;
+                    refreshBtn.innerHTML = '<span>⏳</span> Loading...';
+                }
+                console.log('🔄 Loading calendar data...');
+            } else {
+                if (calendar) calendar.style.opacity = '1';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = '<span id="refreshIcon">🔄</span> Refresh Data';
+                }
+                console.log('✅ Calendar data loaded');
+            }
+        }
+
+        // Show/hide loading overlay
+        function showLoadingOverlay(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.classList.toggle('active', show);
+            }
+        }// Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             // Debug: Verify configuration is loaded correctly
             console.log('🔧 Production Config Loaded:', PRODUCTION_CONFIG);
@@ -825,14 +856,17 @@
                 return loadCalendarData();
             }).then(() => {
                 updateConnectionStatus('online', 'Connected to Google Calendar');
-                showLoadingOverlay(false);
-            }).catch(error => {
+                showLoadingOverlay(false);            }).catch(error => {
                 console.error('Initialization failed:', error);
                 updateConnectionStatus('error', 'Failed to connect to Google Calendar');
-                showLoadingOverlay(false);            });
-        });
-
-        function showLoadingOverlay(show) {
+                showLoadingOverlay(false);
+                
+                // Still generate calendar and use mock data as fallback
+                generateCalendar();
+                currentEvents = generateMockEvents();
+                renderEvents();
+            });
+        });        function showLoadingOverlay(show) {
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) {
                 overlay.classList.toggle('active', show);
@@ -995,31 +1029,33 @@
                             jsonpSuccess = true; // Success with JSONP
                         } else {
                             throw new Error('Invalid JSONP response format');
-                        }
-                    } catch (error) {
+                        }                    } catch (error) {
                         attempts++;
                         lastError = error;
                         console.warn(`JSONP attempt ${attempts} failed:`, error.message);
                         
                         // Update connection status based on error type
-                        if (error.message.includes('404') || error.message.includes('Not Found')) {
-                            updateConnectionStatus('error', `Google Apps Script not found (404). Trying Fetch API...`);
-                        } else if (error.message.includes('load failed')) {
-                            updateConnectionStatus('error', `JSONP failed. Trying Fetch API...`);
+                        if (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('load failed')) {
+                            updateConnectionStatus('error', `Backend not found (404). Checking Fetch API...`);
+                        } else if (error.message.includes('timeout')) {
+                            updateConnectionStatus('error', `Connection timeout. Retrying...`);
+                        } else {
+                            updateConnectionStatus('error', `JSONP failed. Trying alternatives...`);
                         }
                         
                         if (attempts < maxAttempts) {
                             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
+                        } else {
+                            console.log('📅 All JSONP attempts failed, proceeding to Fetch API fallback');
+                            break; // Exit retry loop
                         }
                     }
-                }
-
-                // If JSONP failed completely, try Fetch API as fallback
+                }                // If JSONP failed completely, try Fetch API as fallback
                 if (!jsonpSuccess) {
                     console.warn('📅 JSONP failed completely, trying Fetch API as fallback...');
+                    updateConnectionStatus('connecting', 'JSONP failed, trying Fetch API...');
                     
                     try {
-                        updateConnectionStatus('connecting', 'Trying Fetch API fallback...');
                         const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
                         console.log('📡 Fetch fallback URL:', fetchUrl);
                         
@@ -1050,6 +1086,8 @@
                                 
                                 errorCount = 0;
                                 jsonpSuccess = true; // Success with Fetch
+                                updateConnectionStatus('online', 'Connected via Fetch API');
+                                return; // Exit successfully
                             } else {
                                 console.warn('📡 Fetch returned invalid data format');
                             }
@@ -1058,19 +1096,20 @@
                         }
                     } catch (fetchError) {
                         console.error('📅 Fetch API fallback failed:', fetchError);
+                        updateConnectionStatus('error', 'Both JSONP and Fetch failed');
                     }
-                }
-
-                // Only use static fallback if everything else failed
+                }                // Only use static fallback if everything else failed
                 if (!jsonpSuccess) {
                     console.warn('📅 All connection methods failed, using static fallback');
                     
                     // Show helpful error message to user
                     if (PRODUCTION_CONFIG.enableDiagnostics) {
-                        const errorMsg = lastError && lastError.message.includes('404') 
-                            ? 'Google Apps Script needs to be redeployed. Using offline mode.'
-                            : 'Connection failed. Using offline mode.';
+                        const errorMsg = lastError && (lastError.message.includes('404') || lastError.message.includes('load failed'))
+                            ? '🔧 Backend not deployed yet - Using offline demo data'
+                            : '⚠️ Connection failed - Using offline demo data';
                         updateConnectionStatus('offline', errorMsg);
+                    } else {
+                        updateConnectionStatus('offline', 'Using offline demo data');
                     }
                     
                     dynamicCalendarNames = [...CALENDAR_NAMES];
