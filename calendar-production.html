@@ -835,9 +835,7 @@
             if (overlay) {
                 overlay.classList.toggle('active', show);
             }
-        }
-
-        // Loading state management function
+        }        // Loading state management function
         function setLoadingState(loading) {
             const calendar = document.getElementById('calendarView');
             const loadingIndicator = document.querySelector('.loading-indicator');
@@ -859,8 +857,11 @@
                     refreshBtn.innerHTML = '<span id="refreshIcon">🔄</span> Refresh Data';
                 }
                 console.log('✅ Calendar data loaded');
-            }
-        }
+            }        }
+        
+        // Expose functions to global scope immediately
+        window.showLoadingOverlay = showLoadingOverlay;
+        window.setLoadingState = setLoadingState;
         
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
@@ -960,14 +961,9 @@
             for (let i = 0; i < CALENDAR_NAMES.length; i++) {
                 selectedCalendars.add(i);
             }
-        }
-
-        // Remove JSONP and fallback logic to speed up loading
-        // Commenting out JSONP utility
-        function makeJsonpRequest() { /* JSONP removed */ }
-
-        async function loadCalendarNames() {
-            // JSONP logic removed. Using static calendar names.
+        }        // Static calendar names - no JSONP needed
+        function loadCalendarNames() {
+            // Use static calendar names for instant loading
             dynamicCalendarNames = [...CALENDAR_NAMES];
             dynamicCalendarData = [];
             updateCalendarDropdown();
@@ -975,39 +971,6 @@
             updateCalendarSelector();
             return Promise.resolve();
         }
-
-        // Simplify app initialization: static calendar names + direct event load
-        // Replace DOMContentLoaded listener
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 Production Config Loaded:', PRODUCTION_CONFIG);
-            console.log('🔗 Script URL:', PRODUCTION_CONFIG.scriptUrl);
-            console.log('📱 Version:', PRODUCTION_CONFIG.version);
-
-            showLoadingOverlay(true);
-            updateConnectionStatus('connecting', 'Initializing application...');
-
-            switchTab('calendar');
-            initializeSelectedCalendars();
-
-            // Static calendar names
-            updateCalendarDropdown();
-            updateCalendarLegend();
-            updateCalendarSelector();
-
-            generateCalendar();
-            loadCalendarData()
-                .then(() => {
-                    updateConnectionStatus('online', 'Loaded events');
-                    showLoadingOverlay(false);
-                })
-                .catch(error => {
-                    console.error('Initialization failed:', error);
-                    updateConnectionStatus('offline', 'Showing demo data');
-                    showLoadingOverlay(false);
-                    currentEvents = generateMockEvents();
-                    renderEvents();
-                });
-        });
 
         // Tab switching function
         function switchTab(tabName) {
@@ -1569,11 +1532,8 @@
                         console.log('📱 SW registration failed:', error);
                     });
             });
-        }
-
-        // Expose to global
-        window.showLoadingOverlay = showLoadingOverlay;
-        window.setLoadingState = setLoadingState;
+        }        // Expose to global
+        // Already exposed above
     </script>
 </body>
 </html>
