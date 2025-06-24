@@ -679,9 +679,7 @@
             constructor(config) {
                 this.config = config;
                 this.controller = null;
-            }
-
-            async fetchEvents(startDate, endDate) {
+            }            async fetchEvents(startDate, endDate) {
                 console.log('🔄 Fetching events via modern API...');
                 
                 // Cancel any ongoing request
@@ -715,7 +713,7 @@
                     const data = await response.json();
                     
                     if (data.events && Array.isArray(data.events)) {
-                        console.log(`✅ Successfully fetched ${data.events.length} events`);
+                        console.log(`✅ Successfully fetched ${data.events.length} events via CORS`);
                         return data.events;
                     } else {
                         throw new Error('Invalid response format');
@@ -726,8 +724,88 @@
                         console.log('🚫 Request cancelled');
                         return [];
                     }
-                    throw error;
+                    
+                    // CORS failed, try JSONP fallback
+                    console.log('⚠️ CORS failed, attempting JSONP fallback...');
+                    try {
+                        return await this.fetchEventsJsonp(startDate, endDate);
+                    } catch (jsonpError) {
+                        console.error('❌ JSONP fallback also failed:', jsonpError);
+                        throw error; // Throw original error
+                    }
                 }
+            }
+
+            async fetchEventsJsonp(startDate, endDate) {
+                return new Promise((resolve, reject) => {
+                    // Create unique callback name
+                    const callbackName = `jsonpCallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    
+                    // Set up global callback
+                    window[callbackName] = (data) => {
+                        try {
+                            // Clean up
+                            delete window[callbackName];
+                            if (script.parentNode) {
+                                script.parentNode.removeChild(script);
+                            }
+                            
+                            if (data && data.events && Array.isArray(data.events)) {
+                                console.log(`✅ Successfully fetched ${data.events.length} events via JSONP`);
+                                resolve(data.events);
+                            } else {
+                                console.error('❌ Invalid JSONP response format:', data);
+                                reject(new Error('Invalid JSONP response format'));
+                            }
+                        } catch (error) {
+                            console.error('❌ JSONP callback error:', error);
+                            reject(error);
+                        }
+                    };
+
+                    // Create script element
+                    const script = document.createElement('script');
+                    const params = new URLSearchParams({
+                        function: 'getCalendarEventsJsonp',
+                        authToken: this.config.authToken,
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0],
+                        callback: callbackName
+                    });
+                    
+                    script.src = `${this.config.scriptUrl}?${params}`;
+                    
+                    // Handle script load errors
+                    script.onerror = () => {
+                        console.error('❌ JSONP script failed to load');
+                        delete window[callbackName];
+                        if (script.parentNode) {
+                            script.parentNode.removeChild(script);
+                        }
+                        reject(new Error('JSONP script failed to load'));
+                    };
+
+                    // Set timeout
+                    const timeout = setTimeout(() => {
+                        console.error('❌ JSONP request timeout');
+                        delete window[callbackName];
+                        if (script.parentNode) {
+                            script.parentNode.removeChild(script);
+                        }
+                        reject(new Error('JSONP request timeout'));
+                    }, this.config.timeout || 10000);
+
+                    // Override callback to clear timeout
+                    const originalCallback = window[callbackName];
+                    window[callbackName] = (data) => {
+                        clearTimeout(timeout);
+                        originalCallback(data);
+                    };
+                    
+                    // Add script to document
+                    document.head.appendChild(script);
+                    console.log('📡 JSONP request sent:', script.src);
+                });
             }
 
             generateMockEvents() {
