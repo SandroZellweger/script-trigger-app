@@ -709,6 +709,18 @@
 
         // Auto-focus on amount field
         document.getElementById('amount').focus();
+        
+        // Ensure test button is visible (debugging for GitHub Pages)
+        setTimeout(() => {
+            const testBtn = document.getElementById('testBtn');
+            if (testBtn) {
+                console.log('✅ Test button found and visible');
+                addLog('🔧 Test button available - click to verify backend connection', 'info');
+            } else {
+                console.error('❌ Test button not found!');
+                addLog('❌ Test button missing - possible caching issue', 'error');
+            }
+        }, 100);
     </script>
 </body>
 </html>
