@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Config Test</title>
+</head>
+<body>
+    <h1>Config Test</h1>
+    <div id="output"></div>
+
+    <script src="./config.js"></script>
+    <script>
+        document.getElementById('output').innerHTML = `
+            <p>Config loaded: ${window.APP_CONFIG ? 'YES' : 'NO'}</p>
+            <p>Script URL: ${window.APP_CONFIG ? window.APP_CONFIG.scriptUrl : 'Not found'}</p>
+        `;
+        console.log('Config:', window.APP_CONFIG);
+    </script>
+</body>
+</html>

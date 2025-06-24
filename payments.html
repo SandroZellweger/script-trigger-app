@@ -382,12 +382,25 @@
             <div id="logsList">
                 <div class="no-logs">No activity yet</div>
             </div>        </div>
-    </div>
-
-    <!-- Centralized Configuration -->
-    <script src="./config.js"></script>
+    </div>    <!-- Centralized Configuration -->
+    <script>
+        // Inline configuration for GitHub Pages compatibility
+        window.APP_CONFIG = {
+            scriptUrl: 'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec',
+            authToken: 'myAppToken2025',
+            environment: 'production',
+            version: '1.2.1',
+            enableAnalytics: true,
+            enableDiagnostics: true,
+            corsMode: 'jsonp-primary',
+            retryAttempts: 3,
+            timeout: 15000
+        };
+        console.log('💳 Payment Config Loaded - Version:', window.APP_CONFIG.version);
+        console.log('🔗 Script URL:', window.APP_CONFIG.scriptUrl);
+    </script>
     
-    <script>        // Function to get settings from localStorage
+    <script>// Function to get settings from localStorage
         function getSettings() {
             const defaultSettings = window.APP_CONFIG || {
                 scriptUrl: 'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec',
@@ -428,12 +441,17 @@
                 addLog(`🚀 Creating payment link for CHF ${amount}...`, 'info');
 
                 const settings = getSettings();
+                console.log('💳 Payment settings:', settings);
+                addLog(`🔗 Using script URL: ${settings.scriptUrl.substring(0, 50)}...`, 'info');
+                
                 let data;
 
                 try {
                     // Try CORS first
                     addLog('📡 Attempting secure connection...', 'info');
                     const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
+                    console.log('💳 CORS Request URL:', requestUrl);
+                    
                     const response = await fetch(requestUrl);
                     
                     if (!response.ok) {
@@ -444,12 +462,21 @@
                     addLog('✅ Connected via secure method', 'success');
                 } catch (corsError) {
                     // CORS failed, try JSONP fallback
+                    console.log('💳 CORS failed, trying JSONP:', corsError);
                     addLog('⚠️ Secure connection failed, trying alternative method...', 'info');
-                    data = await createPaymentLinkJsonp(settings, amount, description);
-                    addLog('✅ Connected via alternative method', 'success');
+                    
+                    try {
+                        data = await createPaymentLinkJsonp(settings, amount, description);
+                        addLog('✅ Connected via alternative method', 'success');
+                    } catch (jsonpError) {
+                        console.error('💳 JSONP also failed:', jsonpError);
+                        throw new Error(`Both connection methods failed. CORS: ${corsError.message}, JSONP: ${jsonpError.message}`);
+                    }
                 }
 
-                if (data.result) {
+                console.log('💳 Payment response:', data);
+
+                if (data && data.result) {
                     // Extract the Stripe URL from the response
                     const urlMatch = data.result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
                     if (urlMatch) {
@@ -457,29 +484,35 @@
                         showPaymentResult(amount, description, currentPaymentLink);
                         addLog(`✅ Payment link created successfully!`, 'success');
                     } else {
+                        console.error('💳 No Stripe URL found in response:', data.result);
                         throw new Error('Could not extract payment URL from response');
                     }
                 } else {
-                    throw new Error(data.error || 'Unknown error occurred');
+                    console.error('💳 Invalid response format:', data);
+                    throw new Error(data?.error || 'Invalid response from server');
                 }
 
             } catch (error) {
+                console.error('💳 Payment creation failed:', error);
                 addLog(`❌ Error: ${error.message}`, 'error');
             } finally {
                 isLoading = false;
                 createBtn.disabled = false;
                 createBtn.innerHTML = 'Create Payment Link';
             }
-        }
-
-        function createPaymentLinkJsonp(settings, amount, description) {
+        }        function createPaymentLinkJsonp(settings, amount, description) {
             return new Promise((resolve, reject) => {
+                console.log('💳 Starting JSONP payment request...');
+                
                 // Create unique callback name
                 const callbackName = `paymentCallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                console.log('💳 JSONP callback name:', callbackName);
                 
                 // Set up global callback
                 window[callbackName] = (data) => {
                     try {
+                        console.log('💳 JSONP callback received data:', data);
+                        
                         // Clean up
                         delete window[callbackName];
                         if (script.parentNode) {
@@ -489,9 +522,10 @@
                         if (data) {
                             resolve(data);
                         } else {
-                            reject(new Error('Invalid JSONP response'));
+                            reject(new Error('Invalid JSONP response: no data'));
                         }
                     } catch (error) {
+                        console.error('💳 JSONP callback error:', error);
                         reject(error);
                     }
                 };
@@ -507,9 +541,11 @@
                 });
                 
                 script.src = `${settings.scriptUrl}?${params}`;
+                console.log('💳 JSONP request URL:', script.src);
                 
                 // Handle script load errors
                 script.onerror = () => {
+                    console.error('💳 JSONP script failed to load');
                     delete window[callbackName];
                     if (script.parentNode) {
                         script.parentNode.removeChild(script);
@@ -519,6 +555,7 @@
 
                 // Set timeout
                 const timeout = setTimeout(() => {
+                    console.error('💳 JSONP request timeout after 15 seconds');
                     delete window[callbackName];
                     if (script.parentNode) {
                         script.parentNode.removeChild(script);
@@ -529,12 +566,14 @@
                 // Override callback to clear timeout
                 const originalCallback = window[callbackName];
                 window[callbackName] = (data) => {
+                    console.log('💳 JSONP timeout cleared');
                     clearTimeout(timeout);
                     originalCallback(data);
                 };
                 
                 // Add script to document
                 document.head.appendChild(script);
+                console.log('💳 JSONP script added to document');
             });
         }
 
