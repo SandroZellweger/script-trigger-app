@@ -961,148 +961,129 @@
                 };
                 
                 document.head.appendChild(script);
-            });
-        }
-
-        // Enhanced calendar name loading with retry
+            });        }
+        
+        // Enhanced calendar name loading with retry and robust fallback
         async function loadCalendarNames() {
-            let attempts = 0;
-            const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
+            setLoadingState(true);
+            try {
+                let attempts = 0;
+                const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
+                let jsonpSuccess = false;
 
-            while (attempts < maxAttempts) {
-                try {
-                    updateConnectionStatus('connecting', `Loading calendar data... (${attempts + 1}/${maxAttempts})`);
-                    
-                    const jsonpUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${PRODUCTION_CONFIG.authToken}`;
-                    const jsonpData = await makeJsonpRequest(jsonpUrl);
-                    
-                    if (jsonpData && jsonpData.success && jsonpData.result && Array.isArray(jsonpData.result)) {
-                        dynamicCalendarNames = ['Main Calendar', ...jsonpData.result.slice(1)];
+                // Try JSONP first with retry
+                while (attempts < maxAttempts && !jsonpSuccess) {
+                    try {
+                        updateConnectionStatus('connecting', `Loading calendar data... (${attempts + 1}/${maxAttempts})`);
                         
-                        if (jsonpData.calendars && Array.isArray(jsonpData.calendars)) {
-                            dynamicCalendarData = jsonpData.calendars;
-                            console.log('📅 Successfully loaded calendar names and colors:', dynamicCalendarNames);
-                        }
+                        const jsonpUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${PRODUCTION_CONFIG.authToken}`;
+                        const jsonpData = await makeJsonpRequest(jsonpUrl);
                         
-                        updateCalendarDropdown();
-                        updateCalendarLegend();
-                        updateCalendarSelector();
-                        
-                        errorCount = 0; // Reset error count on success
-                        return;
-                    } else {
-                        throw new Error('Invalid response format');
-                    }                } catch (error) {
-                    attempts++;
-                    lastError = error;
-                    console.warn(`Attempt ${attempts} failed:`, error);
-                    
-                    if (attempts >= maxAttempts) {
-                        console.warn('📅 JSONP failed, trying Fetch API as fallback...');
-                        try {
-                            const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
-                            const response = await fetch(fetchUrl, { 
-                                method: 'GET',
-                                mode: 'cors',
-                                headers: {
-                                    'Accept': 'application/json'
-                                }
-                            });
+                        if (jsonpData && jsonpData.success && jsonpData.result && Array.isArray(jsonpData.result)) {
+                            dynamicCalendarNames = ['Main Calendar', ...jsonpData.result.slice(1)];
                             
-                            if (response.ok) {
-                                const fetchData = await response.json();
-                                if (fetchData && fetchData.success && fetchData.result && Array.isArray(fetchData.result)) {
-                                    dynamicCalendarNames = ['Main Calendar', ...fetchData.result.slice(1)];
-                                    
-                                    if (fetchData.calendars && Array.isArray(fetchData.calendars)) {
-                                        dynamicCalendarData = fetchData.calendars;
-                                        console.log('📅 Successfully loaded calendar names via Fetch API:', dynamicCalendarNames);
-                                    }
-                                    
-                                    updateCalendarDropdown();
-                                    updateCalendarLegend();
-                                    updateCalendarSelector();
-                                    
-                                    errorCount = 0;
-                                    return;
-                                }
+                            if (jsonpData.calendars && Array.isArray(jsonpData.calendars)) {
+                                dynamicCalendarData = jsonpData.calendars;
+                                console.log('📅 Successfully loaded calendar names and colors via JSONP:', dynamicCalendarNames);
                             }
-                        } catch (fetchError) {
-                            console.warn('📅 Fetch API also failed:', fetchError);
-                        }
-                    }
-                    
-                    // Update connection status based on error type
-                    if (error.message.includes('404') || error.message.includes('Not Found')) {
-                        updateConnectionStatus('error', `Google Apps Script not found (404). Script may need redeployment.`);
-                    } else if (error.message.includes('load failed')) {
-                        updateConnectionStatus('error', `Script loading failed. Check CORS or network connectivity.`);
-                    }
-                      if (attempts >= maxAttempts) {
-                        console.warn('📅 JSONP failed completely, trying Fetch API as final fallback...');
-                        
-                        try {
-                            const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
-                            console.log('📡 Fetch fallback URL:', fetchUrl);
                             
-                            const response = await fetch(fetchUrl, { 
-                                method: 'GET',
-                                mode: 'cors',
-                                headers: {
-                                    'Accept': 'application/json'
-                                }
-                            });
+                            updateCalendarDropdown();
+                            updateCalendarLegend();
+                            updateCalendarSelector();
                             
-                            if (response.ok) {
-                                const fetchData = await response.json();
-                                console.log('📊 Fetch fallback data:', fetchData);
-                                
-                                if (fetchData && fetchData.success && fetchData.result && Array.isArray(fetchData.result)) {
-                                    dynamicCalendarNames = ['Main Calendar', ...fetchData.result.slice(1)];
-                                    
-                                    if (fetchData.calendars && Array.isArray(fetchData.calendars)) {
-                                        dynamicCalendarData = fetchData.calendars;
-                                        console.log('📅 ✅ SUCCESS: Loaded via Fetch API fallback:', dynamicCalendarNames);
-                                    }
-                                    
-                                    updateCalendarDropdown();
-                                    updateCalendarLegend();
-                                    updateCalendarSelector();
-                                    
-                                    errorCount = 0;
-                                    return; // Success!
-                                } else {
-                                    console.warn('📡 Fetch returned invalid data format');
-                                }
-                            } else {
-                                console.error('📡 Fetch fallback HTTP error:', response.status, response.statusText);
-                            }
-                        } catch (fetchError) {
-                            console.error('📅 Fetch API fallback failed:', fetchError);
+                            errorCount = 0;
+                            jsonpSuccess = true; // Success with JSONP
+                        } else {
+                            throw new Error('Invalid JSONP response format');
+                        }
+                    } catch (error) {
+                        attempts++;
+                        lastError = error;
+                        console.warn(`JSONP attempt ${attempts} failed:`, error.message);
+                        
+                        // Update connection status based on error type
+                        if (error.message.includes('404') || error.message.includes('Not Found')) {
+                            updateConnectionStatus('error', `Google Apps Script not found (404). Trying Fetch API...`);
+                        } else if (error.message.includes('load failed')) {
+                            updateConnectionStatus('error', `JSONP failed. Trying Fetch API...`);
                         }
                         
-                        // Only use static fallback if everything else failed
-                        console.warn('📅 All connection methods failed, using static fallback');
-                        
-                        // Show helpful error message to user
-                        if (PRODUCTION_CONFIG.enableDiagnostics) {
-                            const errorMsg = lastError.message.includes('404') 
-                                ? 'Google Apps Script needs to be redeployed. Using offline mode.'
-                                : 'Connection failed. Using offline mode.';
-                            updateConnectionStatus('offline', errorMsg);
+                        if (attempts < maxAttempts) {
+                            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
                         }
-                        
-                        dynamicCalendarNames = [...CALENDAR_NAMES];
-                        updateCalendarDropdown();
-                        updateCalendarLegend();
-                        updateCalendarSelector();
-                        errorCount++;
-                        return;
                     }
-                    
-                    // Wait before retry
-                    await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
                 }
+
+                // If JSONP failed completely, try Fetch API as fallback
+                if (!jsonpSuccess) {
+                    console.warn('📅 JSONP failed completely, trying Fetch API as fallback...');
+                    
+                    try {
+                        updateConnectionStatus('connecting', 'Trying Fetch API fallback...');
+                        const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
+                        console.log('📡 Fetch fallback URL:', fetchUrl);
+                        
+                        const response = await fetch(fetchUrl, { 
+                            method: 'GET',
+                            mode: 'cors',
+                            headers: {
+                                'Accept': 'application/json'
+                            },
+                            signal: AbortSignal.timeout(PRODUCTION_CONFIG.timeout)
+                        });
+                        
+                        if (response.ok) {
+                            const fetchData = await response.json();
+                            console.log('📊 Fetch fallback data:', fetchData);
+                            
+                            if (fetchData && fetchData.success && fetchData.result && Array.isArray(fetchData.result)) {
+                                dynamicCalendarNames = ['Main Calendar', ...fetchData.result.slice(1)];
+                                
+                                if (fetchData.calendars && Array.isArray(fetchData.calendars)) {
+                                    dynamicCalendarData = fetchData.calendars;
+                                    console.log('📅 ✅ SUCCESS: Loaded via Fetch API fallback:', dynamicCalendarNames);
+                                }
+                                
+                                updateCalendarDropdown();
+                                updateCalendarLegend();
+                                updateCalendarSelector();
+                                
+                                errorCount = 0;
+                                jsonpSuccess = true; // Success with Fetch
+                            } else {
+                                console.warn('📡 Fetch returned invalid data format');
+                            }
+                        } else {
+                            console.error('📡 Fetch fallback HTTP error:', response.status, response.statusText);
+                        }
+                    } catch (fetchError) {
+                        console.error('📅 Fetch API fallback failed:', fetchError);
+                    }
+                }
+
+                // Only use static fallback if everything else failed
+                if (!jsonpSuccess) {
+                    console.warn('📅 All connection methods failed, using static fallback');
+                    
+                    // Show helpful error message to user
+                    if (PRODUCTION_CONFIG.enableDiagnostics) {
+                        const errorMsg = lastError && lastError.message.includes('404') 
+                            ? 'Google Apps Script needs to be redeployed. Using offline mode.'
+                            : 'Connection failed. Using offline mode.';
+                        updateConnectionStatus('offline', errorMsg);
+                    }
+                    
+                    dynamicCalendarNames = [...CALENDAR_NAMES];
+                    updateCalendarDropdown();
+                    updateCalendarLegend();
+                    updateCalendarSelector();
+                    errorCount++;
+                }
+            } catch (error) {
+                console.error('Failed to load calendar names:', error);
+                updateConnectionStatus('error', 'Failed to load calendar names');
+            } finally {
+                setLoadingState(false);
             }
         }
 
@@ -1191,9 +1172,7 @@
             if (typeof renderEvents === 'function') {
                 renderEvents();
             }
-        }
-
-        // Enhanced calendar data loading
+        }        // Enhanced calendar data loading
         async function loadCalendarData() {
             if (isLoading) {
                 console.log('📅 Calendar data is already loading...');
@@ -1206,373 +1185,291 @@
             let attempts = 0;
             const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
 
-            while (attempts < maxAttempts) {
-                try {
-                    updateConnectionStatus('connecting', `Loading events... (${attempts + 1}/${maxAttempts})`);
-                    
-                    const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                    const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-                    
-                    const params = new URLSearchParams({
-                        function: 'getCalendarEvents',
-                        authToken: PRODUCTION_CONFIG.authToken,
-                        startDate: start.toISOString().split('T')[0],
-                        endDate: end.toISOString().split('T')[0]
-                    });
+            try {
+                while (attempts < maxAttempts) {
+                    try {
+                        updateConnectionStatus('connecting', `Loading events... (${attempts + 1}/${maxAttempts})`);
+                        
+                        const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                        const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                        
+                        const params = new URLSearchParams({
+                            function: 'getCalendarEvents',
+                            authToken: PRODUCTION_CONFIG.authToken,
+                            startDate: start.toISOString().split('T')[0],
+                            endDate: end.toISOString().split('T')[0]
+                        });
 
-                    const response = await fetch(`${PRODUCTION_CONFIG.scriptUrl}?${params}`, {
-                        method: 'GET',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        signal: AbortSignal.timeout(PRODUCTION_CONFIG.timeout)
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        const response = await fetch(`${PRODUCTION_CONFIG.scriptUrl}?${params}`, {
+                            method: 'GET',
+                            mode: 'cors',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            signal: AbortSignal.timeout(PRODUCTION_CONFIG.timeout)
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.events && Array.isArray(data.events)) {
+                            currentEvents = data.events;
+                            console.log('📅 Successfully loaded calendar events:', data.events.length);
+                            renderEvents();
+                            updateConnectionStatus('online', `Loaded ${data.events.length} events`);
+                            errorCount = 0;
+                            return;
+                        } else {
+                            throw new Error('No events data in response');
+                        }
+                        
+                    } catch (error) {
+                        attempts++;
+                        lastError = error;
+                        console.warn(`Load attempt ${attempts} failed:`, error);
+                        
+                        if (attempts >= maxAttempts) {
+                            console.warn('📅 Failed to load calendar data, using mock data');
+                            currentEvents = generateMockEvents();
+                            renderEvents();
+                            updateConnectionStatus('offline', 'Using offline data');
+                            errorCount++;
+                            return;
+                        }
+                        
+                        // Wait before retry
+                        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
                     }
-                    
-                    const data = await response.json();
-                    
-                    if (data.events && Array.isArray(data.events)) {
-                        currentEvents = data.events;
-                        console.log('📅 Successfully loaded calendar events:', data.events.length);
-                        renderEvents();
-                        updateConnectionStatus('online', `Loaded ${data.events.length} events`);
-                        errorCount = 0;
-                        return;
-                    } else {
-                        throw new Error('No events data in response');
-                    }
-                    
-                } catch (error) {
-                    attempts++;
-                    lastError = error;
-                    console.warn(`Load attempt ${attempts} failed:`, error);
-                    
-                    if (attempts >= maxAttempts) {
-                        console.warn('📅 Failed to load calendar data, using mock data');
-                        currentEvents = generateMockEvents();
-                        renderEvents();
-                        updateConnectionStatus('offline', 'Using offline data');
-                        errorCount++;
-                        return;
-                    }
-                    
-                    // Wait before retry
-                    await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
                 }
+            } finally {
+                // Always reset loading state, even if an error occurs
+                isLoading = false;
+                setLoadingState(false);
             }
         }
 
-        // Generate calendar display
-        function generateCalendar() {
-            const calendar = document.getElementById('calendarView');
-            const monthYear = document.getElementById('currentMonthYear');
-           
-            if (!calendar || !monthYear) {
-                console.warn('Calendar elements not found');
+        // Render events on the calendar
+        function renderEvents() {
+            // Clear existing events
+            document.querySelectorAll('.day-events').forEach(container => {
+                container.innerHTML = '';
+            });
+
+            if (!currentEvents || currentEvents.length === 0) {
+                console.log('📅 No events to render');
                 return;
             }
-           
-            // Update month/year display
-            const options = { year: 'numeric', month: 'long' };
-            monthYear.textContent = currentDate.toLocaleDateString('en-US', options);
-           
-            // Clear calendar
-            calendar.innerHTML = '';
-           
-            // Add day headers
-            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            dayHeaders.forEach(day => {
-                const dayHeader = document.createElement('div');
-                dayHeader.className = 'calendar-day-header';
-                dayHeader.textContent = day;
-                calendar.appendChild(dayHeader);
-            });
-           
-            // Get first day of month and number of days
-            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-           
-            // Generate calendar days
-            for (let i = 0; i < 42; i++) {
-                const date = new Date(startDate);
-                date.setDate(startDate.getDate() + i);
-               
-                const dayElement = document.createElement('div');
-                dayElement.className = 'calendar-day';
-               
-                // Add classes for styling
-                if (date.getMonth() !== currentDate.getMonth()) {
-                    dayElement.style.opacity = '0.5';
-                }
-               
-                if (isToday(date)) {
-                    dayElement.classList.add('today');
-                }
-               
-                // Day number
-                const dayNumber = document.createElement('div');
-                dayNumber.className = 'day-number';
-                dayNumber.textContent = date.getDate();
-                dayElement.appendChild(dayNumber);
-               
-                // Events container
-                const eventsContainer = document.createElement('div');
-                eventsContainer.className = 'day-events';
-                dayElement.appendChild(eventsContainer);
-               
-                calendar.appendChild(dayElement);
-            }
-           
-            renderEvents();
-        }
 
-        // Render events on calendar
-        function renderEvents() {
-            // Use actual events if available, otherwise use mock data for display
-            const events = currentEvents && currentEvents.length > 0 ? currentEvents : generateMockEvents();
-            
-            const calendar = document.getElementById('calendarView');
-            if (!calendar) return;
-            
-            const days = calendar.querySelectorAll('.calendar-day');
-            
-            // Clear existing events
-            days.forEach(day => {
-                const eventsContainer = day.querySelector('.day-events');
-                if (eventsContainer) {
-                    eventsContainer.innerHTML = '';
+            // Group events by date
+            const eventsByDate = {};
+            currentEvents.forEach(event => {
+                if (!selectedCalendars.has(event.calendarIndex || 0)) {
+                    return; // Skip events from unselected calendars
                 }
+
+                let eventDate;
+                if (event.start.date) {
+                    // All-day event
+                    eventDate = new Date(event.start.date + 'T00:00:00');
+                } else if (event.start.dateTime) {
+                    eventDate = new Date(event.start.dateTime);
+                } else {
+                    return; // Skip events without valid dates
+                }
+
+                const dateKey = eventDate.toDateString();
+                if (!eventsByDate[dateKey]) {
+                    eventsByDate[dateKey] = [];
+                }
+                eventsByDate[dateKey].push(event);
             });
 
-            // Filter events based on selected calendars
-            const filteredEvents = events.filter(event => {
-                const calendarIndex = event.calendarIndex !== undefined ? event.calendarIndex : 0;
-                return selectedCalendars.has(calendarIndex);
-            });
-            
-            // Add events to calendar
-            filteredEvents.forEach(event => {
-                const eventDate = new Date(event.start.dateTime || event.start.date);
+            // Render events on calendar
+            Object.keys(eventsByDate).forEach(dateKey => {
+                const eventDate = new Date(dateKey);
                 const dayIndex = findDayIndex(eventDate);
                 
-                if (dayIndex >= 0 && dayIndex < days.length) {
-                    const eventsContainer = days[dayIndex].querySelector('.day-events');
-                    if (eventsContainer) {
-                        const eventPill = document.createElement('div');
-                        eventPill.className = `event-pill ${getEventColorClass(event)}`;
-                        
-                        // Truncate long event names
-                        const eventTitle = event.summary || event.title || 'Untitled Event';
-                        eventPill.textContent = eventTitle.length > 20 ? eventTitle.substring(0, 20) + '...' : eventTitle;
-                        
-                        // Create tooltip with event details
-                        const calendarName = getCalendarDisplayName(event.calendarIndex || 0);
-                        const timeInfo = getEventTimeInfo(event);
-                        eventPill.title = `${eventTitle}\n${calendarName}\n${timeInfo}`;
-                        
-                        // Set event color based on calendar
-                        const calendarIndex = event.calendarIndex || 0;
-                        let color = vanColors[calendarIndex % vanColors.length];
-                        if (dynamicCalendarData.length > calendarIndex && dynamicCalendarData[calendarIndex].color) {
-                            color = dynamicCalendarData[calendarIndex].color;
+                if (dayIndex >= 0) {
+                    const calendar = document.getElementById('calendarView');
+                    const days = calendar.querySelectorAll('.calendar-day');
+                    const dayElement = days[dayIndex + 7]; // +7 to skip day headers
+                    
+                    if (dayElement) {
+                        const eventsContainer = dayElement.querySelector('.day-events');
+                        if (eventsContainer) {
+                            eventsByDate[dateKey].forEach((event, index) => {
+                                if (index >= 3) return; // Limit to 3 events per day for display
+                                
+                                const eventPill = document.createElement('div');
+                                eventPill.className = `event-pill ${getEventColorClass(event)}`;
+                                
+                                // Create event title
+                                let title = event.summary || 'Untitled Event';
+                                if (title.length > 20) {
+                                    title = title.substring(0, 20) + '...';
+                                }
+                                
+                                const timeInfo = getEventTimeInfo(event);
+                                eventPill.innerHTML = `
+                                    <div style="font-weight: 600;">${title}</div>
+                                    <div style="font-size: 9px; opacity: 0.8;">${timeInfo}</div>
+                                `;
+                                
+                                // Set event color based on calendar
+                                const calendarIndex = event.calendarIndex || 0;
+                                let color = vanColors[calendarIndex % vanColors.length];
+                                if (dynamicCalendarData.length > calendarIndex && dynamicCalendarData[calendarIndex].color) {
+                                    color = dynamicCalendarData[calendarIndex].color;
+                                }
+                                eventPill.style.borderLeft = `3px solid ${color}`;
+                                
+                                eventPill.onclick = () => selectEvent ? selectEvent(event) : console.log('Event clicked:', event);
+                                eventsContainer.appendChild(eventPill);
+                            });
+                            
+                            // Show "+X more" if there are additional events
+                            if (eventsByDate[dateKey].length > 3) {
+                                const moreIndicator = document.createElement('div');
+                                moreIndicator.className = 'event-pill';
+                                moreIndicator.style.background = '#999';
+                                moreIndicator.style.fontSize = '9px';
+                                moreIndicator.textContent = `+${eventsByDate[dateKey].length - 3} more`;
+                                eventsContainer.appendChild(moreIndicator);
+                            }
                         }
-                        eventPill.style.borderLeft = `3px solid ${color}`;
-                        
-                        eventPill.onclick = () => selectEvent ? selectEvent(event) : console.log('Event clicked:', event);
-                        eventsContainer.appendChild(eventPill);
                     }
                 }
             });
+            
+            console.log('📅 Events rendered on calendar');
         }
 
-        // Helper functions for calendar
-        function getEventTimeInfo(event) {
-            if (!event.start.dateTime || !event.end.dateTime) {
-                return 'All day';
-            }
-            
-            const startTime = new Date(event.start.dateTime);
-            const endTime = new Date(event.end.dateTime);
-            
-            const startStr = startTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-            const endStr = endTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-            
-            return `${startStr} - ${endStr}`;
+        // Calendar navigation functions
+        function navigateMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            generateCalendar();
+            loadCalendarData();
         }
 
-        function findDayIndex(eventDate) {
-            const calendar = document.getElementById('calendarView');
-            if (!calendar) return -1;
-            
-            const days = calendar.querySelectorAll('.calendar-day');
-            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-            
-            const diffTime = eventDate.getTime() - startDate.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            return diffDays >= 0 && diffDays < 42 ? diffDays : -1;
+        function goToToday() {
+            currentDate = new Date();
+            generateCalendar();
+            loadCalendarData();
         }
 
-        function isToday(date) {
-            const today = new Date();
-            return date.toDateString() === today.toDateString();
-        }
-
-        function getEventColorClass(event) {
-            if (!event.start.dateTime || !event.end.dateTime) {
-                return 'event-full-day';
-            }
+        // Event selection function
+        function selectEvent(event) {
+            console.log('📅 Event selected:', event);
             
-            const startTime = new Date(event.start.dateTime);
-            const endTime = new Date(event.end.dateTime);
-            const duration = (endTime - startTime) / (1000 * 60 * 60); // hours
-            
-            if (duration >= 8) return 'event-full-day';
-            if (startTime.getHours() < 12) return 'event-morning';
-            return 'event-afternoon';
-        }
-
-        function getCalendarDisplayName(index) {
-            const namesToUse = dynamicCalendarNames.length > 0 ? dynamicCalendarNames : CALENDAR_NAMES;
-            return namesToUse[index] || `Calendar ${index + 1}`;
-        }
-
-        function generateMockEvents() {
-            const events = [];
-            const customers = ['Marco Rossi', 'Anna Bianchi', 'Giuseppe Verde', 'Maria Neri', 'Luca Gialli'];
-            const vans = ['N01', 'N03', 'N04', 'N06', 'N07'];
-            
-            for (let i = 0; i < 15; i++) {
-                const randomDay = Math.floor(Math.random() * 30) + 1;
-                const startHour = Math.random() > 0.5 ? 7 : 13; // Morning or afternoon
-                const duration = Math.random() > 0.3 ? 5 : 12; // Half day or full day
+            // Update event details sidebar
+            const eventInfo = document.getElementById('eventInfo');
+            if (eventInfo) {
+                const startTime = event.start.dateTime ? new Date(event.start.dateTime).toLocaleString() : 'All day';
+                const endTime = event.end.dateTime ? new Date(event.end.dateTime).toLocaleString() : '';
+                const location = event.location || 'No location specified';
+                const description = event.description || 'No description';
                 
-                const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), randomDay, startHour);
-                const endDate = new Date(startDate);
-                endDate.setHours(startDate.getHours() + duration);
+                eventInfo.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <strong>${event.summary || 'Untitled Event'}</strong>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Time:</strong> ${startTime}${endTime ? ' - ' + endTime : ''}
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Location:</strong> ${location}
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Description:</strong> ${description}
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Van:</strong> ${getCalendarDisplayName(event.calendarIndex || 0)}
+                    </div>
+                `;
+            }
+            
+            // Update customer info sidebar (if available in event data)
+            const customerInfo = document.getElementById('customerInfo');
+            if (customerInfo) {
+                // Extract customer info from event summary or description
+                const customerName = extractCustomerName(event.summary || '');
+                const phoneNumber = extractPhoneNumber(event.description || '');
                 
-                events.push({
-                    id: `event_${i}`,
-                    summary: `${customers[Math.floor(Math.random() * customers.length)]} - ${vans[Math.floor(Math.random() * vans.length)]}`,
-                    start: { dateTime: startDate.toISOString() },
-                    end: { dateTime: endDate.toISOString() },
-                    calendarIndex: Math.floor(Math.random() * CALENDAR_NAMES.length),
-                    location: 'Pickup Location',
-                    description: 'Van rental booking'
-                });
-            }
-            
-            return events;
-        }
-
-        // Enhanced calendar data loading
-        async function loadCalendarData() {
-            if (isLoading) {
-                console.log('📅 Calendar data is already loading...');
-                return;
-            }
-            
-            isLoading = true;
-            setLoadingState(true);
-            
-            let attempts = 0;
-            const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
-
-            while (attempts < maxAttempts) {
-                try {
-                    updateConnectionStatus('connecting', `Loading events... (${attempts + 1}/${maxAttempts})`);
-                    
-                    const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                    const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-                    
-                    const params = new URLSearchParams({
-                        function: 'getCalendarEvents',
-                        authToken: PRODUCTION_CONFIG.authToken,
-                        startDate: start.toISOString().split('T')[0],
-                        endDate: end.toISOString().split('T')[0]
-                    });
-
-                    const response = await fetch(`${PRODUCTION_CONFIG.scriptUrl}?${params}`, {
-                        method: 'GET',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        signal: AbortSignal.timeout(PRODUCTION_CONFIG.timeout)
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (data.events && Array.isArray(data.events)) {
-                        currentEvents = data.events;
-                        console.log('📅 Successfully loaded calendar events:', data.events.length);
-                        renderEvents();
-                        updateConnectionStatus('online', `Loaded ${data.events.length} events`);
-                        errorCount = 0;
-                        return;
-                    } else {
-                        throw new Error('No events data in response');
-                    }
-                    
-                } catch (error) {
-                    attempts++;
-                    lastError = error;
-                    console.warn(`Load attempt ${attempts} failed:`, error);
-                    
-                    if (attempts >= maxAttempts) {
-                        console.warn('📅 Failed to load calendar data, using mock data');
-                        currentEvents = generateMockEvents();
-                        renderEvents();
-                        updateConnectionStatus('offline', 'Using offline data');
-                        errorCount++;
-                        return;
-                    }
-                    
-                    // Wait before retry
-                    await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+                if (customerName || phoneNumber) {
+                    customerInfo.innerHTML = `
+                        <div style="margin-bottom: 8px;">
+                            <strong>Customer:</strong> ${customerName || 'Not specified'}
+                        </div>
+                        ${phoneNumber ? `<div style="margin-bottom: 8px;"><strong>Phone:</strong> ${phoneNumber}</div>` : ''}
+                        <div style="margin-bottom: 8px;">
+                            <strong>Booking ID:</strong> ${event.id || 'N/A'}
+                        </div>
+                    `;
+                } else {
+                    customerInfo.innerHTML = `
+                        <div style="margin-bottom: 8px;">
+                            <strong>Booking ID:</strong> ${event.id || 'N/A'}
+                        </div>
+                        <div style="color: #666; font-style: italic;">
+                            Customer details not available in event data
+                        </div>
+                    `;
                 }
             }
         }
 
-        // Production-specific enhancements
-        function trackEvent(action, category = 'Calendar', label = '') {
-            if (PRODUCTION_CONFIG.enableAnalytics && typeof gtag !== 'undefined') {
-                gtag('event', action, {
-                    event_category: category,
-                    event_label: label,
-                    custom_map: {
-                        connection_status: connectionStatus,
-                        error_count: errorCount
-                    }
-                });
+        // Helper functions for customer data extraction
+        function extractCustomerName(summary) {
+            // Try to extract customer name from event summary
+            const match = summary.match(/^([^-]+)/);
+            return match ? match[1].trim() : null;
+        }
+
+        function extractPhoneNumber(description) {
+            // Try to extract phone number from description
+            const phoneMatch = description.match(/(\+?[\d\s\-\(\)]{8,})/);
+            return phoneMatch ? phoneMatch[1].trim() : null;
+        }
+
+        // Dashboard functions (placeholders for future implementation)
+        function buildCRMDatabase() {
+            alert('CRM Database building feature coming soon!');
+        }
+
+        function exportCustomerList() {
+            alert('Customer export feature coming soon!');
+        }
+
+        function generateReports() {
+            alert('Report generation feature coming soon!');
+        }
+
+        function openCrmSpreadsheet() {
+            const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${PRODUCTION_CONFIG.expenseSheetId}/edit`;
+            window.open(spreadsheetUrl, '_blank');
+        }
+
+        function showStats(period) {
+            console.log(`Showing stats for period: ${period}`);
+            // Update active button
+            document.querySelectorAll('.stats-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Placeholder for stats display
+            const bestCustomers = document.getElementById('bestCustomers');
+            if (bestCustomers) {
+                bestCustomers.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        Loading ${period} statistics...
+                    </div>
+                `;
             }
         }
 
-        // Error reporting
-        window.addEventListener('error', function(event) {
-            console.error('JavaScript error:', event.error);
-            errorCount++;
-            
-            if (errorCount > 5) {
-                updateConnectionStatus('error', 'Multiple errors detected');
-            }
-        });        // Service Worker registration
-        if ('serviceWorker' in navigator && PRODUCTION_CONFIG.environment === 'production') {
-            navigator.serviceWorker.register('./sw.js')
-                .then(registration => console.log('SW registered:', registration))
-                .catch(error => console.log('SW registration failed:', error));
-        }
+        // ...existing code...
     </script>
 </body>
 </html>
