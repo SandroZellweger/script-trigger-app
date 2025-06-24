@@ -864,36 +864,34 @@
         
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
-            // Debug: Verify configuration is loaded correctly
             console.log('🔧 Production Config Loaded:', PRODUCTION_CONFIG);
             console.log('🔗 Script URL:', PRODUCTION_CONFIG.scriptUrl);
             console.log('📱 Version:', PRODUCTION_CONFIG.version);
-            
+
             showLoadingOverlay(true);
             updateConnectionStatus('connecting', 'Initializing application...');
-            
-            // Set initial tab state
+
             switchTab('calendar');
-            
-            // Initialize selected calendars
             initializeSelectedCalendars();
-            
-            // Load calendar names and data
-            loadCalendarNames().then(() => {
-                generateCalendar();
-                return loadCalendarData();            }).then(() => {
-                updateConnectionStatus('online', 'Connected to Google Calendar');
-                showLoadingOverlay(false);
-            }).catch(error => {
-                console.error('Initialization failed:', error);
-                updateConnectionStatus('error', 'Failed to connect to Google Calendar');
-                showLoadingOverlay(false);
-                
-                // Still generate calendar and use mock data as fallback
-                generateCalendar();
-                currentEvents = generateMockEvents();
-                renderEvents();
-            });
+
+            // Static calendar names
+            updateCalendarDropdown();
+            updateCalendarLegend();
+            updateCalendarSelector();
+
+            generateCalendar();
+            loadCalendarData()
+                .then(() => {
+                    updateConnectionStatus('online', 'Loaded events');
+                    showLoadingOverlay(false);
+                })
+                .catch(error => {
+                    console.error('Initialization failed:', error);
+                    updateConnectionStatus('offline', 'Showing demo data');
+                    showLoadingOverlay(false);
+                    currentEvents = generateMockEvents();
+                    renderEvents();
+                });
         });
 
         // Tab switching function
@@ -964,174 +962,118 @@
             }
         }
 
-        // Enhanced JSONP with retry logic
-        function makeJsonpRequest(url, timeout = PRODUCTION_CONFIG.timeout) {
-            return new Promise((resolve, reject) => {
-                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-                const script = document.createElement('script');
-                const timeoutId = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('JSONP request timeout'));
-                }, timeout);
-                
-                function cleanup() {
-                    clearTimeout(timeoutId);
-                    if (script.parentNode) {
-                        document.head.removeChild(script);
-                    }
-                    delete window[callbackName];
-                }
-                
-                window[callbackName] = function(data) {
-                    cleanup();
-                    resolve(data);
-                };
-                  script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
-                console.log('🔗 JSONP URL:', script.src);
-                
-                script.onerror = (event) => {
-                    console.error('❌ JSONP script error:', event);
-                    console.error('❌ Failed URL:', script.src);
-                    console.error('❌ Error details:', {
-                        type: event.type,
-                        target: event.target,
-                        currentTarget: event.currentTarget
-                    });
-                    cleanup();
-                    reject(new Error(`JSONP script load failed: ${event.type}`));
-                };
-                
-                document.head.appendChild(script);
-            });        }
-        
-        // Enhanced calendar name loading with retry and robust fallback
-        async function loadCalendarNames() {
-            setLoadingState(true);
-            try {
-                let attempts = 0;
-                const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
-                let jsonpSuccess = false;
+        // Remove JSONP and fallback logic to speed up loading
+        // Commenting out JSONP utility
+        function makeJsonpRequest() { /* JSONP removed */ }
 
-                // Try JSONP first with retry
-                while (attempts < maxAttempts && !jsonpSuccess) {
-                    try {
-                        updateConnectionStatus('connecting', `Loading calendar data... (${attempts + 1}/${maxAttempts})`);
-                        
-                        const jsonpUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${PRODUCTION_CONFIG.authToken}`;
-                        const jsonpData = await makeJsonpRequest(jsonpUrl);
-                        
-                        if (jsonpData && jsonpData.success && jsonpData.result && Array.isArray(jsonpData.result)) {
-                            dynamicCalendarNames = ['Main Calendar', ...jsonpData.result.slice(1)];
-                            
-                            if (jsonpData.calendars && Array.isArray(jsonpData.calendars)) {
-                                dynamicCalendarData = jsonpData.calendars;
-                                console.log('📅 Successfully loaded calendar names and colors via JSONP:', dynamicCalendarNames);
-                            }
-                            
-                            updateCalendarDropdown();
-                            updateCalendarLegend();
-                            updateCalendarSelector();
-                            
-                            errorCount = 0;
-                            jsonpSuccess = true; // Success with JSONP
-                        } else {
-                            throw new Error('Invalid JSONP response format');
-                        }                    } catch (error) {
-                        attempts++;
-                        lastError = error;
-                        console.warn(`JSONP attempt ${attempts} failed:`, error.message);
-                        
-                        // Update connection status based on error type
-                        if (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('load failed')) {
-                            updateConnectionStatus('error', `Backend not found (404). Checking Fetch API...`);
-                        } else if (error.message.includes('timeout')) {
-                            updateConnectionStatus('error', `Connection timeout. Retrying...`);
-                        } else {
-                            updateConnectionStatus('error', `JSONP failed. Trying alternatives...`);
-                        }
-                        
-                        if (attempts < maxAttempts) {
-                            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
-                        } else {
-                            console.log('📅 All JSONP attempts failed, proceeding to Fetch API fallback');
-                            break; // Exit retry loop
-                        }
-                    }
-                }                // If JSONP failed completely, try Fetch API as fallback
-                if (!jsonpSuccess) {
-                    console.warn('📅 JSONP failed completely, trying Fetch API as fallback...');
-                    updateConnectionStatus('connecting', 'JSONP failed, trying Fetch API...');
-                    
-                    try {
-                        const fetchUrl = `${PRODUCTION_CONFIG.scriptUrl}?function=getCalendarNames&authToken=${PRODUCTION_CONFIG.authToken}`;
-                        console.log('📡 Fetch fallback URL:', fetchUrl);
-                        
-                        const response = await fetch(fetchUrl, { 
-                            method: 'GET',
-                            mode: 'cors',
-                            headers: {
-                                'Accept': 'application/json'
-                            },
-                            signal: AbortSignal.timeout(PRODUCTION_CONFIG.timeout)
-                        });
-                        
-                        if (response.ok) {
-                            const fetchData = await response.json();
-                            console.log('📊 Fetch fallback data:', fetchData);
-                            
-                            if (fetchData && fetchData.success && fetchData.result && Array.isArray(fetchData.result)) {
-                                dynamicCalendarNames = ['Main Calendar', ...fetchData.result.slice(1)];
-                                
-                                if (fetchData.calendars && Array.isArray(fetchData.calendars)) {
-                                    dynamicCalendarData = fetchData.calendars;
-                                    console.log('📅 ✅ SUCCESS: Loaded via Fetch API fallback:', dynamicCalendarNames);
-                                }
-                                
-                                updateCalendarDropdown();
-                                updateCalendarLegend();
-                                updateCalendarSelector();
-                                
-                                errorCount = 0;
-                                jsonpSuccess = true; // Success with Fetch
-                                updateConnectionStatus('online', 'Connected via Fetch API');
-                                return; // Exit successfully
-                            } else {
-                                console.warn('📡 Fetch returned invalid data format');
-                            }
-                        } else {
-                            console.error('📡 Fetch fallback HTTP error:', response.status, response.statusText);
-                        }
-                    } catch (fetchError) {
-                        console.error('📅 Fetch API fallback failed:', fetchError);
-                        updateConnectionStatus('error', 'Both JSONP and Fetch failed');
-                    }
+        async function loadCalendarNames() {
+            // JSONP logic removed. Using static calendar names.
+            dynamicCalendarNames = [...CALENDAR_NAMES];
+            dynamicCalendarData = [];
+            updateCalendarDropdown();
+            updateCalendarLegend();
+            updateCalendarSelector();
+            return Promise.resolve();
+        }
+
+        // Simplify app initialization: static calendar names + direct event load
+        // Replace DOMContentLoaded listener
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Production Config Loaded:', PRODUCTION_CONFIG);
+            console.log('🔗 Script URL:', PRODUCTION_CONFIG.scriptUrl);
+            console.log('📱 Version:', PRODUCTION_CONFIG.version);
+
+            showLoadingOverlay(true);
+            updateConnectionStatus('connecting', 'Initializing application...');
+
+            switchTab('calendar');
+            initializeSelectedCalendars();
+
+            // Static calendar names
+            updateCalendarDropdown();
+            updateCalendarLegend();
+            updateCalendarSelector();
+
+            generateCalendar();
+            loadCalendarData()
+                .then(() => {
+                    updateConnectionStatus('online', 'Loaded events');
+                    showLoadingOverlay(false);
+                })
+                .catch(error => {
+                    console.error('Initialization failed:', error);
+                    updateConnectionStatus('offline', 'Showing demo data');
+                    showLoadingOverlay(false);
+                    currentEvents = generateMockEvents();
+                    renderEvents();
+                });
+        });
+
+        // Tab switching function
+        function switchTab(tabName) {
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Remove active class from all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Add active class to clicked tab button
+            const clickedBtn = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+            
+            // Show corresponding tab content
+            const tabId = tabName === 'calendar' ? 'calendar-tab' : 'dashboard-tab';
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Track tab switch for analytics
+            if (PRODUCTION_CONFIG.enableAnalytics && typeof gtag !== 'undefined') {
+                gtag('event', 'tab_switch', {
+                    'tab_name': tabName
+                });
+            }
+        }
+
+        function updateConnectionStatus(status, message) {
+            connectionStatus = status;
+            const statusElement = document.getElementById('connectionStatus');
+            const iconElement = document.getElementById('statusIcon');
+            const textElement = document.getElementById('statusText');
+
+            if (statusElement && iconElement && textElement) {
+                statusElement.className = `status-indicator status-${status}`;
+                textElement.textContent = message;
+
+                switch (status) {
+                    case 'online':
+                        iconElement.textContent = '✅';
+                        break;
+                    case 'offline':
+                        iconElement.textContent = '⚠️';
+                        break;
+                    case 'error':
+                        iconElement.textContent = '❌';
+                        break;
+                    case 'connecting':
+                    default:
+                        iconElement.textContent = '⏳';
+                        break;
                 }
-                
-                // Only use static fallback if everything else failed
-                if (!jsonpSuccess) {
-                    console.warn('📅 All connection methods failed, using static fallback');
-                    
-                    // Show helpful error message to user
-                    if (PRODUCTION_CONFIG.enableDiagnostics) {
-                        const errorMsg = lastError && (lastError.message.includes('404') || lastError.message.includes('load failed'))
-                            ? '🔧 Backend not deployed yet - Using offline demo data'
-                            : '⚠️ Connection failed - Using offline demo data';
-                        updateConnectionStatus('offline', errorMsg);
-                    } else {
-                        updateConnectionStatus('offline', 'Using offline demo data');
-                    }
-                    
-                    dynamicCalendarNames = [...CALENDAR_NAMES];
-                    updateCalendarDropdown();
-                    updateCalendarLegend();
-                    updateCalendarSelector();
-                    errorCount++;
-                }
-            } catch (error) {
-                console.error('Failed to load calendar names:', error);
-                updateConnectionStatus('error', 'Failed to load calendar names');
-            } finally {
-                setLoadingState(false);
+            }
+        }
+
+        function initializeSelectedCalendars() {
+            selectedCalendars.clear();
+            for (let i = 0; i < CALENDAR_NAMES.length; i++) {
+                selectedCalendars.add(i);
             }
         }
 
