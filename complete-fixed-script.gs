@@ -52,10 +52,12 @@ function doGet(e) {
         break;
       case "triggerHardcodedReport":
         result = triggerHardcodedReport();
-        break;
-      case "triggerStripePayment":
+        break;      case "triggerStripePayment":
         result = triggerStripePayment(e.parameter.amount, e.parameter.description);
-        break;      case "sendHowToBookMessageApp":
+        break;
+      case "triggerStripePaymentJsonp":
+        return triggerStripePaymentJsonp(e.parameter);
+        break;case "sendHowToBookMessageApp":
         result = sendHowToBookMessageApp(e.parameter.phoneNumber);
         break;
       case "sendHowToBookMessageAppJsonp":
@@ -1656,6 +1658,37 @@ function getCalendarEventsAppJsonp(params) {
     
     return ContentService
       .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// JSONP version for cross-domain payment requests
+function triggerStripePaymentJsonp(params) {
+  try {
+    // Validate authentication
+    if (!validateAuthToken(params.authToken)) {
+      const errorResponse = { error: "Unauthorized: Invalid auth token" };
+      const callback = params.callback || 'callback';
+      return ContentService
+        .createTextOutput(callback + '(' + JSON.stringify(errorResponse) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    // Call the existing payment function
+    const result = triggerStripePayment(params.amount, params.description);
+    
+    // Return JSONP response
+    const callback = params.callback || 'callback';
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      
+  } catch (error) {
+    Logger.log('JSONP Payment Error: ' + error.toString());
+    const errorResponse = { error: error.toString() };
+    const callback = params.callback || 'callback';
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(errorResponse) + ')')
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 }
