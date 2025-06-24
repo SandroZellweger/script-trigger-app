@@ -142,9 +142,15 @@ function doGet(e) {
         result = getCalendarNamesApp();
         break;      case "getCalendarNamesJsonp":
         return getCalendarNamesAppJsonp(e.parameter);
-        break;
-      case "getCalendarNamesAppJsonp":
+        break;      case "getCalendarNamesAppJsonp":
         return getCalendarNamesAppJsonp(e.parameter);
+        break;
+      // ADD MISSING CALENDAR EVENTS FUNCTIONS FOR FRONTEND COMPATIBILITY
+      case "getCalendarEvents":
+        result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
+        break;
+      case "getCalendarEventsJsonp":
+        return getCalendarEventsAppJsonp(e.parameter);
         break;
       default:
         result = { error: `Unknown function: ${functionName}` };

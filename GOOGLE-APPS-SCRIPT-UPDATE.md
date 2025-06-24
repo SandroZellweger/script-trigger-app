@@ -33,7 +33,10 @@ function doGet(e) {
     
     switch (functionName) {
       case 'getCalendarEvents':
-        result = getCalendarEvents(params);
+        result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
+        break;
+      case 'getCalendarEventsJsonp':
+        return getCalendarEventsAppJsonp(e.parameter);
         break;
       case 'getCalendarNames':
         result = getCalendarNames();
