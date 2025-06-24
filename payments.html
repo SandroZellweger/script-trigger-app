@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+<head>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Payments">
@@ -400,9 +400,7 @@
 
         // Load logs from localStorage
         let logs = JSON.parse(localStorage.getItem('paymentLogs')) || [];
-        renderLogs();
-
-        async function createPaymentLink() {
+        renderLogs();        async function createPaymentLink() {
             if (isLoading) return;
 
             const amount = document.getElementById('amount').value;
@@ -426,12 +424,27 @@
             try {
                 addLog(`🚀 Creating payment link for CHF ${amount}...`, 'info');
 
-                // Get current settings
                 const settings = getSettings();
-                const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
+                let data;
 
-                const response = await fetch(requestUrl);
-                const data = await response.json();
+                try {
+                    // Try CORS first
+                    addLog('📡 Attempting secure connection...', 'info');
+                    const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
+                    const response = await fetch(requestUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    data = await response.json();
+                    addLog('✅ Connected via secure method', 'success');
+                } catch (corsError) {
+                    // CORS failed, try JSONP fallback
+                    addLog('⚠️ Secure connection failed, trying alternative method...', 'info');
+                    data = await createPaymentLinkJsonp(settings, amount, description);
+                    addLog('✅ Connected via alternative method', 'success');
+                }
 
                 if (data.result) {
                     // Extract the Stripe URL from the response
@@ -454,6 +467,72 @@
                 createBtn.disabled = false;
                 createBtn.innerHTML = 'Create Payment Link';
             }
+        }
+
+        function createPaymentLinkJsonp(settings, amount, description) {
+            return new Promise((resolve, reject) => {
+                // Create unique callback name
+                const callbackName = `paymentCallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                // Set up global callback
+                window[callbackName] = (data) => {
+                    try {
+                        // Clean up
+                        delete window[callbackName];
+                        if (script.parentNode) {
+                            script.parentNode.removeChild(script);
+                        }
+                        
+                        if (data) {
+                            resolve(data);
+                        } else {
+                            reject(new Error('Invalid JSONP response'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                // Create script element
+                const script = document.createElement('script');
+                const params = new URLSearchParams({
+                    function: 'triggerStripePaymentJsonp',
+                    authToken: settings.authToken,
+                    amount: amount,
+                    description: description,
+                    callback: callbackName
+                });
+                
+                script.src = `${settings.scriptUrl}?${params}`;
+                
+                // Handle script load errors
+                script.onerror = () => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    reject(new Error('Failed to load payment script'));
+                };
+
+                // Set timeout
+                const timeout = setTimeout(() => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    reject(new Error('Payment request timeout'));
+                }, 15000); // 15 second timeout for payments
+
+                // Override callback to clear timeout
+                const originalCallback = window[callbackName];
+                window[callbackName] = (data) => {
+                    clearTimeout(timeout);
+                    originalCallback(data);
+                };
+                
+                // Add script to document
+                document.head.appendChild(script);
+            });
         }
 
         function showPaymentResult(amount, description, paymentUrl) {
