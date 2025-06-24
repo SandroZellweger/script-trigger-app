@@ -837,7 +837,7 @@
             }
         }
 
-        // Loading state management function - defined early
+        // Loading state management function
         function setLoadingState(loading) {
             const calendar = document.getElementById('calendarView');
             const loadingIndicator = document.querySelector('.loading-indicator');
@@ -860,7 +860,9 @@
                 }
                 console.log('✅ Calendar data loaded');
             }
-        }// Initialize application
+        }
+        
+        // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             // Debug: Verify configuration is loaded correctly
             console.log('🔧 Production Config Loaded:', PRODUCTION_CONFIG);
@@ -1373,7 +1375,7 @@
             }
             
             isLoading = true;
-            setLoadingState(true);
+            window.setLoadingState(true);
             
             let attempts = 0;
             const maxAttempts = PRODUCTION_CONFIG.retryAttempts;
@@ -1440,7 +1442,7 @@
             } finally {
                 // Always reset loading state, even if an error occurs
                 isLoading = false;
-                setLoadingState(false);
+                window.setLoadingState(false);
             }
         }
 
@@ -1626,6 +1628,10 @@
                     });
             });
         }
+
+        // Expose to global
+        window.showLoadingOverlay = showLoadingOverlay;
+        window.setLoadingState = setLoadingState;
     </script>
 </body>
 </html>
