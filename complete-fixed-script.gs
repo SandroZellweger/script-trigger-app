@@ -54,9 +54,11 @@ function doGet(e) {
         result = triggerHardcodedReport();
         break;      case "triggerStripePayment":
         result = triggerStripePayment(e.parameter.amount, e.parameter.description);
-        break;
-      case "triggerStripePaymentJsonp":
+        break;      case "triggerStripePaymentJsonp":
         return triggerStripePaymentJsonp(e.parameter);
+        break;
+      case "pingJsonp":
+        return pingJsonp(e.parameter);
         break;case "sendHowToBookMessageApp":
         result = sendHowToBookMessageApp(e.parameter.phoneNumber);
         break;
@@ -1665,9 +1667,22 @@ function getCalendarEventsAppJsonp(params) {
 // JSONP version for cross-domain payment requests
 function triggerStripePaymentJsonp(params) {
   try {
+    // Log received parameters for debugging
+    Logger.log('JSONP Payment - Received params: ' + JSON.stringify(params));
+    Logger.log('JSONP Payment - Expected token: ' + AUTH_TOKEN);
+    Logger.log('JSONP Payment - Received token: ' + params.authToken);
+    Logger.log('JSONP Payment - Token match: ' + (params.authToken === AUTH_TOKEN));
+    
     // Validate authentication
     if (!validateAuthToken(params.authToken)) {
-      const errorResponse = { error: "Unauthorized: Invalid auth token" };
+      const errorResponse = { 
+        error: "Unauthorized: Invalid auth token",
+        debug: {
+          received: params.authToken,
+          expected: AUTH_TOKEN,
+          type: typeof params.authToken
+        }
+      };
       const callback = params.callback || 'callback';
       return ContentService
         .createTextOutput(callback + '(' + JSON.stringify(errorResponse) + ')')
@@ -2414,4 +2429,28 @@ function getCalendarNamesAppJsonp(params) {
   return ContentService
     .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Simple JSONP test function
+function pingJsonp(params) {
+  try {
+    Logger.log('Ping JSONP - Received params: ' + JSON.stringify(params));
+    const result = { 
+      message: "Ping successful", 
+      timestamp: new Date().toISOString(),
+      authToken: params.authToken,
+      expectedToken: AUTH_TOKEN,
+      tokenMatch: params.authToken === AUTH_TOKEN
+    };
+    const callback = params.callback || 'callback';
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    const errorResponse = { error: error.toString() };
+    const callback = params.callback || 'callback';
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(errorResponse) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
 }

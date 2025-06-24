@@ -344,10 +344,12 @@
             <div class="input-group">
                 <label for="description">Description:</label>
                 <input type="text" id="description" placeholder="Noleggio Furgone - 3 giorni" required>
-            </div>
-
-            <button class="create-btn" id="createBtn" onclick="createPaymentLink()">
+            </div>            <button class="create-btn" id="createBtn" onclick="createPaymentLink()">
                 Create Payment Link
+            </button>
+            
+            <button class="create-btn" onclick="testConnection()" style="background: #007bff; margin-top: 10px;">
+                🔧 Test Connection
             </button>
         </div>
 
@@ -400,7 +402,7 @@
         console.log('🔗 Script URL:', window.APP_CONFIG.scriptUrl);
     </script>
     
-    <script>// Function to get settings from localStorage
+    <script>        // Function to get settings from localStorage
         function getSettings() {
             const defaultSettings = window.APP_CONFIG || {
                 scriptUrl: 'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec',
@@ -408,7 +410,12 @@
             };
             
             const savedSettings = localStorage.getItem('appSettings');
-            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+            const finalSettings = savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+            
+            console.log('💳 Final settings:', finalSettings);
+            console.log('💳 Auth token being used:', finalSettings.authToken);
+            
+            return finalSettings;
         }
 
         let currentPaymentLink = '';
@@ -528,20 +535,19 @@
                         console.error('💳 JSONP callback error:', error);
                         reject(error);
                     }
-                };
-
-                // Create script element
+                };                // Create script element
                 const script = document.createElement('script');
                 const params = new URLSearchParams({
                     function: 'triggerStripePaymentJsonp',
-                    authToken: settings.authToken,
-                    amount: amount,
-                    description: description,
+                    authToken: encodeURIComponent(settings.authToken),
+                    amount: encodeURIComponent(amount),
+                    description: encodeURIComponent(description),
                     callback: callbackName
                 });
                 
                 script.src = `${settings.scriptUrl}?${params}`;
                 console.log('💳 JSONP request URL:', script.src);
+                console.log('💳 Auth token being sent:', settings.authToken);
                 
                 // Handle script load errors
                 script.onerror = () => {
