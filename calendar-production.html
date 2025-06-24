@@ -790,26 +790,34 @@
         const vanColors = [
             '#667eea', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
             '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'
-        ];
-
-        // Global state
+        ];        // Global state
         let currentDate = new Date();
         let currentEvents = [];
         let selectedCalendars = new Set();
         let dynamicCalendarNames = [...CALENDAR_NAMES];
         let dynamicCalendarData = [];
         let isLoading = false;
-        let connectionStatus = 'connecting';        // Error tracking
+        let connectionStatus = 'connecting';
+        
+        // Error tracking
         let errorCount = 0;
         let lastError = null;
 
+        // Show/hide loading overlay
+        function showLoadingOverlay(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.classList.toggle('active', show);
+            }
+        }
+
         // Loading state management function - defined early
-        function setLoadingState(isLoading) {
+        function setLoadingState(loading) {
             const calendar = document.getElementById('calendarView');
             const loadingIndicator = document.querySelector('.loading-indicator');
             const refreshBtn = document.getElementById('refreshBtn');
             
-            if (isLoading) {
+            if (loading) {
                 if (calendar) calendar.style.opacity = '0.5';
                 if (loadingIndicator) loadingIndicator.style.display = 'block';
                 if (refreshBtn) {
@@ -825,14 +833,6 @@
                     refreshBtn.innerHTML = '<span id="refreshIcon">🔄</span> Refresh Data';
                 }
                 console.log('✅ Calendar data loaded');
-            }
-        }
-
-        // Show/hide loading overlay
-        function showLoadingOverlay(show) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.classList.toggle('active', show);
             }
         }// Initialize application
         document.addEventListener('DOMContentLoaded', function() {
@@ -853,10 +853,10 @@
             // Load calendar names and data
             loadCalendarNames().then(() => {
                 generateCalendar();
-                return loadCalendarData();
-            }).then(() => {
+                return loadCalendarData();            }).then(() => {
                 updateConnectionStatus('online', 'Connected to Google Calendar');
-                showLoadingOverlay(false);            }).catch(error => {
+                showLoadingOverlay(false);
+            }).catch(error => {
                 console.error('Initialization failed:', error);
                 updateConnectionStatus('error', 'Failed to connect to Google Calendar');
                 showLoadingOverlay(false);
@@ -866,28 +866,7 @@
                 currentEvents = generateMockEvents();
                 renderEvents();
             });
-        });        function showLoadingOverlay(show) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.classList.toggle('active', show);
-            }
-        }
-
-        // Loading state management function
-        function setLoadingState(isLoading) {
-            const calendar = document.getElementById('calendar');
-            const loadingIndicator = document.querySelector('.loading-indicator');
-            
-            if (isLoading) {
-                if (calendar) calendar.style.opacity = '0.5';
-                if (loadingIndicator) loadingIndicator.style.display = 'block';
-                console.log('🔄 Loading calendar data...');
-            } else {
-                if (calendar) calendar.style.opacity = '1';
-                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                console.log('✅ Calendar data loaded');
-            }
-        }
+        });
 
         // Tab switching function
         function switchTab(tabName) {
@@ -1098,7 +1077,9 @@
                         console.error('📅 Fetch API fallback failed:', fetchError);
                         updateConnectionStatus('error', 'Both JSONP and Fetch failed');
                     }
-                }                // Only use static fallback if everything else failed
+                }
+                
+                // Only use static fallback if everything else failed
                 if (!jsonpSuccess) {
                     console.warn('📅 All connection methods failed, using static fallback');
                     
@@ -1513,8 +1494,7 @@
                                     color = dynamicCalendarData[calendarIndex].color;
                                 }
                                 eventPill.style.borderLeft = `3px solid ${color}`;
-                                
-                                eventPill.onclick = () => selectEvent ? selectEvent(event) : console.log('Event clicked:', event);
+                                  eventPill.onclick = () => selectEvent ? selectEvent(event) : console.log('Event clicked:', event);
                                 eventsContainer.appendChild(eventPill);
                             });
                             
@@ -1533,6 +1513,79 @@
             });
             
             console.log('📅 Events rendered on calendar');
+        }
+
+        // Calendar navigation functions
+        function navigateMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            generateCalendar();
+            loadCalendarData();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            generateCalendar();
+            loadCalendarData();
+        }
+
+        // Event selection function
+        function selectEvent(event) {
+            const eventInfo = document.getElementById('eventInfo');
+            const customerInfo = document.getElementById('customerInfo');
+            
+            if (eventInfo) {
+                const timeInfo = getEventTimeInfo(event);
+                const calendarName = getCalendarDisplayName(event.calendarIndex || 0);
+                
+                eventInfo.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 10px;">${event.summary || 'Untitled Event'}</div>
+                    <div style="margin-bottom: 5px;"><strong>Time:</strong> ${timeInfo}</div>
+                    <div style="margin-bottom: 5px;"><strong>Van:</strong> ${calendarName}</div>
+                    ${event.location ? `<div style="margin-bottom: 5px;"><strong>Location:</strong> ${event.location}</div>` : ''}
+                    ${event.description ? `<div style="margin-bottom: 5px;"><strong>Description:</strong> ${event.description}</div>` : ''}
+                `;
+            }
+            
+            if (customerInfo) {
+                // Extract customer name from event summary
+                const customerMatch = event.summary ? event.summary.match(/^([^-]+)/) : null;
+                const customerName = customerMatch ? customerMatch[1].trim() : 'Unknown Customer';
+                
+                customerInfo.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 10px;">${customerName}</div>
+                    <div style="margin-bottom: 5px;"><strong>Booking ID:</strong> ${event.id || 'N/A'}</div>
+                    <div style="margin-bottom: 5px;"><strong>Status:</strong> <span style="color: #4CAF50;">Confirmed</span></div>
+                    <div style="margin-bottom: 5px;"><strong>Contact:</strong> +41 XX XXX XX XX</div>
+                `;
+            }
+        }
+
+        // Dashboard functions (placeholders)
+        function showStats(period) {
+            console.log('Showing stats for period:', period);
+            // Update active button
+            document.querySelectorAll('.stats-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function buildCRMDatabase() {
+            console.log('Building CRM database...');
+            alert('CRM database build initiated. This may take a few minutes.');
+        }
+
+        function exportCustomerList() {
+            console.log('Exporting customer list...');
+            alert('Customer list export started. You will receive an email when ready.');
+        }
+
+        function generateReports() {
+            console.log('Generating reports...');
+            alert('Report generation started. Reports will be available in the CRM dashboard.');
+        }
+
+        function openCrmSpreadsheet() {
+            console.log('Opening CRM spreadsheet...');
+            window.open('https://docs.google.com/spreadsheets', '_blank');
         }
 
         // ...existing code...
