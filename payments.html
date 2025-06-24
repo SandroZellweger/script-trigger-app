@@ -381,13 +381,16 @@
             <h3>📊 Recent Activity</h3>
             <div id="logsList">
                 <div class="no-logs">No activity yet</div>
-            </div>
-        </div>
-    </div>    <script>
-        // Function to get settings from localStorage
+            </div>        </div>
+    </div>
+
+    <!-- Centralized Configuration -->
+    <script src="./config.js"></script>
+    
+    <script>        // Function to get settings from localStorage
         function getSettings() {
-            const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+            const defaultSettings = window.APP_CONFIG || {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec',
                 authToken: 'myAppToken2025'
             };
             
