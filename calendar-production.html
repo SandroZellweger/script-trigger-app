@@ -473,11 +473,37 @@
             font-size: 13px;
             cursor: pointer;
             transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
+        }        .action-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+        }
+
+        /* Stats Toggle */
+        .stats-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stats-btn {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #e1e5e9;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .stats-btn:hover {
+            background: #e9ecef;
+        }
+
+        .stats-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
 
         /* Loading and Error States */
@@ -785,12 +811,12 @@
             'N09 - Renault Trafic (Bellinzona)',
             'N10 - Citroen Jumper (Losone)',
             'N11 - Citroen Jumper (Losone)'
-        ];
-
-        const vanColors = [
+        ];        const vanColors = [
             '#667eea', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
             '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'
-        ];        // Global state
+        ];
+
+        // Global state
         let currentDate = new Date();
         let currentEvents = [];
         let selectedCalendars = new Set();
@@ -1588,7 +1614,18 @@
             window.open('https://docs.google.com/spreadsheets', '_blank');
         }
 
-        // ...existing code...
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('📱 SW registered:', registration);
+                    })
+                    .catch(function(error) {
+                        console.log('📱 SW registration failed:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
