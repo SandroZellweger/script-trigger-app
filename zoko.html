@@ -759,17 +759,28 @@
 
                     // Use JSONP instead of fetch
                     const data = await makeJsonpRequest(requestUrl);                    console.log('✅ Parsed response:', data);
-                    
-                    if (data.result === true || data.success === true) {
-                        showStatus(`✅ Message sent successfully to ${finalPhoneNumber}`, 'success');
-                        form.reset(); // Clear the form
-                        // Reset hint text
+
+                    // Broader success detection: backend may return {success:true}, {result:true}, a message object, or even boolean true
+                    const isSuccess = (
+                        data === true ||
+                        (data && typeof data === 'object' && (
+                            data.success === true ||
+                            data.result === true ||
+                            (!data.error && (data.message || data.code || data.pin))
+                        ))
+                    );
+
+                    if (isSuccess) {
+                        showStatus('✅ Message sent with success', 'success');
+                        form.reset();
                         phoneHint.textContent = 'Paste phone number from calling app. Swiss mobile numbers (075-079) will be auto-formatted to international format.';
                         phoneHint.style.color = '#666';
-                    } else if (data.error) {
+                    } else if (data && data.error) {
                         showStatus(`❌ Failed to send message: ${data.error}`, 'error');
                     } else {
-                        showStatus(`❌ Failed to send message: ${JSON.stringify(data)}`, 'error');
+                        // Fallback unknown structure
+                        showStatus('❌ Failed to send message: Unexpected response', 'error');
+                        console.warn('Unexpected response structure for message send:', data);
                     }
                 } catch (error) {
                     console.error('❌ Full error details:', error);
