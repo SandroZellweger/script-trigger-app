@@ -455,7 +455,9 @@ function doGet(e) {
     
     // Handle different functions
     let result;
-    switch (e.parameter.function) {
+    let wantsJsonp = false; // flag to indicate JSONP response
+    const requestedFunction = e.parameter.function;
+    switch (requestedFunction) {
       case 'ping':
         result = { result: true, message: 'API is online' };
         break;
@@ -464,10 +466,20 @@ function doGet(e) {
         const phoneNumber = e.parameter.phoneNumber;
         result = sendHowToBookMessageApp(phoneNumber);
         break;
+      case 'sendHowToBookMessageAppJsonp': // JSONP variant expected by frontend
+        const phoneNumberJsonp = e.parameter.phoneNumber;
+        result = sendHowToBookMessageApp(phoneNumberJsonp);
+        wantsJsonp = true;
+        break;
         
       case 'sendDatiMultigiornoApp':
         const datiPhoneNumber = e.parameter.phoneNumber; // Fixed: using e.parameter instead of params
         result = sendDatiMultigiornoApp(datiPhoneNumber);
+        break;
+      case 'sendDatiMultigiornoAppJsonp':
+        const datiPhoneNumberJsonp = e.parameter.phoneNumber;
+        result = sendDatiMultigiornoApp(datiPhoneNumberJsonp);
+        wantsJsonp = true;
         break;
         
       case 'getMaintenanceData':
@@ -485,12 +497,48 @@ function doGet(e) {
       case 'updateCleaningInVisioneGenerale':
         return updateCleaningInVisioneGenerale(e);
         
+      // Calendar events (standard JSON)
+      case 'getCalendarEventsApp':
+        result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
+        break;
+      case 'getCalendarEventsAppJsonp':
+        result = getCalendarEventsApp(e.parameter.startDate, e.parameter.endDate);
+        wantsJsonp = true;
+        break;
+
+      // Iglohome code generation
+      case 'generateIglohomeCodeApp':
+        result = generateIglohomeCodeApp({
+          phoneNumber: e.parameter.phoneNumber,
+          van: e.parameter.van,
+          startDate: e.parameter.startDate,
+            endDate: e.parameter.endDate
+        });
+        break;
+      case 'generateIglohomeCodeAppJsonp':
+        result = generateIglohomeCodeApp({
+          phoneNumber: e.parameter.phoneNumber,
+          van: e.parameter.van,
+          startDate: e.parameter.startDate,
+          endDate: e.parameter.endDate
+        });
+        wantsJsonp = true;
+        break;
+
       // Add other functions as needed
         
       default:
         result = { error: 'Unknown function' };
     }
     
+    // If JSONP requested explicitly via function name or callback param, wrap response
+    const callbackParam = e.parameter.callback;
+    if (wantsJsonp || callbackParam) {
+      const cbName = (callbackParam && /^(?:[A-Za-z_$][0-9A-Za-z_$]*)$/.test(callbackParam)) ? callbackParam : (callbackParam ? 'callback' : (callbackParam || 'callback'));
+      return ContentService.createTextOutput(cbName + '(' + JSON.stringify(result) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
       
@@ -498,5 +546,52 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({
       error: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// --- Added placeholder core functions for newly exposed endpoints ---
+// These should be replaced with real logic accessing calendars / Iglohome APIs.
+
+/**
+ * Returns calendar events between startDate and endDate.
+ * Placeholder implementation returns empty array with echo parameters.
+ */
+function getCalendarEventsApp(startDate, endDate) {
+  try {
+    // TODO: Replace with real calendar fetch logic
+    return {
+      result: [],
+      startDate: startDate || null,
+      endDate: endDate || null,
+      message: 'Placeholder getCalendarEventsApp implementation'
+    };
+  } catch (err) {
+    return { error: err.toString() };
+  }
+}
+
+/**
+ * Generates an Iglohome access code and optionally sends it (placeholder).
+ * Expects params: { phoneNumber, van, startDate, endDate }
+ */
+function generateIglohomeCodeApp(params) {
+  try {
+    // Basic validation
+    if (!params || !params.phoneNumber) {
+      return { success: false, error: 'phoneNumber required' };
+    }
+    // TODO: Replace with real Iglohome API integration
+    const accessCode = 'DUMMY' + new Date().getTime().toString().slice(-4);
+    return {
+      success: true,
+      phoneNumber: params.phoneNumber,
+      van: params.van || null,
+      startDate: params.startDate || null,
+      endDate: params.endDate || null,
+      accessCode: accessCode,
+      message: 'Placeholder generateIglohomeCodeApp implementation'
+    };
+  } catch (err) {
+    return { success: false, error: err.toString() };
   }
 }
