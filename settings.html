@@ -586,14 +586,15 @@
                 
                 // Use JSONP instead of fetch to avoid CORS issues
                 return new Promise((resolve, reject) => {
-                    // Create global callback function
+                    // Create global callback function FIRST
                     window.testConnectionCallback = function(data) {
+                        console.log('✅ Callback received:', data);
                         // Clean up
                         const script = document.querySelector('script[data-jsonp-test]');
                         if (script) script.remove();
                         delete window.testConnectionCallback;
                         
-                        if (data.result) {
+                        if (data.result || data.success) {
                             statusIndicator.className = 'status-indicator status-online';
                             showMessage('connectionMessage', '✅ Connection successful! Google Apps Script is online.', 'success');
                             resolve();
@@ -604,13 +605,14 @@
                         }
                     };
                     
-                    // Create script element for JSONP
+                    // Create script element for JSONP AFTER callback is defined
                     const script = document.createElement('script');
                     script.src = `${settings.scriptUrl}?function=pingJsonp&authToken=${settings.authToken}&callback=testConnectionCallback`;
                     script.setAttribute('data-jsonp-test', 'true');
                     
                     // Handle errors
                     script.onerror = function() {
+                        console.error('❌ Script load error');
                         // Clean up
                         script.remove();
                         delete window.testConnectionCallback;
@@ -623,6 +625,7 @@
                     // Set timeout
                     setTimeout(() => {
                         if (window.testConnectionCallback) {
+                            console.warn('⏱️ Request timed out');
                             script.remove();
                             delete window.testConnectionCallback;
                             statusIndicator.className = 'status-indicator status-offline';
