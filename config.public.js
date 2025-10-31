@@ -25,12 +25,12 @@ window.APP_CONFIG = {
     enableServiceWorker: true,
     cacheVersion: 'v1.2.3',
     
-// IMPORTANT: Sensitive data loaded from separate config
-// These will be set by config.private.js (not committed to git)
-scriptUrl: null,
-authToken: null,
-expenseSheetId: null,
-maintenanceSheetId: null
+    // IMPORTANT: Sensitive data loaded from separate config
+    // These will be set by config.private.js (not committed to git)
+    scriptUrl: null,
+    authToken: null,
+    expenseSheetId: null,
+    maintenanceSheetId: null
 };
 
 // Function to merge private config when it loads

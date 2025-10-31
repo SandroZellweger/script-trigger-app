@@ -1788,28 +1788,48 @@
     <script>
         // Function to get settings from config files and localStorage
         function getSettings() {
-            // Start with config files if available
-            const configSettings = window.APP_CONFIG || {};
+            // Wait for config to be loaded (retry up to 10 times with 100ms delay)
+            let attempts = 0;
+            const maxAttempts = 10;
             
-            // Fallback defaults (should rarely be used if config files load properly)
-            const defaultSettings = {
-                scriptUrl: configSettings.scriptUrl || 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
-                authToken: configSettings.authToken || 'myAppToken2025',
-                maintenanceSheetId: configSettings.maintenanceSheetId || '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA',
-                expenseSheetId: configSettings.expenseSheetId || '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M'
-            };
+            function tryGetSettings() {
+                attempts++;
+                const configSettings = window.APP_CONFIG || {};
+                
+                // Check if config has been properly loaded
+                const hasConfigLoaded = configSettings.authToken && configSettings.authToken !== 'myAppToken2025';
+                
+                if (hasConfigLoaded || attempts >= maxAttempts) {
+                    // Use config if loaded, otherwise fall back to defaults
+                    const defaultSettings = {
+                        scriptUrl: configSettings.scriptUrl || 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
+                        authToken: configSettings.authToken || 'mySecureVanApp_2025', // Updated default
+                        maintenanceSheetId: configSettings.maintenanceSheetId || '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA',
+                        expenseSheetId: configSettings.expenseSheetId || '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M'
+                    };
+                    
+                    // Override with localStorage if present
+                    const savedSettings = localStorage.getItem('appSettings');
+                    const finalSettings = savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+                    
+                    console.log('⚙️ Settings loaded:', {
+                        scriptUrl: finalSettings.scriptUrl.substring(0, 60) + '...',
+                        authToken: finalSettings.authToken,
+                        source: savedSettings ? 'localStorage + config' : (hasConfigLoaded ? 'config files' : 'hardcoded defaults'),
+                        attempts: attempts
+                    });
+                    
+                    return finalSettings;
+                } else {
+                    // Wait 100ms and try again
+                    return new Promise(resolve => {
+                        setTimeout(() => resolve(tryGetSettings()), 100);
+                    });
+                }
+            }
             
-            // Override with localStorage if present
-            const savedSettings = localStorage.getItem('appSettings');
-            const finalSettings = savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
-            
-            console.log('⚙️ Settings loaded:', {
-                scriptUrl: finalSettings.scriptUrl.substring(0, 60) + '...',
-                authToken: finalSettings.authToken,
-                source: savedSettings ? 'localStorage + config' : (configSettings.scriptUrl ? 'config files' : 'hardcoded defaults')
-            });
-            
-            return finalSettings;
+            // Return promise that resolves to settings
+            return tryGetSettings();
         }
 
         // DOM Elements
@@ -1886,7 +1906,7 @@
         async function loadData() {
             showLoader();
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 const url = `${settings.scriptUrl}?function=getMaintenanceDataJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleMaintenanceData&_=${Date.now()}`;
                 console.log('🔌 Loading maintenance data from:', url);
                 
@@ -1942,7 +1962,7 @@
         }        // Load overview data from Google Sheets using JSONP
         async function loadOverviewData() {
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 const url = `${settings.scriptUrl}?function=getVehicleOverviewJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleOverviewData&_=${Date.now()}`;
                 console.log('🔌 Loading overview data from:', url);
                 
