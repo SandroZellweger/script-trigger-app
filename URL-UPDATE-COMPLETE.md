@@ -4,7 +4,7 @@
 
 ### **Old URL** (404 Error):
 ```
-https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec
+https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec
 ```
 
 ### **New URL** (Active):
