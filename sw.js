@@ -1,14 +1,13 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_NAME = 'van-calendar-v1.2.1';
-const STATIC_CACHE_NAME = 'van-calendar-static-v1.2.1';
-const API_CACHE_NAME = 'van-calendar-api-v1.2.1';
+const CACHE_NAME = 'van-calendar-v1.2.2';
+const STATIC_CACHE_NAME = 'van-calendar-static-v1.2.2';
+const API_CACHE_NAME = 'van-calendar-api-v1.2.2';
 
 // Resources to cache immediately
 const STATIC_RESOURCES = [
     './',
     './calendar-production.html',
     './manifest.json',
-    './config.js',
     'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'
 ];
 
@@ -20,13 +19,25 @@ const API_ENDPOINTS = [
 // Install event - cache static resources
 self.addEventListener('install', event => {
     console.log('Service Worker: Installing...');
-    
+
     event.waitUntil(
         Promise.all([
-            // Cache static resources
+            // Cache static resources with error handling
             caches.open(STATIC_CACHE_NAME).then(cache => {
                 console.log('Service Worker: Caching static resources');
-                return cache.addAll(STATIC_RESOURCES);
+                return Promise.allSettled(
+                    STATIC_RESOURCES.map(url =>
+                        fetch(url, { cache: 'no-cache' })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                return cache.put(url, response);
+                            })
+                            .catch(error => {
+                                console.warn(`Service Worker: Failed to cache ${url}:`, error);
+                                // Don't fail the entire operation for one resource
+                            })
+                    )
+                );
             }),
             // Cache API endpoint
             caches.open(API_CACHE_NAME).then(cache => {
@@ -36,6 +47,10 @@ self.addEventListener('install', event => {
         ]).then(() => {
             console.log('Service Worker: Installation complete');
             // Force activation
+            return self.skipWaiting();
+        }).catch(error => {
+            console.error('Service Worker: Installation failed:', error);
+            // Still allow installation to complete
             return self.skipWaiting();
         })
     );
