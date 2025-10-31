@@ -70,6 +70,13 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const requestUrl = new URL(event.request.url);
     
+    // Skip JSONP requests (they use script tags and need to bypass service worker)
+    if (requestUrl.hostname === 'script.google.com' && 
+        (requestUrl.searchParams.has('callback') || requestUrl.pathname.includes('Jsonp'))) {
+        // Let JSONP requests pass through without interception
+        return;
+    }
+    
     // Handle different types of requests
     if (requestUrl.hostname === 'script.google.com') {
         // API requests - Network First with API cache fallback
