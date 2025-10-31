@@ -3007,15 +3007,27 @@
 
         // JSONP callback for vehicle list
         window.handleVehicleList = function(data) {
+            console.log('Vehicle list received:', data);
+            
             if (data.success) {
                 damageVehicleSelect.innerHTML = '<option value="">Select Vehicle</option>';
-                data.vehicles.forEach(vehicle => {
-                    const option = document.createElement('option');
-                    option.value = vehicle.id;
-                    option.textContent = vehicle.name;
-                    option.dataset.calendarId = vehicle.calendarId;
-                    damageVehicleSelect.appendChild(option);
-                });
+                
+                if (data.vehicles && data.vehicles.length > 0) {
+                    data.vehicles.forEach(vehicle => {
+                        const option = document.createElement('option');
+                        option.value = vehicle.id;
+                        option.textContent = vehicle.name;
+                        option.dataset.calendarId = vehicle.calendarId;
+                        damageVehicleSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${data.vehicles.length} vehicles into damage report form`);
+                } else {
+                    console.warn('No vehicles found in the response');
+                    damageVehicleSelect.innerHTML = '<option value="">No vehicles found</option>';
+                }
+            } else {
+                console.error('Failed to load vehicles:', data.error);
+                damageVehicleSelect.innerHTML = '<option value="">Error loading vehicles</option>';
             }
         };
 
