@@ -1870,6 +1870,7 @@
             try {
                 const settings = getSettings();
                 const url = `${settings.scriptUrl}?function=getMaintenanceDataJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleMaintenanceData&_=${Date.now()}`;
+                console.log('🔌 Loading maintenance data from:', url);
                 
                 // Create global callback
                 window.handleMaintenanceData = function(data) {
@@ -1925,6 +1926,7 @@
             try {
                 const settings = getSettings();
                 const url = `${settings.scriptUrl}?function=getVehicleOverviewJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleOverviewData&_=${Date.now()}`;
+                console.log('🔌 Loading overview data from:', url);
                 
                 // Create global callback
                 window.handleOverviewData = function(data) {
@@ -3382,13 +3384,16 @@
             });
         });
 
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
+        // Service Worker Registration (skip when running from file://)
+        const canRegisterServiceWorker = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+        if ('serviceWorker' in navigator && canRegisterServiceWorker) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => console.log('📱 SW registered:', registration))
                     .catch(error => console.log('📱 SW registration failed:', error));
             });
+        } else {
+            console.log('📱 SW registration skipped for protocol:', window.location.protocol);
         }
 
     </script>
