@@ -6,7 +6,7 @@
 window.APP_CONFIG = {
     // Frontend Configuration Only
     environment: 'production',
-    version: '1.2.1',
+    version: '1.2.3',
     
     // Feature Flags
     enableAnalytics: true,
@@ -23,7 +23,7 @@ window.APP_CONFIG = {
     
     // PWA Settings
     enableServiceWorker: true,
-    cacheVersion: 'v1.2.1',
+    cacheVersion: 'v1.2.3',
     
     // IMPORTANT: Sensitive data loaded from separate config
     // These will be set by config.private.js (not committed to git)

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Cache & Force Reload</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .status {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .status-item {
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .button-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .steps {
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+        
+        .steps li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Clear Cache & Force Reload</h1>
+        
+        <div class="info">
+            <strong>💡 Why use this?</strong><br>
+            If you're seeing old versions of pages, this will clear all cached data and force a fresh reload.
+        </div>
+        
+        <div class="status" id="status">
+            <div class="status-item">
+                <span>Service Worker:</span>
+                <span id="swStatus">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span>Cache Storage:</span>
+                <span id="cacheStatus">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span>Local Storage:</span>
+                <span id="localStatus">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span>Session Storage:</span>
+                <span id="sessionStatus">Checking...</span>
+            </div>
+        </div>
+        
+        <button onclick="clearEverything()">🧹 Clear All Cache & Reload</button>
+        <button onclick="clearCacheOnly()" class="button-secondary">Clear Cache Only (Don't Reload)</button>
+        <button onclick="unregisterServiceWorker()" class="button-secondary">Unregister Service Worker</button>
+        
+        <div class="warning">
+            <strong>⚠️ Manual Steps (if needed):</strong>
+            <ol class="steps">
+                <li><strong>Chrome/Edge:</strong> Press <code>Ctrl + Shift + Delete</code>, select "Cached images and files", and click Clear</li>
+                <li><strong>Firefox:</strong> Press <code>Ctrl + Shift + Delete</code>, select "Cache", and click Clear Now</li>
+                <li><strong>Safari:</strong> Press <code>Cmd + Option + E</code> to empty cache</li>
+                <li><strong>Force reload:</strong> Press <code>Ctrl + F5</code> (Windows) or <code>Cmd + Shift + R</code> (Mac)</li>
+            </ol>
+        </div>
+        
+        <div class="info">
+            <strong>📱 On Mobile:</strong><br>
+            Go to browser settings → Clear browsing data → Select "Cached images and files" → Clear data
+        </div>
+    </div>
+    
+    <script>
+        // Check status on load
+        window.addEventListener('load', checkStatus);
+        
+        async function checkStatus() {
+            // Check Service Worker
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                document.getElementById('swStatus').innerHTML = registrations.length > 0 
+                    ? `<span class="error">Active (${registrations.length})</span>` 
+                    : '<span class="success">None</span>';
+            } else {
+                document.getElementById('swStatus').innerHTML = '<span class="success">Not supported</span>';
+            }
+            
+            // Check Cache Storage
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                document.getElementById('cacheStatus').innerHTML = cacheNames.length > 0 
+                    ? `<span class="error">${cacheNames.length} cache(s)</span>` 
+                    : '<span class="success">Empty</span>';
+            } else {
+                document.getElementById('cacheStatus').innerHTML = '<span class="success">Not supported</span>';
+            }
+            
+            // Check Local Storage
+            const localKeys = Object.keys(localStorage);
+            document.getElementById('localStatus').innerHTML = localKeys.length > 0 
+                ? `<span class="error">${localKeys.length} item(s)</span>` 
+                : '<span class="success">Empty</span>';
+            
+            // Check Session Storage
+            const sessionKeys = Object.keys(sessionStorage);
+            document.getElementById('sessionStatus').innerHTML = sessionKeys.length > 0 
+                ? `<span class="error">${sessionKeys.length} item(s)</span>` 
+                : '<span class="success">Empty</span>';
+        }
+        
+        async function clearEverything() {
+            console.log('🧹 Clearing everything...');
+            
+            // Unregister service workers
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                    console.log('✅ Service Worker unregistered');
+                }
+            }
+            
+            // Clear all caches
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    await caches.delete(name);
+                    console.log('✅ Cache deleted:', name);
+                }
+            }
+            
+            // Clear local storage
+            localStorage.clear();
+            console.log('✅ Local Storage cleared');
+            
+            // Clear session storage
+            sessionStorage.clear();
+            console.log('✅ Session Storage cleared');
+            
+            // Clear cookies (domain-level)
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            console.log('✅ Cookies cleared');
+            
+            alert('✅ All cache cleared! The page will reload now with a hard refresh.');
+            
+            // Hard reload
+            window.location.reload(true);
+        }
+        
+        async function clearCacheOnly() {
+            console.log('🧹 Clearing caches...');
+            
+            // Clear all caches
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    await caches.delete(name);
+                    console.log('✅ Cache deleted:', name);
+                }
+            }
+            
+            alert('✅ Cache cleared! You can now manually reload your pages.');
+            await checkStatus();
+        }
+        
+        async function unregisterServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                    console.log('✅ Service Worker unregistered');
+                }
+                alert('✅ Service Worker unregistered!');
+                await checkStatus();
+            } else {
+                alert('Service Worker not supported in this browser.');
+            }
+        }
+    </script>
+</body>
+</html>

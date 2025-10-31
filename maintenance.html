@@ -10,6 +10,10 @@
     <title>Vehicle Maintenance Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- Configuration Files -->
+    <script src="config.public.js"></script>
+    <script src="config.private.js"></script>
+    
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>">
     
@@ -1782,16 +1786,30 @@
     </div>
 
     <script>
-        // Function to get settings from localStorage
+        // Function to get settings from config files and localStorage
         function getSettings() {
+            // Start with config files if available
+            const configSettings = window.APP_CONFIG || {};
+            
+            // Fallback defaults (should rarely be used if config files load properly)
             const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
-                authToken: 'myAppToken2025',
-                maintenanceSheetId: '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA'
+                scriptUrl: configSettings.scriptUrl || 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
+                authToken: configSettings.authToken || 'myAppToken2025',
+                maintenanceSheetId: configSettings.maintenanceSheetId || '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA',
+                expenseSheetId: configSettings.expenseSheetId || '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M'
             };
             
+            // Override with localStorage if present
             const savedSettings = localStorage.getItem('appSettings');
-            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+            const finalSettings = savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+            
+            console.log('⚙️ Settings loaded:', {
+                scriptUrl: finalSettings.scriptUrl.substring(0, 60) + '...',
+                authToken: finalSettings.authToken,
+                source: savedSettings ? 'localStorage + config' : (configSettings.scriptUrl ? 'config files' : 'hardcoded defaults')
+            });
+            
+            return finalSettings;
         }
 
         // DOM Elements
