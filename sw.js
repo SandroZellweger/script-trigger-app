@@ -1,7 +1,8 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_NAME = 'van-calendar-v1.2.3';
-const STATIC_CACHE_NAME = 'van-calendar-static-v1.2.3';
-const API_CACHE_NAME = 'van-calendar-api-v1.2.3';
+const CACHE_VERSION = 'v2.0.1';
+const CACHE_NAME = `van-calendar-${CACHE_VERSION}`;
+const STATIC_CACHE_NAME = `van-calendar-static-${CACHE_VERSION}`;
+const API_CACHE_NAME = `van-calendar-api-${CACHE_VERSION}`;
 
 // Resources to cache immediately
 const STATIC_RESOURCES = [
