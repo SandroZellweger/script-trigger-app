@@ -1919,30 +1919,43 @@
         async function loadOverviewData() {
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=getVehicleOverviewJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                const url = `${settings.scriptUrl}?function=getVehicleOverviewJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleOverviewData&_=${Date.now()}`;
                 
-                const data = await makeJsonpRequest(url);
+                // Create global callback
+                window.handleOverviewData = function(data) {
+                    if (data.success) {
+                        overviewData = data.vehicles || [];
+                        console.log('Overview data loaded:', overviewData.length, 'vehicles');
+                        
+                        // Debug: Log vehicles with notes
+                        overviewData.forEach(vehicle => {
+                            if (vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0) {
+                                console.log(`Vehicle ${vehicle.vehicleNumber} has ${vehicle.vehicleNotes.length} notes:`, vehicle.vehicleNotes);
+                            }
+                        });
+                        
+                        renderOverviewTable();
+                        renderOverviewCards();
+                    } else {
+                        console.error('Failed to load overview data:', data.error);
+                    }
+                };
                 
-                if (data.success) {
-                    overviewData = data.vehicles || [];
-                    console.log('Overview data loaded:', overviewData.length, 'vehicles');
-                    
-                    // Debug: Log vehicles with notes
-                    overviewData.forEach(vehicle => {
-                        if (vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0) {
-                            console.log(`Vehicle ${vehicle.vehicleNumber} has ${vehicle.vehicleNotes.length} notes:`, vehicle.vehicleNotes);
-                        }
-                    });
-                    
-                    renderOverviewTable();
-                    renderOverviewCards();
-                    return true;
-                } else {
-                    console.error('Failed to load overview data:', data.error);
-                    return false;
-                }
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    console.error('Error loading overview data');
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
+                
+                return true;
             } catch (error) {
-                console.error('Error loading overview data:', error);
+                console.error('Error in loadOverviewData:', error);
                 return false;
             }
         }
@@ -2681,32 +2694,49 @@
                 
                 // Build JSONP URL
                 const notesParam = encodeURIComponent(notesArray.join('|||'));
-                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}`;
+                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}&callback=handleSaveNotes&_=${Date.now()}`;
                 
-                const data = await makeJsonpRequest(url);
-                
-                if (data.success) {
-                    // Update local data
-                    const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
-                    if (vehicle) {
-                        vehicle.vehicleNotes = notesArray;
+                // Create global callback
+                window.handleSaveNotes = function(data) {
+                    hideLoader();
+                    
+                    if (data.success) {
+                        // Update local data
+                        const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
+                        if (vehicle) {
+                            vehicle.vehicleNotes = notesArray;
+                        }
+                        
+                        // Re-render the table and cards
+                        renderOverviewTable();
+                        renderOverviewCards();
+                        
+                        showNotification('Success', 'Vehicle notes updated successfully.');
+                    } else {
+                        showNotification('Error', data.error || 'Failed to update notes', true);
+                        cancelEditNotes(vehicleNumber);
                     }
-                    
-                    // Re-render the table and cards
-                    renderOverviewTable();
-                    renderOverviewCards();
-                    
-                    showNotification('Success', 'Vehicle notes updated successfully.');
-                } else {
-                    showNotification('Error', data.error || 'Failed to update notes', true);
+                };
+                
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    hideLoader();
+                    console.error('Error saving notes');
+                    showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
                     cancelEditNotes(vehicleNumber);
-                }
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
             } catch (error) {
-                console.error('Error saving notes:', error);
+                hideLoader();
+                console.error('Error in saveVehicleNotes:', error);
                 showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
                 cancelEditNotes(vehicleNumber);
-            } finally {
-                hideLoader();
             }
         }
 
@@ -2747,38 +2777,55 @@
             
             // Parse notes into array (split by lines, filter empty)
             const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-              showLoader();
+            showLoader();
             try {
                 const settings = getSettings();
                 
                 // Build JSONP URL
                 const notesParam = encodeURIComponent(notesArray.join('|||'));
-                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}`;
+                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}&callback=handleSaveCardNotes&_=${Date.now()}`;
                 
-                const data = await makeJsonpRequest(url);
-                
-                if (data.success) {
-                    // Update local data
-                    const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
-                    if (vehicle) {
-                        vehicle.vehicleNotes = notesArray;
+                // Create global callback
+                window.handleSaveCardNotes = function(data) {
+                    hideLoader();
+                    
+                    if (data.success) {
+                        // Update local data
+                        const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
+                        if (vehicle) {
+                            vehicle.vehicleNotes = notesArray;
+                        }
+                        
+                        // Re-render the cards to show updated notes
+                        renderOverviewCards();
+                        
+                        showNotification('Success', 'Notes updated successfully.');
+                    } else {
+                        console.error('Failed to save notes:', data.error);
+                        showNotification('Error', data.error || 'Failed to save notes', true);
+                        cancelCardEditNotes(vehicleNumber);
                     }
-                    
-                    // Re-render the cards to show updated notes
-                    renderOverviewCards();
-                    
-                    showNotification('Success', 'Notes updated successfully.');
-                } else {
-                    console.error('Failed to save notes:', data.error);
-                    showNotification('Error', data.error || 'Failed to save notes', true);
+                };
+                
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    hideLoader();
+                    console.error('Error saving card notes');
+                    showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
                     cancelCardEditNotes(vehicleNumber);
-                }
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
             } catch (error) {
-                console.error('Error saving notes:', error);
+                hideLoader();
+                console.error('Error in saveCardNotes:', error);
                 showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
                 cancelCardEditNotes(vehicleNumber);
-            } finally {
-                hideLoader();
             }
         }
 
