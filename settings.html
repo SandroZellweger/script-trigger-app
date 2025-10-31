@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Settings">
     <title>Settings - Script Trigger</title>
@@ -471,35 +472,70 @@
             </div>
         </div>    </div>    
     
-    <!-- Centralized Configuration -->
-    <script src="./config.js"></script>
+    <!-- Configuration Files -->
+    <script src="config.public.js"></script>
+    <script src="config.private.js"></script>
     
     <script>
-        // Default settings (now uses centralized config)
-        const defaultSettings = {
-            scriptUrl: window.APP_CONFIG.scriptUrl,
-            authToken: window.APP_CONFIG.authToken,
-            defaultAmount: '100.00',
-            defaultDescription: 'Noleggio Furgone',
-            soundEnabled: true,
-            autoClearLogs: true,
-            vibrationEnabled: true
-        };
+        // Wait for config to be loaded (retry up to 10 times with 100ms delay)
+        function getSettings() {
+            // Wait for config to be loaded (retry up to 10 times with 100ms delay)
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            function tryGetSettings() {
+                attempts++;
+                const configSettings = window.APP_CONFIG || {};
+                
+                // Check if config has been properly loaded (not null/undefined and not the initial null values)
+                const hasConfigLoaded = configSettings.authToken && configSettings.scriptUrl;
+                
+                if (hasConfigLoaded || attempts >= maxAttempts) {
+                    // Use config if loaded, otherwise fall back to defaults
+                    const defaultSettings = {
+                        scriptUrl: configSettings.scriptUrl || 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
+                        authToken: configSettings.authToken || 'mySecureVanApp_2025',
+                        defaultAmount: '100.00',
+                        defaultDescription: 'Noleggio Furgone',
+                        soundEnabled: true,
+                        autoClearLogs: true,
+                        vibrationEnabled: true
+                    };
+                    
+                    // Override with localStorage if present
+                    const savedSettings = localStorage.getItem('appSettings');
+                    const finalSettings = savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
+                    
+                    console.log('⚙️ Settings loaded:', {
+                        scriptUrl: finalSettings.scriptUrl.substring(0, 60) + '...',
+                        authToken: finalSettings.authToken,
+                        source: savedSettings ? 'localStorage + config' : (hasConfigLoaded ? 'config files' : 'hardcoded defaults'),
+                        attempts: attempts
+                    });
+                    
+                    return finalSettings;
+                } else {
+                    // Wait 100ms and try again
+                    return new Promise(resolve => {
+                        setTimeout(() => resolve(tryGetSettings()), 100);
+                    });
+                }
+            }
+            
+            // Return promise that resolves to settings
+            return tryGetSettings();
+        }
 
-        let settings = { ...defaultSettings };
+        let settings = {};
 
         // Load settings on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            settings = await getSettings();
             loadSettings();
             updateAppInfo();
         });
 
         function loadSettings() {
-            const savedSettings = localStorage.getItem('appSettings');
-            if (savedSettings) {
-                settings = { ...defaultSettings, ...JSON.parse(savedSettings) };
-            }
-
             // Populate form fields
             document.getElementById('scriptUrl').value = settings.scriptUrl;
             document.getElementById('authToken').value = settings.authToken;
@@ -604,7 +640,7 @@
                     const data = JSON.parse(e.target.result);
                     
                     if (data.settings) {
-                        settings = { ...defaultSettings, ...data.settings };
+                        settings = { ...settings, ...data.settings };
                         localStorage.setItem('appSettings', JSON.stringify(settings));
                         loadSettings();
                     }
@@ -637,10 +673,10 @@
             }
         }
 
-        function resetApp() {
+        async function resetApp() {
             if (confirm('Reset entire app? This will clear all settings and data.')) {
                 localStorage.clear();
-                settings = { ...defaultSettings };
+                settings = await getSettings();
                 loadSettings();
                 showMessage('dataMessage', '⚠️ App reset to defaults', 'success');
                 updateAppInfo();
