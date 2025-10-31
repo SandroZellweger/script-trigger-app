@@ -582,18 +582,59 @@
             statusIndicator.className = 'status-indicator status-testing';
             
             try {
-                console.log('🔗 Testing connection to:', `${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
-                const response = await fetch(`${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
-                const data = await response.json();
+                console.log('🔗 Testing connection to:', `${settings.scriptUrl}?function=pingJsonp&authToken=${settings.authToken}&callback=testConnectionCallback`);
                 
-                if (data.result) {
-                    statusIndicator.className = 'status-indicator status-online';
-                    showMessage('connectionMessage', '✅ Connection successful! Google Apps Script is online.', 'success');
-                } else if (data.error) {
-                    throw new Error(data.error);
-                } else {
-                    throw new Error('Unexpected response format');
-                }
+                // Use JSONP instead of fetch to avoid CORS issues
+                return new Promise((resolve, reject) => {
+                    // Create global callback function
+                    window.testConnectionCallback = function(data) {
+                        // Clean up
+                        const script = document.querySelector('script[data-jsonp-test]');
+                        if (script) script.remove();
+                        delete window.testConnectionCallback;
+                        
+                        if (data.result) {
+                            statusIndicator.className = 'status-indicator status-online';
+                            showMessage('connectionMessage', '✅ Connection successful! Google Apps Script is online.', 'success');
+                            resolve();
+                        } else if (data.error) {
+                            throw new Error(data.error);
+                        } else {
+                            throw new Error('Unexpected response format');
+                        }
+                    };
+                    
+                    // Create script element for JSONP
+                    const script = document.createElement('script');
+                    script.src = `${settings.scriptUrl}?function=pingJsonp&authToken=${settings.authToken}&callback=testConnectionCallback`;
+                    script.setAttribute('data-jsonp-test', 'true');
+                    
+                    // Handle errors
+                    script.onerror = function() {
+                        // Clean up
+                        script.remove();
+                        delete window.testConnectionCallback;
+                        
+                        statusIndicator.className = 'status-indicator status-offline';
+                        showMessage('connectionMessage', '❌ Connection failed: Network error or invalid script URL.', 'error');
+                        reject(new Error('Network error'));
+                    };
+                    
+                    // Set timeout
+                    setTimeout(() => {
+                        if (window.testConnectionCallback) {
+                            script.remove();
+                            delete window.testConnectionCallback;
+                            statusIndicator.className = 'status-indicator status-offline';
+                            showMessage('connectionMessage', '❌ Connection failed: Request timed out.', 'error');
+                            reject(new Error('Timeout'));
+                        }
+                    }, 10000); // 10 second timeout
+                    
+                    // Add script to document
+                    document.head.appendChild(script);
+                });
+                
             } catch (error) {
                 statusIndicator.className = 'status-indicator status-offline';
                 console.error('Connection test failed:', error);
