@@ -1453,6 +1453,7 @@
             <div class="tab" data-tab="history">Maintenance History</div>
             <div class="tab" data-tab="analytics">Analytics</div>
             <div class="tab" data-tab="cleaning" onclick="window.location.href='cleaning-vans.html'">Cleaning</div>
+            <div class="tab" data-tab="damages">🚨 Damage Reports</div>
         </div>        <div id="overview" class="tab-content active">
             <div class="table-container">
                 <table id="overviewTable">
@@ -1546,6 +1547,45 @@
                 </div>
             </div>
         </div>
+
+        <!-- Damage Reports Tab -->
+        <div id="damages" class="tab-content">
+            <div class="control-panel">
+                <button id="addDamageBtn" class="button">
+                    <span>🚨 Report Damage</span>
+                </button>
+                <button id="initFoldersBtn" class="button button-secondary">
+                    <span>📁 Initialize Folders</span>
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="damagesTable">
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>Date</th>
+                            <th>Vehicle</th>
+                            <th>Description</th>
+                            <th>Responsible</th>
+                            <th>Repair Cost</th>
+                            <th>Fee Claimed</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="damagesTableBody">
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <div class="empty-state-icon">🚨</div>
+                                <div class="empty-state-title">No damage reports yet</div>
+                                <div class="empty-state-description">Click "Report Damage" to create your first damage report.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- Add Maintenance Modal -->
@@ -1622,6 +1662,104 @@
                 <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancelBtn" class="button button-secondary">Cancel</button>
                     <button type="submit" id="saveBtn" class="button">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Damage Report Modal -->
+    <div id="damageModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeDamageModal">&times;</button>
+            <h2 class="modal-title" id="damageModalTitle">Report Vehicle Damage</h2>
+            <form id="damageForm">
+                <input type="hidden" id="damageRowIndex">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="damageVehicle" class="form-label">Vehicle *</label>
+                        <select id="damageVehicle" class="form-select" required>
+                            <option value="">Select Vehicle</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="damageDate" class="form-label">Damage Date *</label>
+                        <input type="date" id="damageDate" class="form-input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="damageDescription" class="form-label">Description *</label>
+                        <textarea id="damageDescription" class="form-input" rows="3" required placeholder="Describe the damage..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="reporterName" class="form-label">Reporter Name</label>
+                        <input type="text" id="reporterName" class="form-input" placeholder="Who reported it?">
+                    </div>
+                    <div class="form-group">
+                        <label for="reporterContact" class="form-label">Reporter Contact</label>
+                        <input type="text" id="reporterContact" class="form-input" placeholder="Phone/Email">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">
+                            <input type="checkbox" id="linkBooking" style="margin-right: 8px;">
+                            Link to booking (see calendar events)
+                        </label>
+                    </div>
+                    <div id="bookingSection" class="form-group full-width" style="display:none;">
+                        <label for="associatedBooking" class="form-label">Select Booking</label>
+                        <select id="associatedBooking" class="form-select">
+                            <option value="">No booking selected</option>
+                        </select>
+                        <div id="bookingInfo" style="margin-top: 8px; font-size: 13px; color: #666;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="responsibleParty" class="form-label">Responsible Party</label>
+                        <input type="text" id="responsibleParty" class="form-input" placeholder="Who caused it?">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookingContact" class="form-label">Customer Contact</label>
+                        <input type="text" id="bookingContact" class="form-input" placeholder="Customer phone/email">
+                    </div>
+                    <div class="form-group">
+                        <label for="damageCost" class="form-label">Estimated Damage Cost (CHF)</label>
+                        <input type="number" id="damageCost" class="form-input" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="repairCost" class="form-label">Actual Repair Cost (CHF)</label>
+                        <input type="number" id="repairCost" class="form-input" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="feeAmount" class="form-label">Fee Amount (CHF)</label>
+                        <input type="number" id="feeAmount" class="form-input" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="damageStatus" class="form-label">Status</label>
+                        <select id="damageStatus" class="form-select">
+                            <option value="Reported">Reported</option>
+                            <option value="Assessed">Assessed</option>
+                            <option value="In Repair">In Repair</option>
+                            <option value="Repaired">Repaired</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">
+                            <input type="checkbox" id="feeClaimed" style="margin-right: 8px;">
+                            Fee claimed from customer
+                        </label>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="damageNotes" class="form-label">Additional Notes</label>
+                        <textarea id="damageNotes" class="form-input" rows="3" placeholder="Insurance claim, mechanic details, etc..."></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="photoUpload" class="form-label">Upload Photos</label>
+                        <input type="file" id="photoUpload" class="form-input" multiple accept="image/*" style="padding: 8px;">
+                        <div id="photoPreview" style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                        <div id="uploadedPhotos" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" id="cancelDamageBtn" class="button button-secondary">Cancel</button>
+                    <button type="submit" id="saveDamageBtn" class="button">Save Report</button>
                 </div>
             </form>
         </div>
@@ -2630,6 +2768,458 @@
                 hideLoader();
             }
         }
+
+        /*************************************************************
+         * DAMAGE TRACKING SYSTEM
+         *************************************************************/
+        
+        // Damage modal elements
+        const damageModal = document.getElementById('damageModal');
+        const addDamageBtn = document.getElementById('addDamageBtn');
+        const closeDamageModal = document.getElementById('closeDamageModal');
+        const cancelDamageBtn = document.getElementById('cancelDamageBtn');
+        const damageForm = document.getElementById('damageForm');
+        const initFoldersBtn = document.getElementById('initFoldersBtn');
+        const linkBookingCheckbox = document.getElementById('linkBooking');
+        const bookingSection = document.getElementById('bookingSection');
+        const damageVehicleSelect = document.getElementById('damageVehicle');
+        const associatedBookingSelect = document.getElementById('associatedBooking');
+        const damagesTableBody = document.getElementById('damagesTableBody');
+
+        let damageReports = [];
+        let vehicleBookings = [];
+        let uploadedPhotoUrls = [];
+
+        // Initialize damage tracking
+        if (addDamageBtn) {
+            addDamageBtn.addEventListener('click', () => {
+                damageForm.reset();
+                document.getElementById('damageRowIndex').value = '';
+                document.getElementById('damageModalTitle').textContent = 'Report Vehicle Damage';
+                uploadedPhotoUrls = [];
+                document.getElementById('uploadedPhotos').innerHTML = '';
+                document.getElementById('photoPreview').innerHTML = '';
+                damageModal.classList.add('active');
+                loadVehiclesForDamage();
+            });
+        }
+
+        if (closeDamageModal) {
+            closeDamageModal.addEventListener('click', () => {
+                damageModal.classList.remove('active');
+            });
+        }
+
+        if (cancelDamageBtn) {
+            cancelDamageBtn.addEventListener('click', () => {
+                damageModal.classList.remove('active');
+            });
+        }
+
+        // Link booking checkbox
+        if (linkBookingCheckbox) {
+            linkBookingCheckbox.addEventListener('change', async (e) => {
+                if (e.target.checked) {
+                    bookingSection.style.display = 'block';
+                    const vehicleId = damageVehicleSelect.value;
+                    if (vehicleId) {
+                        await loadVehicleBookings(vehicleId);
+                    }
+                } else {
+                    bookingSection.style.display = 'none';
+                }
+            });
+        }
+
+        // Vehicle selection change - reload bookings
+        if (damageVehicleSelect) {
+            damageVehicleSelect.addEventListener('change', async (e) => {
+                if (linkBookingCheckbox.checked) {
+                    await loadVehicleBookings(e.target.value);
+                }
+            });
+        }
+
+        // Booking selection change - show booking info
+        if (associatedBookingSelect) {
+            associatedBookingSelect.addEventListener('change', (e) => {
+                const selectedBooking = vehicleBookings.find(b => b.id === e.target.value);
+                const bookingInfo = document.getElementById('bookingInfo');
+                if (selectedBooking) {
+                    bookingInfo.innerHTML = `
+                        <strong>${selectedBooking.title}</strong><br>
+                        ${new Date(selectedBooking.start).toLocaleString()} - ${new Date(selectedBooking.end).toLocaleString()}<br>
+                        ${selectedBooking.description || 'No description'}
+                    `;
+                    // Pre-fill responsible party if available
+                    if (selectedBooking.title && !document.getElementById('responsibleParty').value) {
+                        document.getElementById('responsibleParty').value = selectedBooking.title;
+                    }
+                } else {
+                    bookingInfo.innerHTML = '';
+                }
+            });
+        }
+
+        // Initialize folders button
+        if (initFoldersBtn) {
+            initFoldersBtn.addEventListener('click', async () => {
+                showLoader();
+                try {
+                    const settings = getSettings();
+                    const response = await fetch(`${settings.scriptUrl}?function=initializeDamageFolders&authToken=${settings.authToken}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        let message = 'Damage folders initialized successfully!<br><br>';
+                        data.folders.forEach(folder => {
+                            message += `${folder.vehicleName}: ${folder.existed ? 'Already exists' : 'Created'}<br>`;
+                        });
+                        showNotification('Success', message);
+                    } else {
+                        showNotification('Error', data.error || 'Failed to initialize folders', true);
+                    }
+                } catch (error) {
+                    console.error('Error initializing folders:', error);
+                    showNotification('Error', 'Failed to connect to the server', true);
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        // Load vehicles for damage form
+        async function loadVehiclesForDamage() {
+            try {
+                const settings = getSettings();
+                const response = await fetch(`${settings.scriptUrl}?function=getVehicleListJsonp&authToken=${settings.authToken}&callback=handleVehicleList&_=${Date.now()}`);
+                // JSONP will call handleVehicleList
+            } catch (error) {
+                console.error('Error loading vehicles:', error);
+            }
+        }
+
+        // JSONP callback for vehicle list
+        window.handleVehicleList = function(data) {
+            if (data.success) {
+                damageVehicleSelect.innerHTML = '<option value="">Select Vehicle</option>';
+                data.vehicles.forEach(vehicle => {
+                    const option = document.createElement('option');
+                    option.value = vehicle.id;
+                    option.textContent = vehicle.name;
+                    option.dataset.calendarId = vehicle.calendarId;
+                    damageVehicleSelect.appendChild(option);
+                });
+            }
+        };
+
+        // Load vehicle bookings from calendar
+        async function loadVehicleBookings(vehicleId) {
+            showLoader();
+            try {
+                const settings = getSettings();
+                const today = new Date();
+                const threeMonthsAgo = new Date(today);
+                threeMonthsAgo.setMonth(today.getMonth() - 3);
+                
+                const startDate = threeMonthsAgo.toISOString().split('T')[0];
+                const endDate = today.toISOString().split('T')[0];
+                
+                const response = await fetch(
+                    `${settings.scriptUrl}?function=getVehicleBookingsJsonp&authToken=${settings.authToken}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&callback=handleVehicleBookings&_=${Date.now()}`
+                );
+                // JSONP will call handleVehicleBookings
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                showNotification('Error', 'Failed to load bookings', true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // JSONP callback for vehicle bookings
+        window.handleVehicleBookings = function(data) {
+            if (data.success) {
+                vehicleBookings = data.bookings;
+                associatedBookingSelect.innerHTML = '<option value="">No booking selected</option>';
+                
+                data.bookings.forEach(booking => {
+                    const option = document.createElement('option');
+                    option.value = booking.id;
+                    option.textContent = `${booking.title} - ${new Date(booking.start).toLocaleDateString()}`;
+                    associatedBookingSelect.appendChild(option);
+                });
+            } else {
+                showNotification('Error', data.error || 'Failed to load bookings', true);
+            }
+        };
+
+        // Handle photo upload (Base64 encoding for Google Drive)
+        document.getElementById('photoUpload').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            const preview = document.getElementById('photoPreview');
+            preview.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    img.style.border = '2px solid #ddd';
+                    preview.appendChild(img);
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Submit damage form
+        if (damageForm) {
+            damageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                showLoader();
+                
+                try {
+                    const settings = getSettings();
+                    const rowIndex = document.getElementById('damageRowIndex').value;
+                    
+                    // Get vehicle name from select
+                    const vehicleSelect = document.getElementById('damageVehicle');
+                    const vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].text;
+                    const vehicleId = vehicleSelect.value;
+                    
+                    // Get associated booking info if selected
+                    let bookingInfo = '';
+                    let bookingContact = document.getElementById('bookingContact').value;
+                    const bookingId = document.getElementById('associatedBooking').value;
+                    if (bookingId) {
+                        const booking = vehicleBookings.find(b => b.id === bookingId);
+                        if (booking) {
+                            bookingInfo = `${booking.title} (${new Date(booking.start).toLocaleDateString()})`;
+                            if (booking.description && !bookingContact) {
+                                // Try to extract contact from description
+                                const phoneMatch = booking.description.match(/(\+?\d[\d\s-]{8,})/);
+                                if (phoneMatch) bookingContact = phoneMatch[0];
+                            }
+                        }
+                    }
+                    
+                    const damageData = {
+                        authToken: settings.authToken,
+                        vehicleName: vehicleName,
+                        vehicleId: vehicleId,
+                        dateReported: new Date().toISOString().split('T')[0],
+                        damageDate: document.getElementById('damageDate').value,
+                        description: document.getElementById('damageDescription').value,
+                        reporterName: document.getElementById('reporterName').value,
+                        reporterContact: document.getElementById('reporterContact').value,
+                        responsibleParty: document.getElementById('responsibleParty').value,
+                        associatedBooking: bookingInfo,
+                        bookingContact: bookingContact,
+                        photoUrls: uploadedPhotoUrls.join(', '),
+                        damageCost: parseFloat(document.getElementById('damageCost').value) || 0,
+                        repairCost: parseFloat(document.getElementById('repairCost').value) || 0,
+                        feeClaimed: document.getElementById('feeClaimed').checked,
+                        feeAmount: parseFloat(document.getElementById('feeAmount').value) || 0,
+                        status: document.getElementById('damageStatus').value,
+                        notes: document.getElementById('damageNotes').value
+                    };
+                    
+                    // Add rowIndex if editing
+                    if (rowIndex) {
+                        damageData.rowIndex = parseInt(rowIndex);
+                    }
+                    
+                    const functionName = rowIndex ? 'updateDamageReport' : 'reportDamage';
+                    
+                    const response = await fetch(`${settings.scriptUrl}?function=${functionName}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(damageData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showNotification('Success', rowIndex ? 'Damage report updated successfully' : 'Damage report created successfully');
+                        damageModal.classList.remove('active');
+                        loadDamageReports();
+                    } else {
+                        showNotification('Error', data.error || 'Failed to save damage report', true);
+                    }
+                } catch (error) {
+                    console.error('Error saving damage report:', error);
+                    showNotification('Error', 'Failed to connect to the server', true);
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        // Load damage reports
+        async function loadDamageReports() {
+            showLoader();
+            try {
+                const settings = getSettings();
+                const response = await fetch(`${settings.scriptUrl}?function=getDamageReportsJsonp&authToken=${settings.authToken}&callback=handleDamageReports&_=${Date.now()}`);
+                // JSONP will call handleDamageReports
+            } catch (error) {
+                console.error('Error loading damage reports:', error);
+                showNotification('Error', 'Failed to load damage reports', true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // JSONP callback for damage reports
+        window.handleDamageReports = function(data) {
+            if (data.success) {
+                damageReports = data.reports;
+                renderDamageReports();
+            } else {
+                showNotification('Error', data.error || 'Failed to load damage reports', true);
+            }
+        };
+
+        // Render damage reports table
+        function renderDamageReports() {
+            if (!damageReports || damageReports.length === 0) {
+                damagesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <div class="empty-state-icon">🚨</div>
+                            <div class="empty-state-title">No damage reports yet</div>
+                            <div class="empty-state-description">Click "Report Damage" to create your first damage report.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            damagesTableBody.innerHTML = '';
+            
+            damageReports.forEach(report => {
+                const row = document.createElement('tr');
+                
+                // Determine status color
+                let statusClass = 'status-badge ';
+                switch(report.status.toLowerCase()) {
+                    case 'reported':
+                        statusClass += 'status-overdue';
+                        break;
+                    case 'assessed':
+                        statusClass += 'status-due-soon';
+                        break;
+                    case 'in repair':
+                        statusClass += 'status-scheduled';
+                        break;
+                    case 'repaired':
+                        statusClass += 'status-completed';
+                        break;
+                    case 'closed':
+                        statusClass += 'status-good';
+                        break;
+                    default:
+                        statusClass += 'status-badge';
+                }
+                
+                row.innerHTML = `
+                    <td>${report.reportId || 'N/A'}</td>
+                    <td>${report.damageDate || report.dateReported || 'N/A'}</td>
+                    <td>${report.vehicleName || 'N/A'}</td>
+                    <td title="${report.description || ''}">${(report.description || 'N/A').substring(0, 50)}${report.description && report.description.length > 50 ? '...' : ''}</td>
+                    <td>${report.responsibleParty || 'Unknown'}</td>
+                    <td>CHF ${parseFloat(report.repairCost || 0).toFixed(2)}</td>
+                    <td>${report.feeClaimed === 'Yes' ? `CHF ${parseFloat(report.feeAmount || 0).toFixed(2)}` : 'No'}</td>
+                    <td><span class="${statusClass}">${report.status || 'Reported'}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-button" onclick="editDamageReport(${report.rowIndex})" title="Edit">✏️</button>
+                            <button class="action-button" onclick="viewDamageReport(${report.rowIndex})" title="View Details">👁️</button>
+                        </div>
+                    </td>
+                `;
+                
+                damagesTableBody.appendChild(row);
+            });
+        }
+
+        // Edit damage report
+        window.editDamageReport = async function(rowIndex) {
+            const report = damageReports.find(r => r.rowIndex === rowIndex);
+            if (!report) return;
+            
+            // Load vehicles first
+            await loadVehiclesForDamage();
+            
+            // Wait a bit for vehicles to load
+            setTimeout(() => {
+                // Fill form with report data
+                document.getElementById('damageRowIndex').value = rowIndex;
+                document.getElementById('damageVehicle').value = report.vehicleId;
+                document.getElementById('damageDate').value = report.damageDate;
+                document.getElementById('damageDescription').value = report.description;
+                document.getElementById('reporterName').value = report.reporterName;
+                document.getElementById('reporterContact').value = report.reporterContact;
+                document.getElementById('responsibleParty').value = report.responsibleParty;
+                document.getElementById('bookingContact').value = report.bookingContact;
+                document.getElementById('damageCost').value = report.damageCost;
+                document.getElementById('repairCost').value = report.repairCost;
+                document.getElementById('feeAmount').value = report.feeAmount;
+                document.getElementById('damageStatus').value = report.status;
+                document.getElementById('feeClaimed').checked = report.feeClaimed === 'Yes';
+                document.getElementById('damageNotes').value = report.notes;
+                
+                // Show uploaded photos if any
+                if (report.photoUrls) {
+                    uploadedPhotoUrls = report.photoUrls.split(', ').filter(url => url.trim());
+                    document.getElementById('uploadedPhotos').innerHTML = `
+                        <strong>Existing photos:</strong><br>
+                        ${uploadedPhotoUrls.map((url, i) => `<a href="${url}" target="_blank">Photo ${i+1}</a>`).join(', ')}
+                    `;
+                }
+                
+                document.getElementById('damageModalTitle').textContent = 'Edit Damage Report';
+                damageModal.classList.add('active');
+            }, 500);
+        };
+
+        // View damage report details (placeholder - could open a detailed view)
+        window.viewDamageReport = function(rowIndex) {
+            const report = damageReports.find(r => r.rowIndex === rowIndex);
+            if (!report) return;
+            
+            const detailsHtml = `
+                <strong>Report ID:</strong> ${report.reportId}<br>
+                <strong>Vehicle:</strong> ${report.vehicleName}<br>
+                <strong>Date:</strong> ${report.damageDate}<br>
+                <strong>Description:</strong> ${report.description}<br>
+                <strong>Reporter:</strong> ${report.reporterName} (${report.reporterContact})<br>
+                <strong>Responsible:</strong> ${report.responsibleParty}<br>
+                <strong>Booking:</strong> ${report.associatedBooking || 'None'}<br>
+                <strong>Repair Cost:</strong> CHF ${report.repairCost}<br>
+                <strong>Fee Claimed:</strong> ${report.feeClaimed} ${report.feeClaimed === 'Yes' ? `(CHF ${report.feeAmount})` : ''}<br>
+                <strong>Status:</strong> ${report.status}<br>
+                <strong>Notes:</strong> ${report.notes || 'None'}
+            `;
+            
+            showNotification('Damage Report Details', detailsHtml);
+        };
+
+        // Load damage reports when the damages tab is clicked
+        document.querySelectorAll('.tab[data-tab="damages"]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                loadDamageReports();
+            });
+        });
 
     </script>
 </body>
