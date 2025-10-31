@@ -56,7 +56,7 @@ setTimeout(() => {
         // Set production-safe defaults
         if (!window.APP_CONFIG.scriptUrl) {
             window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec';
-            window.APP_CONFIG.authToken = 'mySecureVanApp_2025';
+            window.APP_CONFIG.authToken = 'myAppToken2025';
             window.APP_CONFIG.expenseSheetId = '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M';
             window.APP_CONFIG.maintenanceSheetId = '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4';
             console.log('🏭 Production config applied (private config not available)');

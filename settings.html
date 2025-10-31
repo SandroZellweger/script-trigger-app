@@ -494,7 +494,7 @@
                     // Use config if loaded, otherwise fall back to defaults
                     const defaultSettings = {
                         scriptUrl: configSettings.scriptUrl || 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
-                        authToken: configSettings.authToken || 'mySecureVanApp_2025',
+                        authToken: configSettings.authToken || 'myAppToken2025',
                         defaultAmount: '100.00',
                         defaultDescription: 'Noleggio Furgone',
                         soundEnabled: true,
@@ -572,22 +572,43 @@
         }
 
         async function testConnection() {
+            // Check if settings are loaded
+            if (!settings || !settings.scriptUrl) {
+                showMessage('connectionMessage', '❌ Settings not loaded yet. Please wait for the page to fully load.', 'error');
+                return;
+            }
+            
             const statusIndicator = document.getElementById('connectionStatus');
             statusIndicator.className = 'status-indicator status-testing';
             
             try {
+                console.log('🔗 Testing connection to:', `${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
                 const response = await fetch(`${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
                 const data = await response.json();
                 
                 if (data.result) {
                     statusIndicator.className = 'status-indicator status-online';
                     showMessage('connectionMessage', '✅ Connection successful! Google Apps Script is online.', 'success');
+                } else if (data.error) {
+                    throw new Error(data.error);
                 } else {
-                    throw new Error(data.error || 'Unknown error');
+                    throw new Error('Unexpected response format');
                 }
             } catch (error) {
                 statusIndicator.className = 'status-indicator status-offline';
-                showMessage('connectionMessage', `❌ Connection failed: ${error.message}`, 'error');
+                console.error('Connection test failed:', error);
+                
+                // Provide more specific error messages
+                let errorMessage = error.message;
+                if (error.message.includes('Unauthorized')) {
+                    errorMessage = 'Authentication failed. Check your auth token in Google Apps Script properties.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = 'Network error. Check your internet connection and script URL.';
+                } else if (error.message.includes('CORS')) {
+                    errorMessage = 'CORS error. The Google Apps Script may not be properly configured.';
+                }
+                
+                showMessage('connectionMessage', `❌ Connection failed: ${errorMessage}`, 'error');
             }
             vibrate();
         }
