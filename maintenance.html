@@ -1796,8 +1796,8 @@
                 attempts++;
                 const configSettings = window.APP_CONFIG || {};
                 
-                // Check if config has been properly loaded
-                const hasConfigLoaded = configSettings.authToken && configSettings.authToken !== 'myAppToken2025';
+                // Check if config has been properly loaded (not null/undefined and not the initial null values)
+                const hasConfigLoaded = configSettings.authToken && configSettings.scriptUrl;
                 
                 if (hasConfigLoaded || attempts >= maxAttempts) {
                     // Use config if loaded, otherwise fall back to defaults
@@ -2585,7 +2585,7 @@
         async function saveRecord(record) {
             showLoader();
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 const url = `${settings.scriptUrl}?function=saveMaintenanceRecord&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
                 
                 const response = await fetch(url, {
@@ -2735,7 +2735,7 @@
             
             showLoader();
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 
                 // Build JSONP URL
                 const notesParam = encodeURIComponent(notesArray.join('|||'));
@@ -2824,7 +2824,7 @@
             const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
             showLoader();
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 
                 // Build JSONP URL
                 const notesParam = encodeURIComponent(notesArray.join('|||'));
@@ -2932,7 +2932,7 @@
 
         // Initialize damage tracking
         if (addDamageBtn) {
-            addDamageBtn.addEventListener('click', () => {
+            addDamageBtn.addEventListener('click', async () => {
                 damageForm.reset();
                 document.getElementById('damageRowIndex').value = '';
                 document.getElementById('damageModalTitle').textContent = 'Report Vehicle Damage';
@@ -2940,7 +2940,7 @@
                 document.getElementById('uploadedPhotos').innerHTML = '';
                 document.getElementById('photoPreview').innerHTML = '';
                 damageModal.classList.add('active');
-                loadVehiclesForDamage();
+                await loadVehiclesForDamage();
             });
         }
 
@@ -3006,7 +3006,7 @@
             initFoldersBtn.addEventListener('click', async () => {
                 showLoader();
                 try {
-                    const settings = getSettings();
+                    const settings = await getSettings();
                     const response = await fetch(`${settings.scriptUrl}?function=initializeDamageFolders&authToken=${settings.authToken}`);
                     const data = await response.json();
                     
@@ -3029,9 +3029,9 @@
         }
 
         // Load vehicles for damage form
-        function loadVehiclesForDamage() {
+        async function loadVehiclesForDamage() {
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 const url = `${settings.scriptUrl}?function=getVehicleListJsonp&authToken=${settings.authToken}&callback=handleVehicleList&_=${Date.now()}`;
                 
                 // Use script tag injection for JSONP
@@ -3077,10 +3077,10 @@
         };
 
         // Load vehicle bookings from calendar
-        function loadVehicleBookings(vehicleId) {
+        async function loadVehicleBookings(vehicleId) {
             showLoader();
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 const today = new Date();
                 const threeMonthsAgo = new Date(today);
                 threeMonthsAgo.setMonth(today.getMonth() - 3);
@@ -3167,7 +3167,7 @@
                 showLoader();
                 
                 try {
-                    const settings = getSettings();
+                    const settings = await getSettings();
                     const rowIndex = document.getElementById('damageRowIndex').value;
                     
                     // Get vehicle name from select
@@ -3232,7 +3232,7 @@
                     if (data.success) {
                         showNotification('Success', rowIndex ? 'Damage report updated successfully' : 'Damage report created successfully');
                         damageModal.classList.remove('active');
-                        loadDamageReports();
+                        await loadDamageReports();
                     } else {
                         showNotification('Error', data.error || 'Failed to save damage report', true);
                     }
@@ -3246,10 +3246,10 @@
         }
 
         // Load damage reports
-        function loadDamageReports() {
+        async function loadDamageReports() {
             showLoader();
             try {
-                const settings = getSettings();
+                const settings = await getSettings();
                 const url = `${settings.scriptUrl}?function=getDamageReportsJsonp&authToken=${settings.authToken}&callback=handleDamageReports&_=${Date.now()}`;
                 
                 // Use script tag injection for JSONP
@@ -3417,8 +3417,8 @@
 
         // Load damage reports when the damages tab is clicked
         document.querySelectorAll('.tab[data-tab="damages"]').forEach(tab => {
-            tab.addEventListener('click', () => {
-                loadDamageReports();
+            tab.addEventListener('click', async () => {
+                await loadDamageReports();
             });
         });
 
