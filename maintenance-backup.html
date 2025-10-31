@@ -4,10 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Vehicle Maintenance">
     <title>Vehicle Maintenance Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>">
+    
     <style>        * {
             margin: 0;
             padding: 0;
@@ -717,11 +722,21 @@
             padding: 8px;
             background: #fafafa;
             border-radius: 8px;
-        }
-
-        .card-note-item.red-note {
+        }        .card-note-item.red-note {
             background: rgba(244, 67, 54, 0.05);
             border-left: 3px solid #f44336;
+        }
+
+        .card-note-line {
+            margin-bottom: 4px;
+            padding: 2px 0;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .card-note-line.red-note {
+            color: #d32f2f;
+            font-weight: 500;
         }
 
         .card-note-icon {
@@ -733,6 +748,144 @@
             font-size: 13px;
             color: #333;
             line-height: 1.4;
+        }        /* Editable Notes Styles */
+        .notes-display {
+            min-height: 40px;
+            max-height: 100px;
+            overflow-y: auto;
+            padding: 8px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            white-space: pre-wrap; /* Preserve line breaks and spaces */
+            word-wrap: break-word; /* Break long words */
+        }
+
+        .notes-editor {
+            display: none;
+            width: 100%;
+            min-height: 60px;
+            max-height: 120px;
+            padding: 8px;
+            border: 2px solid #7DBB35;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .notes-editor:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(125, 187, 53, 0.2);
+        }
+
+        .notes-actions {
+            display: none;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .notes-save, .notes-cancel {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .notes-save {
+            background: #7DBB35;
+            color: white;
+        }
+
+        .notes-save:hover {
+            background: #5a8827;
+        }
+
+        .notes-cancel {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .notes-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .note-item-inline {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 4px;
+            padding: 4px 6px;
+            background: rgba(244, 67, 54, 0.05);
+            border: 1px solid rgba(244, 67, 54, 0.2);
+            border-radius: 4px;
+            border-left: 3px solid #f44336;
+            font-size: 12px;
+        }
+
+        .note-icon-inline {
+            font-size: 12px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .note-text-inline {
+            color: #d32f2f;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        /* Mobile card notes editing */
+        .card-notes-editable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .card-notes-editable:hover {
+            background: rgba(125, 187, 53, 0.05);
+        }
+
+        .card-notes-editor {
+            display: none;
+            width: 100%;
+            min-height: 60px;
+            margin-top: 8px;
+            padding: 8px;
+            border: 2px solid #7DBB35;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        /* Notes header with edit button */
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .edit-notes-btn {
+            background: rgba(125, 187, 53, 0.1);
+            border: 1px solid rgba(125, 187, 53, 0.3);
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: #7DBB35;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-notes-btn:hover {
+            background: rgba(125, 187, 53, 0.2);
+            transform: scale(1.05);
+        }
+
+        .notes-content {
+            min-height: 40px;
         }
 
         @media (max-width: 768px) {
@@ -1163,9 +1316,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-        }
-
-        .note-item {
+        }        .note-item {
             display: flex;
             align-items: flex-start;
             gap: 8px;
@@ -1174,6 +1325,18 @@
             border: 1px solid rgba(244, 67, 54, 0.2);
             border-radius: 6px;
             border-left: 4px solid #f44336;
+        }
+
+        .note-line {
+            margin-bottom: 4px;
+            padding: 4px 0;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .note-line.red-note {
+            color: #d32f2f;
+            font-weight: 500;
         }
 
         .note-icon {
@@ -1295,6 +1458,7 @@
             <div class="tab" data-tab="history">Maintenance History</div>
             <div class="tab" data-tab="analytics">Analytics</div>
             <div class="tab" data-tab="cleaning" onclick="window.location.href='cleaning-vans.html'">Cleaning</div>
+            <div class="tab" data-tab="damages">🚨 Damage Reports</div>
         </div>        <div id="overview" class="tab-content active">
             <div class="table-container">
                 <table id="overviewTable">
@@ -1304,7 +1468,6 @@
                             <th>Brand/Model</th>
                             <th>Km attuali</th>
                             <th>Potenziale</th>
-                            <th>Issues & Notes</th>
                             <th>Cleaning Status</th>
                             <th>Actions</th>
                         </tr>
@@ -1389,6 +1552,45 @@
                 </div>
             </div>
         </div>
+
+        <!-- Damage Reports Tab -->
+        <div id="damages" class="tab-content">
+            <div class="control-panel">
+                <button id="addDamageBtn" class="button">
+                    <span>🚨 Report Damage</span>
+                </button>
+                <button id="initFoldersBtn" class="button button-secondary">
+                    <span>📁 Initialize Folders</span>
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="damagesTable">
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>Date</th>
+                            <th>Vehicle</th>
+                            <th>Description</th>
+                            <th>Responsible</th>
+                            <th>Repair Cost</th>
+                            <th>Fee Claimed</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="damagesTableBody">
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <div class="empty-state-icon">🚨</div>
+                                <div class="empty-state-title">No damage reports yet</div>
+                                <div class="empty-state-description">Click "Report Damage" to create your first damage report.</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- Add Maintenance Modal -->
@@ -1465,6 +1667,104 @@
                 <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancelBtn" class="button button-secondary">Cancel</button>
                     <button type="submit" id="saveBtn" class="button">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Damage Report Modal -->
+    <div id="damageModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeDamageModal">&times;</button>
+            <h2 class="modal-title" id="damageModalTitle">Report Vehicle Damage</h2>
+            <form id="damageForm">
+                <input type="hidden" id="damageRowIndex">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="damageVehicle" class="form-label">Vehicle *</label>
+                        <select id="damageVehicle" class="form-select" required>
+                            <option value="">Select Vehicle</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="damageDate" class="form-label">Damage Date *</label>
+                        <input type="date" id="damageDate" class="form-input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="damageDescription" class="form-label">Description *</label>
+                        <textarea id="damageDescription" class="form-input" rows="3" required placeholder="Describe the damage..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="reporterName" class="form-label">Reporter Name</label>
+                        <input type="text" id="reporterName" class="form-input" placeholder="Who reported it?">
+                    </div>
+                    <div class="form-group">
+                        <label for="reporterContact" class="form-label">Reporter Contact</label>
+                        <input type="text" id="reporterContact" class="form-input" placeholder="Phone/Email">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">
+                            <input type="checkbox" id="linkBooking" style="margin-right: 8px;">
+                            Link to booking (see calendar events)
+                        </label>
+                    </div>
+                    <div id="bookingSection" class="form-group full-width" style="display:none;">
+                        <label for="associatedBooking" class="form-label">Select Booking</label>
+                        <select id="associatedBooking" class="form-select">
+                            <option value="">No booking selected</option>
+                        </select>
+                        <div id="bookingInfo" style="margin-top: 8px; font-size: 13px; color: #666;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="responsibleParty" class="form-label">Responsible Party</label>
+                        <input type="text" id="responsibleParty" class="form-input" placeholder="Who caused it?">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookingContact" class="form-label">Customer Contact</label>
+                        <input type="text" id="bookingContact" class="form-input" placeholder="Customer phone/email">
+                    </div>
+                    <div class="form-group">
+                        <label for="damageCost" class="form-label">Estimated Damage Cost (CHF)</label>
+                        <input type="number" id="damageCost" class="form-input" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="repairCost" class="form-label">Actual Repair Cost (CHF)</label>
+                        <input type="number" id="repairCost" class="form-input" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="feeAmount" class="form-label">Fee Amount (CHF)</label>
+                        <input type="number" id="feeAmount" class="form-input" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="damageStatus" class="form-label">Status</label>
+                        <select id="damageStatus" class="form-select">
+                            <option value="Reported">Reported</option>
+                            <option value="Assessed">Assessed</option>
+                            <option value="In Repair">In Repair</option>
+                            <option value="Repaired">Repaired</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">
+                            <input type="checkbox" id="feeClaimed" style="margin-right: 8px;">
+                            Fee claimed from customer
+                        </label>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="damageNotes" class="form-label">Additional Notes</label>
+                        <textarea id="damageNotes" class="form-input" rows="3" placeholder="Insurance claim, mechanic details, etc..."></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="photoUpload" class="form-label">Upload Photos</label>
+                        <input type="file" id="photoUpload" class="form-input" multiple accept="image/*" style="padding: 8px;">
+                        <div id="photoPreview" style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                        <div id="uploadedPhotos" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" id="cancelDamageBtn" class="button button-secondary">Cancel</button>
+                    <button type="submit" id="saveDamageBtn" class="button">Save Report</button>
                 </div>
             </form>
         </div>
@@ -1564,81 +1864,105 @@
             searchInput.addEventListener('input', applyFilters);
             vehicleFilter.addEventListener('change', applyFilters);
             statusFilter.addEventListener('change', applyFilters);
-        });
-
-        // Load data from Google Sheets
+        });        // Load data from Google Sheets using JSONP
         async function loadData() {
             showLoader();
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=getMaintenanceData&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                const url = `${settings.scriptUrl}?function=getMaintenanceDataJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleMaintenanceData&_=${Date.now()}`;
+                console.log('🔌 Loading maintenance data from:', url);
                 
-                const response = await fetch(url);
-                const data = await response.json();
+                // Create global callback
+                window.handleMaintenanceData = function(data) {
+                    hideLoader();
+                    
+                    if (data.success) {
+                        maintenanceData = data.records || [];
+                        vehicles = data.vehicles || [];
+                        
+                        // Populate vehicle select options
+                        populateVehicleOptions();
+                        
+                        // Populate stats
+                        updateStats();
+                        
+                        // Render the tables
+                        renderTables();
+                    } else {
+                        showNotification('Error', data.error || 'Failed to load maintenance data', true);
+                    }
+                };
                 
-                if (data.success) {
-                    maintenanceData = data.records || [];
-                    vehicles = data.vehicles || [];
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    hideLoader();
+                    console.error('Error loading maintenance data');
+                    showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
                     
-                    // Populate vehicle select options
-                    populateVehicleOptions();
-                    
-                    // Populate stats
-                    updateStats();
-                    
-                    // Render the tables
-                    renderTables();
-                } else {
-                    showNotification('Error', data.error || 'Failed to load maintenance data', true);
-                }
+                    // Show empty state with error
+                    upcomingTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">⚠️</div>
+                                <div class="empty-state-title">Could not load data</div>
+                                <div class="empty-state-description">There was a problem connecting to the server. Please try again later.</div>
+                            </td>
+                        </tr>
+                    `;
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
             } catch (error) {
-                console.error('Error loading data:', error);
-                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
-                
-                // Show empty state with error
-                upcomingTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty-state">
-                            <div class="empty-state-icon">⚠️</div>
-                            <div class="empty-state-title">Could not load data</div>
-                            <div class="empty-state-description">There was a problem connecting to the server. Please try again later.</div>
-                        </td>
-                    </tr>
-                `;
-                
-                historyTableBody.innerHTML = upcomingTableBody.innerHTML;
-            } finally {
                 hideLoader();
+                console.error('Error in loadData:', error);
             }
-        }        // Load overview data from Google Sheets
+        }        // Load overview data from Google Sheets using JSONP
         async function loadOverviewData() {
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=getVehicleOverview&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                const url = `${settings.scriptUrl}?function=getVehicleOverviewJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleOverviewData&_=${Date.now()}`;
+                console.log('🔌 Loading overview data from:', url);
                 
-                const response = await fetch(url);
-                const data = await response.json();
+                // Create global callback
+                window.handleOverviewData = function(data) {
+                    if (data.success) {
+                        overviewData = data.vehicles || [];
+                        console.log('Overview data loaded:', overviewData.length, 'vehicles');
+                        
+                        // Debug: Log vehicles with notes
+                        overviewData.forEach(vehicle => {
+                            if (vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0) {
+                                console.log(`Vehicle ${vehicle.vehicleNumber} has ${vehicle.vehicleNotes.length} notes:`, vehicle.vehicleNotes);
+                            }
+                        });
+                        
+                        renderOverviewTable();
+                        renderOverviewCards();
+                    } else {
+                        console.error('Failed to load overview data:', data.error);
+                    }
+                };
                 
-                if (data.success) {
-                    overviewData = data.vehicles || [];
-                    console.log('Overview data loaded:', overviewData.length, 'vehicles');
-                    
-                    // Debug: Log vehicles with notes
-                    overviewData.forEach(vehicle => {
-                        if (vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0) {
-                            console.log(`Vehicle ${vehicle.vehicleNumber} has ${vehicle.vehicleNotes.length} notes:`, vehicle.vehicleNotes);
-                        }
-                    });
-                    
-                    renderOverviewTable();
-                    renderOverviewCards();
-                    return true;
-                } else {
-                    console.error('Failed to load overview data:', data.error);
-                    return false;
-                }
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    console.error('Error loading overview data');
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
+                
+                return true;
             } catch (error) {
-                console.error('Error loading overview data:', error);
+                console.error('Error in loadOverviewData:', error);
                 return false;
             }
         }
@@ -1815,9 +2139,8 @@
         function renderOverviewTable() {
             const overviewTableBody = document.getElementById('overviewTableBody');
               if (overviewData.length === 0) {
-                overviewTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="empty-state">
+                overviewTableBody.innerHTML = `                    <tr>
+                        <td colspan="7" class="empty-state">
                             <div class="empty-state-icon">🚐</div>
                             <div class="empty-state-title">No vehicle data found</div>
                             <div class="empty-state-description">Unable to load vehicle overview data.</div>
@@ -1834,8 +2157,7 @@
                             <strong>${vehicle.vehicleNumber}</strong>
                             <button class="expand-btn" onclick="toggleVehicleDetails('${vehicle.vehicleNumber}')">+</button>
                         </div>
-                    </td>
-                    <td>${vehicle.licensePlate}</td>
+                    </td>                    <td>${vehicle.licensePlate}</td>
                     <td>${vehicle.brand} ${vehicle.model}</td>
                     <td>${vehicle.currentKm}</td>
                     <td>${vehicle.potential}</td>
@@ -1891,24 +2213,32 @@
                                 </div>
                                 <div class="detail-item">
                                     <strong>Next CO:</strong> ${vehicle.nextCO}
-                                </div>
-                            </div>                            ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
-                                <div class="vehicle-notes-section">
+                                </div>                            </div>
+                            
+                            <!-- Always show notes section with edit capability -->
+                            <div class="vehicle-notes-section">
+                                <div class="notes-header">
                                     <h4>Issues & Notes:</h4>
-                                    <div class="vehicle-notes">
-                                        ${vehicle.vehicleNotes.map(note => {
-                                            const isRedText = note.startsWith('🔴');
-                                            const noteText = isRedText ? note.substring(2).trim() : note;
-                                            const icon = isRedText ? '🔴' : '⚠️';
-                                            return `
-                                                <div class="note-item ${isRedText ? 'red-note' : ''}">
-                                                    <span class="note-icon">${icon}</span>
-                                                    <span class="note-text">${noteText}</span>
-                                                </div>
-                                            `;                                        }).join('')}
-                                    </div>
+                                    <button class="edit-notes-btn" onclick="editVehicleNotes('${vehicle.vehicleNumber}')" title="Edit Notes">
+                                        ✏️
+                                    </button>
+                                </div>                                <div class="notes-content" id="notes-display-${vehicle.vehicleNumber}">
+                                    ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
+                                        vehicle.vehicleNotes.map(note => {
+                                            const isRedText = note.includes('🔴');
+                                            const noteText = note;
+                                            return `<div class="note-line ${isRedText ? 'red-note' : ''}">${noteText}</div>`;
+                                        }).join('') 
+                                        : '<div style="color: #999; font-style: italic;">No notes yet. Click the pencil to add notes.</div>'
+                                    }
                                 </div>
-                            ` : ''}
+                                <textarea class="notes-editor" id="notes-editor-${vehicle.vehicleNumber}" 
+                                          placeholder="Enter issues and notes (prefix with 🔴 for red text)..."></textarea>
+                                <div class="notes-actions" id="notes-actions-${vehicle.vehicleNumber}">
+                                    <button class="notes-save" onclick="saveVehicleNotes('${vehicle.vehicleNumber}')">Save</button>
+                                    <button class="notes-cancel" onclick="cancelEditNotes('${vehicle.vehicleNumber}')">Cancel</button>
+                                </div>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -2022,129 +2352,127 @@
                             <div class="card-detail-item">
                                 <span class="card-detail-label">Next CO:</span>
                                 <span class="card-detail-value">${vehicle.nextCO}</span>
-                            </div>
-                        </div>
+                            </div>                        </div>
                         
-                        ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
-                            <div class="card-notes-section">
-                                <h4 class="card-notes-title">Issues & Notes:</h4>
-                                <div class="vehicle-notes">
-                                    ${vehicle.vehicleNotes.map(note => {
-                                        const isRedText = note.startsWith('🔴');
-                                        const noteText = isRedText ? note.substring(2).trim() : note;
-                                        const icon = isRedText ? '🔴' : '⚠️';
-                                        return `
-                                            <div class="card-note-item ${isRedText ? 'red-note' : ''}">
-                                                <span class="card-note-icon">${icon}</span>
-                                                <span class="card-note-text">${noteText}</span>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                <span class="card-detail-label">Next Service Km:</span>
-                                <span class="card-detail-value">${vehicle.nextServiceKm}</span>
-                            </div>
-                            <div class="card-detail-item">
-                                <span class="card-detail-label">External Cleaning:</span>
-                                <span class="card-detail-value">${vehicle.externalCleaning}</span>
-                            </div>
-                            <div class="card-detail-item">
-                                <span class="card-detail-label">Internal Cleaning:</span>
-                                <span class="card-detail-value">${vehicle.internalCleaning}</span>
-                            </div>ument.getElementById(`details-${vehicleNumber}`);
-                            <div class="card-detail-item">a-vehicle="${vehicleNumber}"] .expand-btn`);
-                                <span class="card-detail-label">Gom. Avanti:</span>
-                                <span class="card-detail-value">${vehicle.notes1}</span>
-                            </div>isplay = 'table-row';
-                            <div class="card-detail-item">
-                                <span class="card-detail-label">Gom. Post.:</span>
-                                <span class="card-detail-value">${vehicle.notes2}</span>
-                            </div>                            <div class="card-detail-item">
-                                <span class="card-detail-label">Next CO:</span>
-                                <span class="card-detail-value">${vehicle.nextCO}</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Always show editable notes section in mobile cards -->
-                        <div class="card-notes-always">
-                            <div class="notes-header">?vehicle=${vehicleNumber}`;
-                                <h4 class="notes-title">Issues & Notes:</h4>
-                                <button class="edit-notes-btn" onclick="editVehicleNotes('${vehicle.vehicleNumber}')">Edit</button>
-                            </div>for specific vehicle
-                            <div class="notes-content" id="notes-display-${vehicle.vehicleNumber}">
+                        <div class="card-notes-section">
+                            <h4 class="card-notes-title">Issues & Notes:</h4>                            <div class="card-notes-editable" onclick="editCardNotes('${vehicle.vehicleNumber}')" id="card-notes-display-${vehicle.vehicleNumber}">
                                 ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? 
                                     vehicle.vehicleNotes.map(note => {
-                                        const isRedText = note.startsWith('🔴');
-                                        const noteText = isRedText ? note.substring(2).trim() : note;
-                                        const icon = isRedText ? '🔴' : '⚠️';
-                                        return `<div class="note-item ${isRedText ? 'red-note' : ''}"><span class="note-icon">${icon}</span><span class="note-text">${noteText}</span></div>`;
+                                        const isRedText = note.includes('🔴');
+                                        return `<div class="card-note-line ${isRedText ? 'red-note' : ''}">${note}</div>`;
                                     }).join('') 
-                                    : '<em style="color: #666;">No issues or notes recorded</em>'
+                                    : '<div style="color: #999; font-style: italic; padding: 8px;">Tap to add notes...</div>'
                                 }
                             </div>
-                            <div class="notes-edit" id="notes-edit-${vehicle.vehicleNumber}" style="display: none;">
-                                <textarea class="notes-input" id="notes-input-${vehicle.vehicleNumber}" placeholder="Enter issues and notes here...">${vehicle.vehicleNotes ? vehicle.vehicleNotes.join('\\n') : ''}</textarea>
-                                <div class="notes-actions">
-                                    <button class="save-notes-btn" onclick="saveVehicleNotes('${vehicle.vehicleNumber}')">Save</button>
-                                    <button class="cancel-notes-btn" onclick="cancelEditNotes('${vehicle.vehicleNumber}')">Cancel</button>
-                                </div>
+                            <textarea class="card-notes-editor" id="card-notes-editor-${vehicle.vehicleNumber}" 
+                                      placeholder="Enter issues and notes (prefix with 🔴 for red text)..."></textarea>
+                            <div class="notes-actions" id="card-notes-actions-${vehicle.vehicleNumber}">
+                                <button class="notes-save" onclick="saveCardNotes('${vehicle.vehicleNumber}')">Save</button>
+                                <button class="notes-cancel" onclick="cancelCardEditNotes('${vehicle.vehicleNumber}')">Cancel</button>
                             </div>
-                        </div>l(status) {
-            const statusLabels = {
-                        ${vehicle.vehicleNotes && vehicle.vehicleNotes.length > 0 ? `
-                            <div class="card-notes-section">
-                                <h4 class="card-notes-title">Issues & Notes:</h4>
-                                <div class="vehicle-notes">
-                                    ${vehicle.vehicleNotes.map(note => {
-                                        const isRedText = note.startsWith('🔴');
-                                        const noteText = isRedText ? note.substring(2).trim() : note;
-                                        const icon = isRedText ? '🔴' : '⚠️';
-                                        return `
-                                            <div class="card-note-item ${isRedText ? 'red-note' : ''}">
-                                                <span class="card-note-icon">${icon}</span>
-                                                <span class="card-note-text">${noteText}</span>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            </div>record data
-                        ` : ''}ById('recordId').value = record.id;
-                    </div>ementById('vehicle').value = record.vehicle || '';
-                </div>etElementById('serviceType').value = record.serviceType || '';
-            `).join('');ElementById('dueDate').value = record.dueDate || '';
-        }   document.getElementById('status').value = record.status || 'scheduled';
-            document.getElementById('odometer').value = record.odometer || '';
-        // Toggle vehicle details visibilityvalue = record.cost || '';
-        function toggleVehicleDetails(vehicleNumber) {e = record.assignedTo || '';
-            const detailsRow = document.getElementById(`details-${vehicleNumber}`);| '';
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle vehicle details visibility
+        function toggleVehicleDetails(vehicleNumber) {
+            const detailsRow = document.getElementById(`details-${vehicleNumber}`);
             const expandBtn = document.querySelector(`[data-vehicle="${vehicleNumber}"] .expand-btn`);
-            document.getElementById('partsReplaced').value = record.partsReplaced || '';
+            
             if (detailsRow.style.display === 'none') {
-                detailsRow.style.display = 'table-row';
-                expandBtn.textContent = '-';tle').textContent = 'Edit Maintenance Record';
+                               detailsRow.style.display = 'table-row';
+                expandBtn.textContent = '-';
                 expandBtn.classList.add('expanded');
-            } else {modal
-                detailsRow.style.display = 'none';');
+            } else {
+                detailsRow.style.display = 'none';
                 expandBtn.textContent = '+';
                 expandBtn.classList.remove('expanded');
-            }lete record function
-        }unction deleteRecord(recordId) {
-            if (!confirm('Are you sure you want to delete this maintenance record?')) {
+            }
+        }
+
         // Open cleaning modal for specific vehicle
         function openCleaningModal(vehicleNumber) {
             window.location.href = `cleaning-vans.html?vehicle=${vehicleNumber}`;
-        }   const record = maintenanceData.find(r => r.id === recordId);
-            if (!record) return;
+        }
+
         // Open maintenance modal for specific vehicle
         function openMaintenanceModal(vehicleNumber) {
-            openAddModal();d = true;
+            openAddModal();
             // Pre-select the vehicle
             setTimeout(() => {
                 const vehicleSelect = document.getElementById('vehicle');
                 if (vehicleSelect) {
                     vehicleSelect.value = vehicleNumber.replace('N', ''); // Remove N prefix if needed
-                } record = maintenanceData.find(r => r.id === recordId);
-            }, 100);ord) return;
+                }
+            }, 100);
         }
+
+        // Missing utility functions
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB');
+        }
+
+        function getStatusLabel(status) {
+            const statusLabels = {
+                'scheduled': 'Scheduled',
+                'completed': 'Completed',
+                'overdue': 'Overdue',
+                'due-soon': 'Due Soon'
+            };
+            return statusLabels[status] || status;
+        }
+
+        // Edit record function
+        function editRecord(recordId) {
+            const record = maintenanceData.find(r => r.id === recordId);
+            if (!record) return;
+
+            isEditing = true;
+            currentEditId = recordId;
+
+            // Populate form with record data
+            document.getElementById('recordId').value = record.id;
+            document.getElementById('vehicle').value = record.vehicle || '';
+            document.getElementById('serviceType').value = record.serviceType || '';
+            document.getElementById('dueDate').value = record.dueDate || '';
+            document.getElementById('status').value = record.status || 'scheduled';
+            document.getElementById('odometer').value = record.odometer || '';
+            document.getElementById('cost').value = record.cost || '';
+            document.getElementById('assignedTo').value = record.assignedTo || '';
+            document.getElementById('completedDate').value = record.completedDate || '';
+            document.getElementById('notes').value = record.notes || '';
+            document.getElementById('partsReplaced').value = record.partsReplaced || '';
+
+            // Update modal title
+            document.getElementById('modalTitle').textContent = 'Edit Maintenance Record';
+
+            // Show modal
+            maintenanceModal.classList.add('active');
+        }
+
+        // Delete record function
+        function deleteRecord(recordId) {
+            if (!confirm('Are you sure you want to delete this maintenance record?')) {
+                return;
+            }
+
+            const record = maintenanceData.find(r => r.id === recordId);
+            if (!record) return;
+
+            // Mark record as deleted and save
+            record.isDeleted = true;
+            saveRecord(record);
+        }
+
+        // Mark as complete function
+        function markAsComplete(recordId) {
+            const record = maintenanceData.find(r => r.id === recordId);
+            if (!record) return;
+
             // Update status and completion date
             record.status = 'completed';
             record.completedDate = new Date().toISOString().split('T')[0];
@@ -2296,6 +2624,778 @@
                 expandBtn.textContent = 'Hide Details';
             }
         }
+
+        // Edit vehicle notes function
+        function editVehicleNotes(vehicleNumber) {
+            const displayElement = document.getElementById(`notes-display-${vehicleNumber}`);
+            const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
+            const actionsElement = document.getElementById(`notes-actions-${vehicleNumber}`);
+            
+            // Get current notes
+            const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
+            const currentNotes = vehicle && vehicle.vehicleNotes ? vehicle.vehicleNotes.join('\n') : '';
+            
+            // Hide display, show editor
+            displayElement.style.display = 'none';
+            editorElement.style.display = 'block';
+            actionsElement.style.display = 'flex';
+            
+            // Set current value and focus
+            editorElement.value = currentNotes;
+            editorElement.focus();
+        }
+
+        // Cancel editing notes
+        function cancelEditNotes(vehicleNumber) {
+            const displayElement = document.getElementById(`notes-display-${vehicleNumber}`);
+            const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
+            const actionsElement = document.getElementById(`notes-actions-${vehicleNumber}`);
+            
+            // Show display, hide editor
+            displayElement.style.display = 'block';
+            editorElement.style.display = 'none';
+            actionsElement.style.display = 'none';
+        }        // Global callback counter for unique callback names
+        let callbackCounter = 0;
+
+        // JSONP helper function to bypass CORS
+        function makeJsonpRequest(url, callback) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonpCallback' + (++callbackCounter);
+                
+                // Create the callback function
+                window[callbackName] = function(data) {
+                    // Clean up
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    resolve(data);
+                };
+                
+                // Create the script tag
+                const script = document.createElement('script');
+                script.src = url + '&callback=' + callbackName;
+                
+                // Handle errors
+                script.onerror = function() {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                // Add script to head to execute
+                document.head.appendChild(script);
+            });
+        }
+
+        // Save vehicle notes using JSONP
+        async function saveVehicleNotes(vehicleNumber) {
+            const editorElement = document.getElementById(`notes-editor-${vehicleNumber}`);
+            const notesText = editorElement.value.trim();
+            
+            // Parse notes into array (split by lines, filter empty)
+            const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            
+            showLoader();
+            try {
+                const settings = getSettings();
+                
+                // Build JSONP URL
+                const notesParam = encodeURIComponent(notesArray.join('|||'));
+                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}&callback=handleSaveNotes&_=${Date.now()}`;
+                
+                // Create global callback
+                window.handleSaveNotes = function(data) {
+                    hideLoader();
+                    
+                    if (data.success) {
+                        // Update local data
+                        const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
+                        if (vehicle) {
+                            vehicle.vehicleNotes = notesArray;
+                        }
+                        
+                        // Re-render the table and cards
+                        renderOverviewTable();
+                        renderOverviewCards();
+                        
+                        showNotification('Success', 'Vehicle notes updated successfully.');
+                    } else {
+                        showNotification('Error', data.error || 'Failed to update notes', true);
+                        cancelEditNotes(vehicleNumber);
+                    }
+                };
+                
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    hideLoader();
+                    console.error('Error saving notes');
+                    showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
+                    cancelEditNotes(vehicleNumber);
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
+            } catch (error) {
+                hideLoader();
+                console.error('Error in saveVehicleNotes:', error);
+                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
+                cancelEditNotes(vehicleNumber);
+            }
+        }
+
+        // Mobile card notes editing functions
+        function editCardNotes(vehicleNumber) {
+            const displayElement = document.getElementById(`card-notes-display-${vehicleNumber}`);
+            const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
+            const actionsElement = document.getElementById(`card-notes-actions-${vehicleNumber}`);
+            
+            // Get current notes
+            const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
+            const currentNotes = vehicle && vehicle.vehicleNotes ? vehicle.vehicleNotes.join('\n') : '';
+            
+            // Hide display, show editor
+            displayElement.style.display = 'none';
+            editorElement.style.display = 'block';
+            actionsElement.style.display = 'flex';
+            
+            // Set current value and focus
+            editorElement.value = currentNotes;
+            editorElement.focus();
+        }
+
+        // Cancel editing card notes
+        function cancelCardEditNotes(vehicleNumber) {
+            const displayElement = document.getElementById(`card-notes-display-${vehicleNumber}`);
+            const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
+            const actionsElement = document.getElementById(`card-notes-actions-${vehicleNumber}`);
+            
+            // Show display, hide editor
+            displayElement.style.display = 'block';
+            editorElement.style.display = 'none';
+            actionsElement.style.display = 'none';
+        }        // Save card notes using JSONP
+        async function saveCardNotes(vehicleNumber) {
+            const editorElement = document.getElementById(`card-notes-editor-${vehicleNumber}`);
+            const notesText = editorElement.value.trim();
+            
+            // Parse notes into array (split by lines, filter empty)
+            const notesArray = notesText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            showLoader();
+            try {
+                const settings = getSettings();
+                
+                // Build JSONP URL
+                const notesParam = encodeURIComponent(notesArray.join('|||'));
+                const url = `${settings.scriptUrl}?function=updateVehicleNotesJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}&callback=handleSaveCardNotes&_=${Date.now()}`;
+                
+                // Create global callback
+                window.handleSaveCardNotes = function(data) {
+                    hideLoader();
+                    
+                    if (data.success) {
+                        // Update local data
+                        const vehicle = overviewData.find(v => v.vehicleNumber === vehicleNumber);
+                        if (vehicle) {
+                            vehicle.vehicleNotes = notesArray;
+                        }
+                        
+                        // Re-render the cards to show updated notes
+                        renderOverviewCards();
+                        
+                        showNotification('Success', 'Notes updated successfully.');
+                    } else {
+                        console.error('Failed to save notes:', data.error);
+                        showNotification('Error', data.error || 'Failed to save notes', true);
+                        cancelCardEditNotes(vehicleNumber);
+                    }
+                };
+                
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    hideLoader();
+                    console.error('Error saving card notes');
+                    showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
+                    cancelCardEditNotes(vehicleNumber);
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
+            } catch (error) {
+                hideLoader();
+                console.error('Error in saveCardNotes:', error);
+                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
+                cancelCardEditNotes(vehicleNumber);
+            }
+        }
+
+        /*************************************************************
+         * DAMAGE TRACKING SYSTEM
+         *************************************************************/
+        
+        // Helper function for JSONP requests (avoids CORS issues)
+        function makeJsonpRequest(url, callbackName) {
+            return new Promise((resolve, reject) => {
+                // Create script tag
+                const script = document.createElement('script');
+                script.src = url;
+                
+                // Set timeout for request
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Request timeout'));
+                }, 30000);
+                
+                // Cleanup function
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    delete window[callbackName];
+                };
+                
+                // Handle errors
+                script.onerror = () => {
+                    cleanup();
+                    reject(new Error('Script load failed'));
+                };
+                
+                // Inject script
+                document.head.appendChild(script);
+                
+                // Note: The actual callback resolution happens in the global callback function
+            });
+        }
+        
+        // Damage modal elements
+        const damageModal = document.getElementById('damageModal');
+        const addDamageBtn = document.getElementById('addDamageBtn');
+        const closeDamageModal = document.getElementById('closeDamageModal');
+        const cancelDamageBtn = document.getElementById('cancelDamageBtn');
+        const damageForm = document.getElementById('damageForm');
+        const initFoldersBtn = document.getElementById('initFoldersBtn');
+        const linkBookingCheckbox = document.getElementById('linkBooking');
+        const bookingSection = document.getElementById('bookingSection');
+        const damageVehicleSelect = document.getElementById('damageVehicle');
+        const associatedBookingSelect = document.getElementById('associatedBooking');
+        const damagesTableBody = document.getElementById('damagesTableBody');
+
+        let damageReports = [];
+        let vehicleBookings = [];
+        let uploadedPhotoUrls = [];
+
+        // Initialize damage tracking
+        if (addDamageBtn) {
+            addDamageBtn.addEventListener('click', () => {
+                damageForm.reset();
+                document.getElementById('damageRowIndex').value = '';
+                document.getElementById('damageModalTitle').textContent = 'Report Vehicle Damage';
+                uploadedPhotoUrls = [];
+                document.getElementById('uploadedPhotos').innerHTML = '';
+                document.getElementById('photoPreview').innerHTML = '';
+                damageModal.classList.add('active');
+                loadVehiclesForDamage();
+            });
+        }
+
+        if (closeDamageModal) {
+            closeDamageModal.addEventListener('click', () => {
+                damageModal.classList.remove('active');
+            });
+        }
+
+        if (cancelDamageBtn) {
+            cancelDamageBtn.addEventListener('click', () => {
+                damageModal.classList.remove('active');
+            });
+        }
+
+        // Link booking checkbox
+        if (linkBookingCheckbox) {
+            linkBookingCheckbox.addEventListener('change', async (e) => {
+                if (e.target.checked) {
+                    bookingSection.style.display = 'block';
+                    const vehicleId = damageVehicleSelect.value;
+                    if (vehicleId) {
+                        await loadVehicleBookings(vehicleId);
+                    }
+                } else {
+                    bookingSection.style.display = 'none';
+                }
+            });
+        }
+
+        // Vehicle selection change - reload bookings
+        if (damageVehicleSelect) {
+            damageVehicleSelect.addEventListener('change', async (e) => {
+                if (linkBookingCheckbox.checked) {
+                    await loadVehicleBookings(e.target.value);
+                }
+            });
+        }
+
+        // Booking selection change - show booking info
+        if (associatedBookingSelect) {
+            associatedBookingSelect.addEventListener('change', (e) => {
+                const selectedBooking = vehicleBookings.find(b => b.id === e.target.value);
+                const bookingInfo = document.getElementById('bookingInfo');
+                if (selectedBooking) {
+                    bookingInfo.innerHTML = `
+                        <strong>${selectedBooking.title}</strong><br>
+                        ${new Date(selectedBooking.start).toLocaleString()} - ${new Date(selectedBooking.end).toLocaleString()}<br>
+                        ${selectedBooking.description || 'No description'}
+                    `;
+                    // Pre-fill responsible party if available
+                    if (selectedBooking.title && !document.getElementById('responsibleParty').value) {
+                        document.getElementById('responsibleParty').value = selectedBooking.title;
+                    }
+                } else {
+                    bookingInfo.innerHTML = '';
+                }
+            });
+        }
+
+        // Initialize folders button
+        if (initFoldersBtn) {
+            initFoldersBtn.addEventListener('click', async () => {
+                showLoader();
+                try {
+                    const settings = getSettings();
+                    const response = await fetch(`${settings.scriptUrl}?function=initializeDamageFolders&authToken=${settings.authToken}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        let message = 'Damage folders initialized successfully!<br><br>';
+                        data.folders.forEach(folder => {
+                            message += `${folder.vehicleName}: ${folder.existed ? 'Already exists' : 'Created'}<br>`;
+                        });
+                        showNotification('Success', message);
+                    } else {
+                        showNotification('Error', data.error || 'Failed to initialize folders', true);
+                    }
+                } catch (error) {
+                    console.error('Error initializing folders:', error);
+                    showNotification('Error', 'Failed to connect to the server', true);
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        // Load vehicles for damage form
+        function loadVehiclesForDamage() {
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=getVehicleListJsonp&authToken=${settings.authToken}&callback=handleVehicleList&_=${Date.now()}`;
+                
+                // Use script tag injection for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                document.head.appendChild(script);
+                
+                // Remove script after loading
+                script.onload = () => {
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+            } catch (error) {
+                console.error('Error loading vehicles:', error);
+            }
+        }
+
+        // JSONP callback for vehicle list
+        window.handleVehicleList = function(data) {
+            console.log('Vehicle list received:', data);
+            
+            if (data.success) {
+                damageVehicleSelect.innerHTML = '<option value="">Select Vehicle</option>';
+                
+                if (data.vehicles && data.vehicles.length > 0) {
+                    data.vehicles.forEach(vehicle => {
+                        const option = document.createElement('option');
+                        option.value = vehicle.id;
+                        option.textContent = vehicle.name;
+                        option.dataset.calendarId = vehicle.calendarId;
+                        damageVehicleSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${data.vehicles.length} vehicles into damage report form`);
+                } else {
+                    console.warn('No vehicles found in the response');
+                    damageVehicleSelect.innerHTML = '<option value="">No vehicles found</option>';
+                }
+            } else {
+                console.error('Failed to load vehicles:', data.error);
+                damageVehicleSelect.innerHTML = '<option value="">Error loading vehicles</option>';
+            }
+        };
+
+        // Load vehicle bookings from calendar
+        function loadVehicleBookings(vehicleId) {
+            showLoader();
+            try {
+                const settings = getSettings();
+                const today = new Date();
+                const threeMonthsAgo = new Date(today);
+                threeMonthsAgo.setMonth(today.getMonth() - 3);
+                
+                const startDate = threeMonthsAgo.toISOString().split('T')[0];
+                const endDate = today.toISOString().split('T')[0];
+                
+                const url = `${settings.scriptUrl}?function=getVehicleBookingsJsonp&authToken=${settings.authToken}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&callback=handleVehicleBookings&_=${Date.now()}`;
+                
+                // Use script tag injection for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                document.head.appendChild(script);
+                
+                // Remove script after loading
+                script.onload = () => {
+                    hideLoader();
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+                
+                script.onerror = () => {
+                    hideLoader();
+                    showNotification('Error', 'Failed to load bookings', true);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                showNotification('Error', 'Failed to load bookings', true);
+                hideLoader();
+            }
+        }
+
+        // JSONP callback for vehicle bookings
+        window.handleVehicleBookings = function(data) {
+            hideLoader();
+            if (data.success) {
+                vehicleBookings = data.bookings;
+                associatedBookingSelect.innerHTML = '<option value="">No booking selected</option>';
+                
+                data.bookings.forEach(booking => {
+                    const option = document.createElement('option');
+                    option.value = booking.id;
+                    option.textContent = `${booking.title} - ${new Date(booking.start).toLocaleDateString()}`;
+                    associatedBookingSelect.appendChild(option);
+                });
+            } else {
+                showNotification('Error', data.error || 'Failed to load bookings', true);
+            }
+        };
+
+        // Handle photo upload (Base64 encoding for Google Drive)
+        document.getElementById('photoUpload').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            const preview = document.getElementById('photoPreview');
+            preview.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    img.style.border = '2px solid #ddd';
+                    preview.appendChild(img);
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Submit damage form
+        if (damageForm) {
+            damageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                showLoader();
+                
+                try {
+                    const settings = getSettings();
+                    const rowIndex = document.getElementById('damageRowIndex').value;
+                    
+                    // Get vehicle name from select
+                    const vehicleSelect = document.getElementById('damageVehicle');
+                    const vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].text;
+                    const vehicleId = vehicleSelect.value;
+                    
+                    // Get associated booking info if selected
+                    let bookingInfo = '';
+                    let bookingContact = document.getElementById('bookingContact').value;
+                    const bookingId = document.getElementById('associatedBooking').value;
+                    if (bookingId) {
+                        const booking = vehicleBookings.find(b => b.id === bookingId);
+                        if (booking) {
+                            bookingInfo = `${booking.title} (${new Date(booking.start).toLocaleDateString()})`;
+                            if (booking.description && !bookingContact) {
+                                // Try to extract contact from description
+                                const phoneMatch = booking.description.match(/(\+?\d[\d\s-]{8,})/);
+                                if (phoneMatch) bookingContact = phoneMatch[0];
+                            }
+                        }
+                    }
+                    
+                    const damageData = {
+                        authToken: settings.authToken,
+                        vehicleName: vehicleName,
+                        vehicleId: vehicleId,
+                        dateReported: new Date().toISOString().split('T')[0],
+                        damageDate: document.getElementById('damageDate').value,
+                        description: document.getElementById('damageDescription').value,
+                        reporterName: document.getElementById('reporterName').value,
+                        reporterContact: document.getElementById('reporterContact').value,
+                        responsibleParty: document.getElementById('responsibleParty').value,
+                        associatedBooking: bookingInfo,
+                        bookingContact: bookingContact,
+                        photoUrls: uploadedPhotoUrls.join(', '),
+                        damageCost: parseFloat(document.getElementById('damageCost').value) || 0,
+                        repairCost: parseFloat(document.getElementById('repairCost').value) || 0,
+                        feeClaimed: document.getElementById('feeClaimed').checked,
+                        feeAmount: parseFloat(document.getElementById('feeAmount').value) || 0,
+                        status: document.getElementById('damageStatus').value,
+                        notes: document.getElementById('damageNotes').value
+                    };
+                    
+                    // Add rowIndex if editing
+                    if (rowIndex) {
+                        damageData.rowIndex = parseInt(rowIndex);
+                    }
+                    
+                    const functionName = rowIndex ? 'updateDamageReport' : 'reportDamage';
+                    
+                    const response = await fetch(`${settings.scriptUrl}?function=${functionName}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(damageData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showNotification('Success', rowIndex ? 'Damage report updated successfully' : 'Damage report created successfully');
+                        damageModal.classList.remove('active');
+                        loadDamageReports();
+                    } else {
+                        showNotification('Error', data.error || 'Failed to save damage report', true);
+                    }
+                } catch (error) {
+                    console.error('Error saving damage report:', error);
+                    showNotification('Error', 'Failed to connect to the server', true);
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        // Load damage reports
+        function loadDamageReports() {
+            showLoader();
+            try {
+                const settings = getSettings();
+                const url = `${settings.scriptUrl}?function=getDamageReportsJsonp&authToken=${settings.authToken}&callback=handleDamageReports&_=${Date.now()}`;
+                
+                // Use script tag injection for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                document.head.appendChild(script);
+                
+                // Remove script after loading
+                script.onload = () => {
+                    hideLoader();
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+                
+                script.onerror = () => {
+                    hideLoader();
+                    showNotification('Error', 'Failed to load damage reports', true);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+            } catch (error) {
+                console.error('Error loading damage reports:', error);
+                showNotification('Error', 'Failed to load damage reports', true);
+                hideLoader();
+            }
+        }
+
+        // JSONP callback for damage reports
+        window.handleDamageReports = function(data) {
+            hideLoader();
+            if (data.success) {
+                damageReports = data.reports;
+                renderDamageReports();
+            } else {
+                showNotification('Error', data.error || 'Failed to load damage reports', true);
+            }
+        };
+
+        // Render damage reports table
+        function renderDamageReports() {
+            if (!damageReports || damageReports.length === 0) {
+                damagesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <div class="empty-state-icon">🚨</div>
+                            <div class="empty-state-title">No damage reports yet</div>
+                            <div class="empty-state-description">Click "Report Damage" to create your first damage report.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            damagesTableBody.innerHTML = '';
+            
+            damageReports.forEach(report => {
+                const row = document.createElement('tr');
+                
+                // Determine status color
+                let statusClass = 'status-badge ';
+                switch(report.status.toLowerCase()) {
+                    case 'reported':
+                        statusClass += 'status-overdue';
+                        break;
+                    case 'assessed':
+                        statusClass += 'status-due-soon';
+                        break;
+                    case 'in repair':
+                        statusClass += 'status-scheduled';
+                        break;
+                    case 'repaired':
+                        statusClass += 'status-completed';
+                        break;
+                    case 'closed':
+                        statusClass += 'status-good';
+                        break;
+                    default:
+                        statusClass += 'status-badge';
+                }
+                
+                row.innerHTML = `
+                    <td>${report.reportId || 'N/A'}</td>
+                    <td>${report.damageDate || report.dateReported || 'N/A'}</td>
+                    <td>${report.vehicleName || 'N/A'}</td>
+                    <td title="${report.description || ''}">${(report.description || 'N/A').substring(0, 50)}${report.description && report.description.length > 50 ? '...' : ''}</td>
+                    <td>${report.responsibleParty || 'Unknown'}</td>
+                    <td>CHF ${parseFloat(report.repairCost || 0).toFixed(2)}</td>
+                    <td>${report.feeClaimed === 'Yes' ? `CHF ${parseFloat(report.feeAmount || 0).toFixed(2)}` : 'No'}</td>
+                    <td><span class="${statusClass}">${report.status || 'Reported'}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-button" onclick="editDamageReport(${report.rowIndex})" title="Edit">✏️</button>
+                            <button class="action-button" onclick="viewDamageReport(${report.rowIndex})" title="View Details">👁️</button>
+                        </div>
+                    </td>
+                `;
+                
+                damagesTableBody.appendChild(row);
+            });
+        }
+
+        // Edit damage report
+        window.editDamageReport = async function(rowIndex) {
+            const report = damageReports.find(r => r.rowIndex === rowIndex);
+            if (!report) return;
+            
+            // Load vehicles first
+            await loadVehiclesForDamage();
+            
+            // Wait a bit for vehicles to load
+            setTimeout(() => {
+                // Fill form with report data
+                document.getElementById('damageRowIndex').value = rowIndex;
+                document.getElementById('damageVehicle').value = report.vehicleId;
+                document.getElementById('damageDate').value = report.damageDate;
+                document.getElementById('damageDescription').value = report.description;
+                document.getElementById('reporterName').value = report.reporterName;
+                document.getElementById('reporterContact').value = report.reporterContact;
+                document.getElementById('responsibleParty').value = report.responsibleParty;
+                document.getElementById('bookingContact').value = report.bookingContact;
+                document.getElementById('damageCost').value = report.damageCost;
+                document.getElementById('repairCost').value = report.repairCost;
+                document.getElementById('feeAmount').value = report.feeAmount;
+                document.getElementById('damageStatus').value = report.status;
+                document.getElementById('feeClaimed').checked = report.feeClaimed === 'Yes';
+                document.getElementById('damageNotes').value = report.notes;
+                
+                // Show uploaded photos if any
+                if (report.photoUrls) {
+                    uploadedPhotoUrls = report.photoUrls.split(', ').filter(url => url.trim());
+                    document.getElementById('uploadedPhotos').innerHTML = `
+                        <strong>Existing photos:</strong><br>
+                        ${uploadedPhotoUrls.map((url, i) => `<a href="${url}" target="_blank">Photo ${i+1}</a>`).join(', ')}
+                    `;
+                }
+                
+                document.getElementById('damageModalTitle').textContent = 'Edit Damage Report';
+                damageModal.classList.add('active');
+            }, 500);
+        };
+
+        // View damage report details (placeholder - could open a detailed view)
+        window.viewDamageReport = function(rowIndex) {
+            const report = damageReports.find(r => r.rowIndex === rowIndex);
+            if (!report) return;
+            
+            const detailsHtml = `
+                <strong>Report ID:</strong> ${report.reportId}<br>
+                <strong>Vehicle:</strong> ${report.vehicleName}<br>
+                <strong>Date:</strong> ${report.damageDate}<br>
+                <strong>Description:</strong> ${report.description}<br>
+                <strong>Reporter:</strong> ${report.reporterName} (${report.reporterContact})<br>
+                <strong>Responsible:</strong> ${report.responsibleParty}<br>
+                <strong>Booking:</strong> ${report.associatedBooking || 'None'}<br>
+                <strong>Repair Cost:</strong> CHF ${report.repairCost}<br>
+                <strong>Fee Claimed:</strong> ${report.feeClaimed} ${report.feeClaimed === 'Yes' ? `(CHF ${report.feeAmount})` : ''}<br>
+                <strong>Status:</strong> ${report.status}<br>
+                <strong>Notes:</strong> ${report.notes || 'None'}
+            `;
+            
+            showNotification('Damage Report Details', detailsHtml);
+        };
+
+        // Load damage reports when the damages tab is clicked
+        document.querySelectorAll('.tab[data-tab="damages"]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                loadDamageReports();
+            });
+        });
+
+        // Service Worker Registration (skip when running from file://)
+        const canRegisterServiceWorker = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+        if ('serviceWorker' in navigator && canRegisterServiceWorker) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => console.log('📱 SW registered:', registration))
+                    .catch(error => console.log('📱 SW registration failed:', error));
+            });
+        } else {
+            console.log('📱 SW registration skipped for protocol:', window.location.protocol);
+        }
+
     </script>
 </body>
 </html>
