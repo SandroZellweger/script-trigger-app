@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Script Trigger">
     <title>Script Trigger - Home</title>
@@ -261,15 +262,24 @@
                 <span class="status-indicator online"></span>
                 Scripts Ready
             </div>
-            <div class="status-item version">
-                v2.0
+            <div class="status-item version" id="app-version">
+                Loading version…
             </div>
         </div>    </div>    
     
     <!-- Centralized Configuration -->
-    <script src="./config.js"></script>
+    <script src="config.private.js" defer></script>
+    <script src="config.public.js"></script>
     
     <script>
+        // Update version badge once config loads
+        function updateVersionBadge() {
+            const versionEl = document.getElementById('app-version');
+            if (versionEl && window.APP_CONFIG && window.APP_CONFIG.version) {
+                versionEl.textContent = `v${window.APP_CONFIG.version}`;
+            }
+        }
+
         // Function to get settings (now uses centralized config)
         function getSettings() {
             // Use centralized config as default, allow localStorage overrides
@@ -284,6 +294,8 @@
 
         // Check script status on load
         document.addEventListener('DOMContentLoaded', async () => {
+            updateVersionBadge();
+            setTimeout(updateVersionBadge, 250);
             try {
                 // Get current settings
                 const settings = getSettings();
