@@ -1864,43 +1864,56 @@
             showLoader();
             try {
                 const settings = getSettings();
-                const url = `${settings.scriptUrl}?function=getMaintenanceDataJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}`;
+                const url = `${settings.scriptUrl}?function=getMaintenanceDataJsonp&authToken=${settings.authToken}&sheetId=${settings.maintenanceSheetId}&callback=handleMaintenanceData&_=${Date.now()}`;
                 
-                const data = await makeJsonpRequest(url);
+                // Create global callback
+                window.handleMaintenanceData = function(data) {
+                    hideLoader();
+                    
+                    if (data.success) {
+                        maintenanceData = data.records || [];
+                        vehicles = data.vehicles || [];
+                        
+                        // Populate vehicle select options
+                        populateVehicleOptions();
+                        
+                        // Populate stats
+                        updateStats();
+                        
+                        // Render the tables
+                        renderTables();
+                    } else {
+                        showNotification('Error', data.error || 'Failed to load maintenance data', true);
+                    }
+                };
                 
-                if (data.success) {
-                    maintenanceData = data.records || [];
-                    vehicles = data.vehicles || [];
+                // Create script tag for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    hideLoader();
+                    console.error('Error loading maintenance data');
+                    showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
                     
-                    // Populate vehicle select options
-                    populateVehicleOptions();
-                    
-                    // Populate stats
-                    updateStats();
-                    
-                    // Render the tables
-                    renderTables();
-                } else {
-                    showNotification('Error', data.error || 'Failed to load maintenance data', true);
-                }
+                    // Show empty state with error
+                    upcomingTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">⚠️</div>
+                                <div class="empty-state-title">Could not load data</div>
+                                <div class="empty-state-description">There was a problem connecting to the server. Please try again later.</div>
+                            </td>
+                        </tr>
+                    `;
+                };
+                
+                document.head.appendChild(script);
+                script.onload = function() {
+                    script.parentNode.removeChild(script);
+                };
             } catch (error) {
-                console.error('Error loading data:', error);
-                showNotification('Error', 'Failed to connect to the server. Please try again later.', true);
-                
-                // Show empty state with error
-                upcomingTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty-state">
-                            <div class="empty-state-icon">⚠️</div>
-                            <div class="empty-state-title">Could not load data</div>
-                            <div class="empty-state-description">There was a problem connecting to the server. Please try again later.</div>
-                        </td>
-                    </tr>
-                `;
-                
-                historyTableBody.innerHTML = upcomingTableBody.innerHTML;
-            } finally {
                 hideLoader();
+                console.error('Error in loadData:', error);
             }
         }        // Load overview data from Google Sheets using JSONP
         async function loadOverviewData() {
