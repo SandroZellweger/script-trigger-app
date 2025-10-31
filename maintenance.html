@@ -2773,6 +2773,41 @@
          * DAMAGE TRACKING SYSTEM
          *************************************************************/
         
+        // Helper function for JSONP requests (avoids CORS issues)
+        function makeJsonpRequest(url, callbackName) {
+            return new Promise((resolve, reject) => {
+                // Create script tag
+                const script = document.createElement('script');
+                script.src = url;
+                
+                // Set timeout for request
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Request timeout'));
+                }, 30000);
+                
+                // Cleanup function
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    delete window[callbackName];
+                };
+                
+                // Handle errors
+                script.onerror = () => {
+                    cleanup();
+                    reject(new Error('Script load failed'));
+                };
+                
+                // Inject script
+                document.head.appendChild(script);
+                
+                // Note: The actual callback resolution happens in the global callback function
+            });
+        }
+        
         // Damage modal elements
         const damageModal = document.getElementById('damageModal');
         const addDamageBtn = document.getElementById('addDamageBtn');
@@ -2889,11 +2924,22 @@
         }
 
         // Load vehicles for damage form
-        async function loadVehiclesForDamage() {
+        function loadVehiclesForDamage() {
             try {
                 const settings = getSettings();
-                const response = await fetch(`${settings.scriptUrl}?function=getVehicleListJsonp&authToken=${settings.authToken}&callback=handleVehicleList&_=${Date.now()}`);
-                // JSONP will call handleVehicleList
+                const url = `${settings.scriptUrl}?function=getVehicleListJsonp&authToken=${settings.authToken}&callback=handleVehicleList&_=${Date.now()}`;
+                
+                // Use script tag injection for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                document.head.appendChild(script);
+                
+                // Remove script after loading
+                script.onload = () => {
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
             } catch (error) {
                 console.error('Error loading vehicles:', error);
             }
@@ -2914,7 +2960,7 @@
         };
 
         // Load vehicle bookings from calendar
-        async function loadVehicleBookings(vehicleId) {
+        function loadVehicleBookings(vehicleId) {
             showLoader();
             try {
                 const settings = getSettings();
@@ -2925,20 +2971,38 @@
                 const startDate = threeMonthsAgo.toISOString().split('T')[0];
                 const endDate = today.toISOString().split('T')[0];
                 
-                const response = await fetch(
-                    `${settings.scriptUrl}?function=getVehicleBookingsJsonp&authToken=${settings.authToken}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&callback=handleVehicleBookings&_=${Date.now()}`
-                );
-                // JSONP will call handleVehicleBookings
+                const url = `${settings.scriptUrl}?function=getVehicleBookingsJsonp&authToken=${settings.authToken}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&callback=handleVehicleBookings&_=${Date.now()}`;
+                
+                // Use script tag injection for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                document.head.appendChild(script);
+                
+                // Remove script after loading
+                script.onload = () => {
+                    hideLoader();
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+                
+                script.onerror = () => {
+                    hideLoader();
+                    showNotification('Error', 'Failed to load bookings', true);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
             } catch (error) {
                 console.error('Error loading bookings:', error);
                 showNotification('Error', 'Failed to load bookings', true);
-            } finally {
                 hideLoader();
             }
         }
 
         // JSONP callback for vehicle bookings
         window.handleVehicleBookings = function(data) {
+            hideLoader();
             if (data.success) {
                 vehicleBookings = data.bookings;
                 associatedBookingSelect.innerHTML = '<option value="">No booking selected</option>';
@@ -3065,22 +3129,42 @@
         }
 
         // Load damage reports
-        async function loadDamageReports() {
+        function loadDamageReports() {
             showLoader();
             try {
                 const settings = getSettings();
-                const response = await fetch(`${settings.scriptUrl}?function=getDamageReportsJsonp&authToken=${settings.authToken}&callback=handleDamageReports&_=${Date.now()}`);
-                // JSONP will call handleDamageReports
+                const url = `${settings.scriptUrl}?function=getDamageReportsJsonp&authToken=${settings.authToken}&callback=handleDamageReports&_=${Date.now()}`;
+                
+                // Use script tag injection for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                document.head.appendChild(script);
+                
+                // Remove script after loading
+                script.onload = () => {
+                    hideLoader();
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+                
+                script.onerror = () => {
+                    hideLoader();
+                    showNotification('Error', 'Failed to load damage reports', true);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
             } catch (error) {
                 console.error('Error loading damage reports:', error);
                 showNotification('Error', 'Failed to load damage reports', true);
-            } finally {
                 hideLoader();
             }
         }
 
         // JSONP callback for damage reports
         window.handleDamageReports = function(data) {
+            hideLoader();
             if (data.success) {
                 damageReports = data.reports;
                 renderDamageReports();
