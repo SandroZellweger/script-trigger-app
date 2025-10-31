@@ -122,6 +122,12 @@
             If you're seeing old versions of pages, this will clear all cached data and force a fresh reload.
         </div>
         
+        <div id="protocolWarning" class="warning" style="display: none;">
+            <strong>⚠️ File Protocol Detected:</strong><br>
+            You're opening this file directly from your computer (file:// protocol). Service workers and cache APIs are not available in this context. 
+            For full functionality, serve your app from a web server (http:// or https://).
+        </div>
+        
         <div class="status" id="status">
             <div class="status-item">
                 <span>Service Worker:</span>
@@ -166,6 +172,47 @@
         window.addEventListener('load', checkStatus);
         
         async function checkStatus() {
+            // Check if running from file:// protocol
+            if (location.protocol === 'file:') {
+                document.getElementById('protocolWarning').style.display = 'block';
+                // Show limited status for file:// protocol
+                document.getElementById('status').innerHTML = `
+                    <div class="status-item">
+                        <span>Protocol:</span>
+                        <span class="error">file:// (Limited functionality)</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Service Worker:</span>
+                        <span class="error">Not available</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Cache Storage:</span>
+                        <span class="error">Not available</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Local Storage:</span>
+                        <span id="localStatus">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Session Storage:</span>
+                        <span id="sessionStatus">Checking...</span>
+                    </div>
+                `;
+                
+                // Still check local/session storage
+                const localKeys = Object.keys(localStorage);
+                document.getElementById('localStatus').innerHTML = localKeys.length > 0 
+                    ? `<span class="error">${localKeys.length} item(s)</span>` 
+                    : '<span class="success">Empty</span>';
+                
+                const sessionKeys = Object.keys(sessionStorage);
+                document.getElementById('sessionStatus').innerHTML = sessionKeys.length > 0 
+                    ? `<span class="error">${sessionKeys.length} item(s)</span>` 
+                    : '<span class="success">Empty</span>';
+                
+                return;
+            }
+            
             // Check Service Worker
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
@@ -202,22 +249,34 @@
         async function clearEverything() {
             console.log('🧹 Clearing everything...');
             
-            // Unregister service workers
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                    console.log('✅ Service Worker unregistered');
+            // Unregister service workers (only if in secure context)
+            if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                        console.log('✅ Service Worker unregistered');
+                    }
+                } catch (error) {
+                    console.log('⚠️ Service Worker access not available (file:// protocol):', error.message);
                 }
+            } else {
+                console.log('⚠️ Service Worker not available (file:// protocol or not supported)');
             }
             
-            // Clear all caches
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                for (const name of cacheNames) {
-                    await caches.delete(name);
-                    console.log('✅ Cache deleted:', name);
+            // Clear all caches (only if in secure context)
+            if ('caches' in window && location.protocol !== 'file:') {
+                try {
+                    const cacheNames = await caches.keys();
+                    for (const name of cacheNames) {
+                        await caches.delete(name);
+                        console.log('✅ Cache deleted:', name);
+                    }
+                } catch (error) {
+                    console.log('⚠️ Cache access not available (file:// protocol):', error.message);
                 }
+            } else {
+                console.log('⚠️ Cache API not available (file:// protocol or not supported)');
             }
             
             // Clear local storage
@@ -243,13 +302,19 @@
         async function clearCacheOnly() {
             console.log('🧹 Clearing caches...');
             
-            // Clear all caches
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                for (const name of cacheNames) {
-                    await caches.delete(name);
-                    console.log('✅ Cache deleted:', name);
+            // Clear all caches (only if in secure context)
+            if ('caches' in window && location.protocol !== 'file:') {
+                try {
+                    const cacheNames = await caches.keys();
+                    for (const name of cacheNames) {
+                        await caches.delete(name);
+                        console.log('✅ Cache deleted:', name);
+                    }
+                } catch (error) {
+                    console.log('⚠️ Cache access not available (file:// protocol):', error.message);
                 }
+            } else {
+                console.log('⚠️ Cache API not available (file:// protocol or not supported)');
             }
             
             alert('✅ Cache cleared! You can now manually reload your pages.');
@@ -257,14 +322,24 @@
         }
         
         async function unregisterServiceWorker() {
+            if (location.protocol === 'file:') {
+                alert('⚠️ Service Worker not available when running from file:// protocol.\n\nFor full functionality, serve your app from a web server (http:// or https://).');
+                return;
+            }
+            
             if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                    console.log('✅ Service Worker unregistered');
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                        console.log('✅ Service Worker unregistered');
+                    }
+                    alert('✅ Service Worker unregistered!');
+                    await checkStatus();
+                } catch (error) {
+                    console.error('Error unregistering service worker:', error);
+                    alert('❌ Error unregistering service worker: ' + error.message);
                 }
-                alert('✅ Service Worker unregistered!');
-                await checkStatus();
             } else {
                 alert('Service Worker not supported in this browser.');
             }
