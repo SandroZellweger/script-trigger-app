@@ -14,7 +14,7 @@ const STATIC_RESOURCES = [
 
 // API endpoints to cache (will be dynamically determined from config.js)
 const API_ENDPOINTS = [
-    'https://script.google.com/macros/s/AKfycbweNwbzE8hCSgBeBUfJ-JgPOooGV7B7-_R5xP4o1Th502mfq_qGBpyDByCjYy3ShtOo/exec'
+    'https://script.google.com/macros/s/AKfycbxJMHOfCcqnKKoGNNAeiBaV25VHTBoivE06MtjEgGpeCOFR_S2lAATZ-MR3VKz-ivPK/exec'
 ];
 
 // Install event - cache static resources
