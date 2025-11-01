@@ -3219,8 +3219,8 @@
                     
                     const functionName = rowIndex ? 'updateDamageReport' : 'reportDamage';
                     
-                    // Create FormData instead of JSON to avoid CORS preflight
-                    const formData = new FormData();
+                    // Create URLSearchParams instead of FormData to avoid CORS preflight
+                    const formData = new URLSearchParams();
                     formData.append('data', JSON.stringify(damageData));
                     formData.append('authToken', settings.authToken);
                     formData.append('function', functionName);
