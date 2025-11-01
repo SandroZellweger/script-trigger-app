@@ -3232,47 +3232,35 @@
                         
                         preview.appendChild(imgWrapper);
                         
-                        // Upload to Google Drive using POST
+                        // Upload to Google Drive using POST - TEMPORARY TEST
                         const uploadResult = await (async () => {
                             const timeoutId = setTimeout(() => {
                                 throw new Error('Upload timeout');
                             }, 30000); // 30 second timeout
                             
                             try {
-                                const fileName = `damage_${Date.now()}_${file.name}`;
-                                
-                                // Use POST request to avoid URL length limits with large base64 data
-                                const uploadData = {
-                                    vehicleName: vehicleName,
-                                    fileName: fileName,
-                                    mimeType: file.type,
-                                    fileData: base64Data,
-                                    authToken: settings.authToken
-                                };
-                                
-                                // Send JSON in POST body to handle large base64 data
-                                const requestBody = {
-                                    function: 'uploadDamagePhoto',
-                                    authToken: settings.authToken,
-                                    data: JSON.stringify(uploadData)
-                                };
-                                
-                                const uploadResponse = await fetch(settings.scriptUrl, {
+                                // TEMPORARY: Test with simple ping instead of photo upload
+                                const testResponse = await fetch(settings.scriptUrl, {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'text/plain;charset=utf-8'
                                     },
-                                    body: JSON.stringify(requestBody)
+                                    body: JSON.stringify({
+                                        function: 'ping',
+                                        authToken: settings.authToken,
+                                        data: JSON.stringify({})
+                                    })
                                 });
                                 
                                 clearTimeout(timeoutId);
                                 
-                                if (!uploadResponse.ok) {
-                                    const errorText = await uploadResponse.text();
-                                    throw new Error(`Server error (${uploadResponse.status}): ${errorText}`);
+                                if (!testResponse.ok) {
+                                    const errorText = await testResponse.text();
+                                    throw new Error(`Server error (${testResponse.status}): ${errorText}`);
                                 }
                                 
-                                const result = await uploadResponse.json();
+                                const result = await testResponse.json();
+                                console.log('TEST RESPONSE:', result);
                                 return result;
                             } catch (error) {
                                 clearTimeout(timeoutId);
@@ -3281,12 +3269,13 @@
                         })();
                         
                         if (uploadResult.success) {
-                            uploadedPhotoUrls[fileIndex] = uploadResult.url; // Store at specific index
+                            // TEMPORARY: For ping test, simulate success
+                            uploadedPhotoUrls[fileIndex] = `test-url-${fileIndex + 1}`; // Store at specific index
                             img.style.border = '2px solid #4CAF50'; // Green border for success
                             uploadedCount++;
-                            console.log(`Photo ${fileIndex + 1} uploaded:`, uploadResult.url);
+                            console.log(`Photo ${fileIndex + 1} TEST successful:`, uploadResult);
                         } else {
-                            throw new Error(uploadResult.error || 'Upload failed');
+                            throw new Error(uploadResult.error || 'Test failed');
                         }
                         
                     } catch (error) {
@@ -3313,38 +3302,28 @@
                                             }, 30000);
                                             
                                             try {
-                                                const fileName = `damage_${Date.now()}_${files[fileIndex].name}`;
-                                                
-                                                const uploadData = {
-                                                    vehicleName: vehicleName,
-                                                    fileName: fileName,
-                                                    mimeType: files[fileIndex].type,
-                                                    fileData: base64Data,
-                                                    authToken: settings.authToken
-                                                };
-                                                
-                                                const requestBody = {
-                                                    function: 'uploadDamagePhoto',
-                                                    authToken: settings.authToken,
-                                                    data: JSON.stringify(uploadData)
-                                                };
-                                                
-                                                const uploadResponse = await fetch(settings.scriptUrl, {
+                                                // TEMPORARY: Test with simple ping instead of photo upload
+                                                const testResponse = await fetch(settings.scriptUrl, {
                                                     method: 'POST',
                                                     headers: {
                                                         'Content-Type': 'text/plain;charset=utf-8'
                                                     },
-                                                    body: JSON.stringify(requestBody)
+                                                    body: JSON.stringify({
+                                                        function: 'ping',
+                                                        authToken: settings.authToken,
+                                                        data: JSON.stringify({})
+                                                    })
                                                 });
                                                 
                                                 clearTimeout(timeoutId);
                                                 
-                                                if (!uploadResponse.ok) {
-                                                    const errorText = await uploadResponse.text();
-                                                    throw new Error(`Server error (${uploadResponse.status}): ${errorText}`);
+                                                if (!testResponse.ok) {
+                                                    const errorText = await testResponse.text();
+                                                    throw new Error(`Server error (${testResponse.status}): ${errorText}`);
                                                 }
                                                 
-                                                const result = await uploadResponse.json();
+                                                const result = await testResponse.json();
+                                                console.log('RETRY TEST RESPONSE:', result);
                                                 return result;
                                             } catch (error) {
                                                 clearTimeout(timeoutId);
@@ -3353,14 +3332,14 @@
                                         })();
                                         
                                         if (retryResult.success) {
-                                            uploadedPhotoUrls[fileIndex] = retryResult.url; // Replace at specific index
+                                            uploadedPhotoUrls[fileIndex] = `retry-test-url-${fileIndex + 1}`; // Replace at specific index
                                             imgs[fileIndex].style.border = '2px solid #4CAF50'; // Green border for success
                                             failedCount--;
                                             uploadedCount++;
-                                            console.log(`Photo ${fileIndex + 1} retry successful:`, retryResult.url);
-                                            showNotification('Success', `Photo ${fileIndex + 1} uploaded successfully on retry!`);
+                                            console.log(`Photo ${fileIndex + 1} retry TEST successful:`, retryResult);
+                                            showNotification('Success', `Photo ${fileIndex + 1} test successful on retry!`);
                                         } else {
-                                            throw new Error(retryResult.error || 'Retry upload failed');
+                                            throw new Error(retryResult.error || 'Retry test failed');
                                         }
                                         
                                     } catch (retryError) {
