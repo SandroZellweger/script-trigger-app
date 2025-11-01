@@ -1681,6 +1681,9 @@
         <div class="modal-content">
             <button class="modal-close" id="closeDamageModal">&times;</button>
             <h2 class="modal-title" id="damageModalTitle">Report Vehicle Damage</h2>
+            <div id="network-status" style="display:none; color: #f44336; background: #ffebee; padding: 8px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; text-align: center;">
+                <strong>⚠️ Network Issue:</strong> You appear to be offline. Please check your internet connection and try again.
+            </div>
             <form id="damageForm">
                 <input type="hidden" id="damageRowIndex">
                 <div class="form-grid">
@@ -2930,6 +2933,26 @@
         let vehicleBookings = [];
         let uploadedPhotoUrls = [];
 
+        // Network status management
+        function updateNetworkStatus() {
+            const networkStatusElement = document.getElementById('network-status');
+            if (networkStatusElement) {
+                if (navigator.onLine) {
+                    networkStatusElement.style.display = 'none';
+                } else {
+                    networkStatusElement.style.display = 'block';
+                    networkStatusElement.innerHTML = '<strong>⚠️ Network Issue:</strong> You appear to be offline. Please check your internet connection and try again.';
+                }
+            }
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        // Initial network status check
+        updateNetworkStatus();
+
         // Initialize damage tracking
         if (addDamageBtn) {
             addDamageBtn.addEventListener('click', async () => {
@@ -3140,7 +3163,7 @@
             const files = e.target.files;
             const preview = document.getElementById('photoPreview');
             preview.innerHTML = '';
-            uploadedPhotoUrls = []; // Clear previous uploads
+            uploadedPhotoUrls = new Array(files.length).fill(null); // Initialize with null values for each file
             
             if (files.length === 0) return;
             
@@ -3189,6 +3212,24 @@
                         img.style.borderRadius = '8px';
                         img.style.border = '2px solid #FFD700'; // Gold border for uploading
                         imgWrapper.appendChild(img);
+                        
+                        // Add retry button (initially hidden)
+                        const retryBtn = document.createElement('button');
+                        retryBtn.textContent = '🔄 Retry';
+                        retryBtn.style.position = 'absolute';
+                        retryBtn.style.top = '5px';
+                        retryBtn.style.right = '5px';
+                        retryBtn.style.background = '#f44336';
+                        retryBtn.style.color = 'white';
+                        retryBtn.style.border = 'none';
+                        retryBtn.style.borderRadius = '4px';
+                        retryBtn.style.padding = '2px 6px';
+                        retryBtn.style.fontSize = '10px';
+                        retryBtn.style.cursor = 'pointer';
+                        retryBtn.style.display = 'none';
+                        retryBtn.title = 'Retry upload';
+                        imgWrapper.appendChild(retryBtn);
+                        
                         preview.appendChild(imgWrapper);
                         
                         // Upload to Google Drive using POST
@@ -3240,7 +3281,7 @@
                         })();
                         
                         if (uploadResult.success) {
-                            uploadedPhotoUrls.push(uploadResult.url);
+                            uploadedPhotoUrls[fileIndex] = uploadResult.url; // Store at specific index
                             img.style.border = '2px solid #4CAF50'; // Green border for success
                             uploadedCount++;
                             console.log(`Photo ${fileIndex + 1} uploaded:`, uploadResult.url);
@@ -3255,6 +3296,93 @@
                         const imgs = preview.getElementsByTagName('img');
                         if (imgs[fileIndex]) {
                             imgs[fileIndex].style.border = '2px solid #f44336'; // Red border for error
+                            // Show retry button
+                            const wrapper = imgs[fileIndex].parentElement;
+                            const retryBtn = wrapper.querySelector('button');
+                            if (retryBtn) {
+                                retryBtn.style.display = 'block';
+                                // Add retry functionality
+                                retryBtn.onclick = async () => {
+                                    try {
+                                        retryBtn.style.display = 'none';
+                                        imgs[fileIndex].style.border = '2px solid #FFD700'; // Gold border for retrying
+                                        
+                                        const retryResult = await (async () => {
+                                            const timeoutId = setTimeout(() => {
+                                                throw new Error('Upload timeout');
+                                            }, 30000);
+                                            
+                                            try {
+                                                const fileName = `damage_${Date.now()}_${files[fileIndex].name}`;
+                                                
+                                                const uploadData = {
+                                                    vehicleName: vehicleName,
+                                                    fileName: fileName,
+                                                    mimeType: files[fileIndex].type,
+                                                    fileData: base64Data,
+                                                    authToken: settings.authToken
+                                                };
+                                                
+                                                const requestBody = {
+                                                    function: 'uploadDamagePhoto',
+                                                    authToken: settings.authToken,
+                                                    data: JSON.stringify(uploadData)
+                                                };
+                                                
+                                                const uploadResponse = await fetch(settings.scriptUrl, {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'text/plain;charset=utf-8'
+                                                    },
+                                                    body: JSON.stringify(requestBody)
+                                                });
+                                                
+                                                clearTimeout(timeoutId);
+                                                
+                                                if (!uploadResponse.ok) {
+                                                    const errorText = await uploadResponse.text();
+                                                    throw new Error(`Server error (${uploadResponse.status}): ${errorText}`);
+                                                }
+                                                
+                                                const result = await uploadResponse.json();
+                                                return result;
+                                            } catch (error) {
+                                                clearTimeout(timeoutId);
+                                                throw error;
+                                            }
+                                        })();
+                                        
+                                        if (retryResult.success) {
+                                            uploadedPhotoUrls[fileIndex] = retryResult.url; // Replace at specific index
+                                            imgs[fileIndex].style.border = '2px solid #4CAF50'; // Green border for success
+                                            failedCount--;
+                                            uploadedCount++;
+                                            console.log(`Photo ${fileIndex + 1} retry successful:`, retryResult.url);
+                                            showNotification('Success', `Photo ${fileIndex + 1} uploaded successfully on retry!`);
+                                        } else {
+                                            throw new Error(retryResult.error || 'Retry upload failed');
+                                        }
+                                        
+                                    } catch (retryError) {
+                                        console.error(`Retry failed for photo ${fileIndex + 1}:`, retryError);
+                                        imgs[fileIndex].style.border = '2px solid #f44336'; // Red border for error
+                                        retryBtn.style.display = 'block';
+                                        
+                                        if (retryError.message === 'Offline' || !navigator.onLine) {
+                                            updateNetworkStatus();
+                                            showNotification('Error', `Retry failed for photo ${fileIndex + 1}: You are offline. Please check your connection.`, true);
+                                        } else {
+                                            showNotification('Error', `Retry failed for photo ${fileIndex + 1}: ${retryError.message}`, true);
+                                        }
+                                    }
+                                };
+                            }
+                        }
+                        
+                        // Check if the error is specifically due to being offline
+                        if (error.message === 'Offline' || !navigator.onLine) {
+                            updateNetworkStatus(); // Update network status display
+                            showNotification('Error', `Photo ${fileIndex + 1} upload failed: You are offline. Please check your connection and try again.`, true);
                         }
                     }
                 }
@@ -3320,7 +3448,7 @@
                         responsibleParty: document.getElementById('responsibleParty').value,
                         associatedBooking: bookingInfo,
                         bookingContact: bookingContact,
-                        photoUrls: uploadedPhotoUrls.join(', '),
+                        photoUrls: uploadedPhotoUrls.filter(url => url !== null).join(', '),
                         damageCost: parseFloat(document.getElementById('damageCost').value) || 0,
                         repairCost: parseFloat(document.getElementById('repairCost').value) || 0,
                         feeClaimed: document.getElementById('feeClaimed').checked,
