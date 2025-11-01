@@ -1680,7 +1680,7 @@
     <div id="damageModal" class="modal">
         <div class="modal-content">
             <button class="modal-close" id="closeDamageModal">&times;</button>
-            <h2 class="modal-title" id="damageModalTitle">Report Vehicle Damage 2.0</h2>
+            <h2 class="modal-title" id="damageModalTitle">Report Vehicle Damage</h2>
             <form id="damageForm">
                 <input type="hidden" id="damageRowIndex">
                 <div class="form-grid">
@@ -3219,12 +3219,16 @@
                     
                     const functionName = rowIndex ? 'updateDamageReport' : 'reportDamage';
                     
+                    // Create FormData instead of JSON to avoid CORS preflight
+                    const formData = new FormData();
+                    formData.append('data', JSON.stringify(damageData));
+                    formData.append('authToken', settings.authToken);
+                    formData.append('function', functionName);
+                    formData.append('contentType', 'application/json');
+                    
                     const response = await fetch(`${settings.scriptUrl}?function=${functionName}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(damageData)
+                        body: formData
                     });
                     
                     const data = await response.json();
