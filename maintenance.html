@@ -3209,18 +3209,19 @@
                                     authToken: settings.authToken
                                 };
                                 
-                                // Use URLSearchParams to encode as form data (avoids CORS preflight)
-                                const formParams = new URLSearchParams();
-                                formParams.append('function', 'uploadDamagePhoto');
-                                formParams.append('authToken', settings.authToken);
-                                formParams.append('data', JSON.stringify(uploadData));
+                                // Send JSON in POST body to handle large base64 data
+                                const requestBody = {
+                                    function: 'uploadDamagePhoto',
+                                    authToken: settings.authToken,
+                                    data: JSON.stringify(uploadData)
+                                };
                                 
                                 const uploadResponse = await fetch(settings.scriptUrl, {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/x-www-form-urlencoded'
+                                        'Content-Type': 'application/json'
                                     },
-                                    body: formParams.toString()
+                                    body: JSON.stringify(requestBody)
                                 });
                                 
                                 clearTimeout(timeoutId);
