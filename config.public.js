@@ -6,7 +6,7 @@
 window.APP_CONFIG = {
     // Frontend Configuration Only
     environment: 'production',
-    version: '2.0.1',
+    version: '2.0.2',
     
     // Feature Flags
     enableAnalytics: true,
@@ -55,7 +55,7 @@ setTimeout(() => {
         // Private config not available (expected in production)
         // Set production-safe defaults
         if (!window.APP_CONFIG.scriptUrl) {
-            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbw_ErZL0wNWdz33x-zdyyp6CsavvcPiaddSX_9tnYlcKjnINm3ooDRoXl8V0aInS7k/exec';
+            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbwLStk8JJmxDqvscAO4W7DB9FkW2xU3Uk1qsLfzjGrwNHx59gn9R2427uhL7EciMfsj/exec';
             window.APP_CONFIG.authToken = 'myAppToken2025';
             window.APP_CONFIG.expenseSheetId = '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M';
             window.APP_CONFIG.maintenanceSheetId = '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4';
