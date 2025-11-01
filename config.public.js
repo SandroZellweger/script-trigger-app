@@ -55,7 +55,7 @@ setTimeout(() => {
         // Private config not available (expected in production)
         // Set production-safe defaults
         if (!window.APP_CONFIG.scriptUrl) {
-            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbwu8IdiKjIm5nfLR4EziYVr8KqoAoZ1PXJsvhJPjXYy4eT4gO0f67My9o76ocavVHrF/exec';
+            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbxizbRCilBaYy0JmrODKNaqLzpK_HMXG2SQeIOn3FBioucFVD0dQ1PUuICrbYdaZ0hM/exec';
             window.APP_CONFIG.authToken = 'myAppToken2025';
             window.APP_CONFIG.expenseSheetId = '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M';
             window.APP_CONFIG.maintenanceSheetId = '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4';

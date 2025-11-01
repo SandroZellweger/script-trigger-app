@@ -3191,49 +3191,52 @@
                         imgWrapper.appendChild(img);
                         preview.appendChild(imgWrapper);
                         
-                        // Upload to Google Drive using JSONP
-                        const uploadResult = await new Promise((resolve, reject) => {
-                            const callbackName = 'uploadCallback_' + Date.now() + '_' + fileIndex;
+                        // Upload to Google Drive using POST
+                        const uploadResult = await (async () => {
                             const timeoutId = setTimeout(() => {
-                                if (window[callbackName]) {
-                                    delete window[callbackName];
-                                    reject(new Error('Upload timeout'));
-                                }
+                                throw new Error('Upload timeout');
                             }, 30000); // 30 second timeout
                             
-                            window[callbackName] = function(data) {
+                            try {
+                                const fileName = `damage_${Date.now()}_${file.name}`;
+                                
+                                // Use POST request to avoid URL length limits with large base64 data
+                                const uploadData = {
+                                    vehicleName: vehicleName,
+                                    fileName: fileName,
+                                    mimeType: file.type,
+                                    fileData: base64Data,
+                                    authToken: settings.authToken
+                                };
+                                
+                                // Use URLSearchParams to encode as form data (avoids CORS preflight)
+                                const formParams = new URLSearchParams();
+                                formParams.append('function', 'uploadDamagePhoto');
+                                formParams.append('authToken', settings.authToken);
+                                formParams.append('data', JSON.stringify(uploadData));
+                                
+                                const uploadResponse = await fetch(settings.scriptUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded'
+                                    },
+                                    body: formParams.toString()
+                                });
+                                
                                 clearTimeout(timeoutId);
-                                delete window[callbackName];
-                                resolve(data);
-                            };
-                            
-                            const fileName = `damage_${Date.now()}_${file.name}`;
-                            const params = new URLSearchParams({
-                                function: 'uploadDamagePhotoJsonp',
-                                authToken: settings.authToken,
-                                callback: callbackName,
-                                vehicleName: vehicleName,
-                                fileName: fileName,
-                                mimeType: file.type,
-                                fileData: base64Data
-                            });
-                            
-                            const script = document.createElement('script');
-                            script.src = `${settings.scriptUrl}?${params.toString()}`;
-                            script.onerror = () => {
-                                clearTimeout(timeoutId);
-                                delete window[callbackName];
-                                reject(new Error('Upload request failed'));
-                            };
-                            document.body.appendChild(script);
-                            
-                            // Cleanup script after load
-                            script.onload = () => {
-                                if (script.parentNode) {
-                                    script.parentNode.removeChild(script);
+                                
+                                if (!uploadResponse.ok) {
+                                    const errorText = await uploadResponse.text();
+                                    throw new Error(`Server error (${uploadResponse.status}): ${errorText}`);
                                 }
-                            };
-                        });
+                                
+                                const result = await uploadResponse.json();
+                                return result;
+                            } catch (error) {
+                                clearTimeout(timeoutId);
+                                throw error;
+                            }
+                        })();
                         
                         if (uploadResult.success) {
                             uploadedPhotoUrls.push(uploadResult.url);
