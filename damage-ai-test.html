@@ -407,35 +407,70 @@
         }
 
         function loadVehicles() {
+            const scriptUrl = window.CONFIG?.scriptUrl;
+            const authToken = window.CONFIG?.authToken;
+            
+            if (!scriptUrl || !authToken) {
+                console.error('Config not loaded');
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">⚠️ Configurazione mancante</option>';
+                return;
+            }
+
             const callback = 'vehicleCallback_' + Date.now();
+            
             window[callback] = function(response) {
                 const select = document.getElementById('vehicleSelect');
                 
-                if (response.success && response.vehicles) {
-                    select.innerHTML = '<option value="">-- Seleziona un veicolo --</option>';
-                    response.vehicles.forEach(vehicle => {
-                        const option = document.createElement('option');
-                        option.value = vehicle.calendarId || vehicle.id;
-                        option.textContent = vehicle.name;
-                        option.dataset.vehicleType = vehicle.vehicleType;
-                        option.dataset.vehicleNumber = vehicle.vehicleNumber;
-                        select.appendChild(option);
-                    });
-                } else {
-                    select.innerHTML = '<option value="">Errore: ' + (response.error || 'Unknown error') + '</option>';
-                    console.error('Vehicle load error:', response);
+                try {
+                    if (response.success && response.vehicles) {
+                        select.innerHTML = '<option value="">-- Seleziona un veicolo --</option>';
+                        
+                        response.vehicles.forEach(vehicle => {
+                            const option = document.createElement('option');
+                            const value = vehicle.calendarId || vehicle.vehicleType || vehicle.vehicleNumber || vehicle.id || '';
+                            const labelParts = [];
+
+                            if (vehicle.vehicleType) {
+                                labelParts.push(vehicle.vehicleType);
+                            }
+                            if (vehicle.vehicleNumber && !labelParts.includes(vehicle.vehicleNumber)) {
+                                labelParts.push(vehicle.vehicleNumber);
+                            }
+                            if (labelParts.length === 0 && vehicle.calendarName) {
+                                labelParts.push(vehicle.calendarName);
+                            }
+
+                            option.value = value;
+                            option.textContent = vehicle.name || labelParts.join(' - ') || 'Veicolo';
+                            option.dataset.vehicleType = vehicle.vehicleType || '';
+                            option.dataset.vehicleNumber = vehicle.vehicleNumber || '';
+                            option.dataset.calendarId = vehicle.calendarId || '';
+                            
+                            select.appendChild(option);
+                        });
+                        
+                        console.log('✅ Loaded ' + response.vehicles.length + ' vehicles');
+                    } else {
+                        select.innerHTML = '<option value="">❌ ' + (response.error || 'Errore caricamento') + '</option>';
+                        console.error('Vehicle load error:', response);
+                    }
+                } catch (error) {
+                    console.error('Error processing vehicles:', error);
+                    select.innerHTML = '<option value="">❌ Errore processamento</option>';
                 }
                 
                 delete window[callback];
             };
 
             const script = document.createElement('script');
-            script.src = `${window.CONFIG.scriptUrl}?function=getVehicleListJsonp&authToken=${window.CONFIG.authToken}&callback=${callback}`;
+            script.src = `${scriptUrl}?function=getVehicleListJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 const select = document.getElementById('vehicleSelect');
                 select.innerHTML = '<option value="">❌ Errore connessione script</option>';
+                delete window[callback];
             };
-            document.body.appendChild(script);
+            document.head.appendChild(script);
         }
 
         async function startAnalysis() {
