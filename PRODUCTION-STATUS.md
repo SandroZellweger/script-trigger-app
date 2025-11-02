@@ -17,7 +17,7 @@ Status: **PRODUCTION READY** ✨
 - **`index.html`** - Now points to `calendar-production.html` instead of `calendar.html`
 
 ### ✅ Backend Configuration:
-- **Google Apps Script URL**: `https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec`
+- **Google Apps Script URL**: `https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec`
 - **Auth Token**: `myAppToken2025`
 - **CORS**: Currently set to `*` (all origins) - secure for initial deployment
 - **Calendar IDs**: All 10 van calendars configured with real Google Calendar IDs
