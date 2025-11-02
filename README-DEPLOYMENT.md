@@ -71,7 +71,7 @@ Ensure your server supports HTTPS for PWA features to work.
 
 Your backend is already deployed at:
 ```
-https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec
+https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec
 ```
 
 ### Update Domain Whitelist (Important!)

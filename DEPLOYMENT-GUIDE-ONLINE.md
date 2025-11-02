@@ -11,15 +11,15 @@ Before deploying online, ensure you have:
 ## 🔧 Step 1: Verify Google Apps Script is Production Ready
 
 ### 1.1 Check Script Deployment
-Your current script URL: `https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec`
+Your current script URL: `https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec`
 
 ### 1.2 Test API Endpoints
 ```bash
 # Test calendar names endpoint
-curl "https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=test"
+curl "https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=test"
 
 # Test events endpoint
-curl "https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec?function=getCalendarEvents&authToken=myAppToken2025&startDate=2025-06-01&endDate=2025-06-30"
+curl "https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec?function=getCalendarEvents&authToken=myAppToken2025&startDate=2025-06-01&endDate=2025-06-30"
 ```
 
 ## 🌐 Step 2: Choose Deployment Method
@@ -73,7 +73,7 @@ Create a production configuration file:
 ```javascript
 // config.prod.js
 const PRODUCTION_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbwcwM2FBwoWJIH_vMNzvsijIQaEoJuGZpRK43scdhwhQxF7E7PqXExfk9iTFg8DXhUg/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec',
     authToken: 'myAppToken2025',
     environment: 'production',
     enableAnalytics: true,
