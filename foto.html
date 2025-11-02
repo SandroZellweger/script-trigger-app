@@ -534,24 +534,27 @@
                 throw new Error('Configurazione del backend mancante.');
             }
 
-            const url = `${scriptUrl}?function=getVehicleList&authToken=${encodeURIComponent(authToken)}&_=${Date.now()}`;
-            const response = await fetch(url, {
-                headers: {
-                    'Cache-Control': 'no-cache'
-                }
+            return new Promise((resolve, reject) => {
+                const callbackName = 'vehicleCallback_' + Date.now();
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    if (data.success) {
+                        vehicleList = Array.isArray(data.vehicles) ? data.vehicles : [];
+                        populateVehicleSelect(vehicleList);
+                        resolve(vehicleList);
+                    } else {
+                        reject(new Error(data.error || 'Risposta non valida dal server.'));
+                    }
+                };
+
+                const script = document.createElement('script');
+                script.src = `${scriptUrl}?function=getVehicleListJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callbackName}&_=${Date.now()}`;
+                script.onerror = () => {
+                    delete window[callbackName];
+                    reject(new Error('Errore di caricamento script'));
+                };
+                document.head.appendChild(script);
             });
-
-            if (!response.ok) {
-                throw new Error(`Errore rete (${response.status})`);
-            }
-
-            const data = await response.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Risposta non valida dal server.');
-            }
-
-            vehicleList = Array.isArray(data.vehicles) ? data.vehicles : [];
-            populateVehicleSelect(vehicleList);
         }
 
         function populateVehicleSelect(vehicles) {
@@ -668,23 +671,26 @@
                     const startDate = past.toISOString().split('T')[0];
                     const endDate = future.toISOString().split('T')[0];
 
-                    const url = `${scriptUrl}?function=getVehicleBookings&authToken=${encodeURIComponent(authToken)}&vehicleId=${encodeURIComponent(calendarId)}&startDate=${startDate}&endDate=${endDate}&_=${Date.now()}`;
-                    const response = await fetch(url, {
-                        headers: {
-                            'Cache-Control': 'no-cache'
-                        }
+                    bookings = await new Promise((resolve, reject) => {
+                        const callbackName = 'bookingCallback_' + Date.now();
+                        window[callbackName] = function(data) {
+                            delete window[callbackName];
+                            if (data.success) {
+                                resolve(Array.isArray(data.bookings) ? data.bookings : []);
+                            } else {
+                                reject(new Error(data.error || 'Risposta non valida dal server.'));
+                            }
+                        };
+
+                        const script = document.createElement('script');
+                        script.src = `${scriptUrl}?function=getVehicleBookingsJsonp&authToken=${encodeURIComponent(authToken)}&vehicleId=${encodeURIComponent(calendarId)}&startDate=${startDate}&endDate=${endDate}&callback=${callbackName}&_=${Date.now()}`;
+                        script.onerror = () => {
+                            delete window[callbackName];
+                            reject(new Error('Errore di caricamento script'));
+                        };
+                        document.head.appendChild(script);
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`Errore rete (${response.status})`);
-                    }
-
-                    const data = await response.json();
-                    if (!data.success) {
-                        throw new Error(data.error || 'Risposta non valida dal server.');
-                    }
-
-                    bookings = Array.isArray(data.bookings) ? data.bookings : [];
                     bookingsCache.set(calendarId, bookings);
                 }
 
