@@ -805,10 +805,48 @@
             return date.toLocaleString();
         }
 
-        function escapeHtml(value) {
-            const div = document.createElement('div');
-            div.textContent = value == null ? '' : value;
-            return div.innerHTML;
+        function parseBookingDescription(description) {
+            if (!description) return {};
+
+            const data = {};
+
+            // Extract name from title (assuming title is like "🟢 1 - 🖤 Claudio Carenzio - CHF 390.00")
+            const titleMatch = description.match(/^[^-]+-\s*🖤\s*([^-]+)-/);
+            if (titleMatch) {
+                data.customerName = titleMatch[1].trim();
+            }
+
+            // Extract address
+            const addressMatch = description.match(/Indirizzo:\s*([^N]+?)(?=Numero|$)/);
+            if (addressMatch) {
+                data.customerAddress = addressMatch[1].trim();
+            }
+
+            // Extract phone
+            const phoneMatch = description.match(/Numero di cellulare:\s*([^\s]+)/);
+            if (phoneMatch) {
+                data.customerPhone = phoneMatch[1].trim();
+            }
+
+            // Extract email
+            const emailMatch = description.match(/Email:\s*([^\s]+)/);
+            if (emailMatch) {
+                data.customerEmail = emailMatch[1].trim();
+            }
+
+            // Extract franchise
+            const franchiseMatch = description.match(/Franchigia:\s*([^D]+?)(?=Deposit|$)/);
+            if (franchiseMatch) {
+                data.franchise = franchiseMatch[1].trim();
+            }
+
+            // Extract deposit refund
+            const depositMatch = description.match(/Deposit Refund:\s*([^\s]+)/);
+            if (depositMatch) {
+                data.depositRefund = depositMatch[1].trim();
+            }
+
+            return data;
         }
 
         function collectUploadMetadata() {
@@ -831,6 +869,10 @@
                 metadata.bookingStart = selectedBookingDetails.start || '';
                 metadata.bookingEnd = selectedBookingDetails.end || '';
                 metadata.bookingLocation = selectedBookingDetails.location || '';
+
+                // Parse customer data from description
+                const customerData = parseBookingDescription(selectedBookingDetails.description || '');
+                Object.assign(metadata, customerData);
             }
 
             return metadata;
@@ -853,6 +895,24 @@
             }
             if (metadata.bookingEnd) {
                 lines.push(`Fine prenotazione: ${formatDateTime(metadata.bookingEnd)}`);
+            }
+            if (metadata.customerName) {
+                lines.push(`Cliente: ${metadata.customerName}`);
+            }
+            if (metadata.customerAddress) {
+                lines.push(`Indirizzo cliente: ${metadata.customerAddress}`);
+            }
+            if (metadata.customerPhone) {
+                lines.push(`Telefono cliente: ${metadata.customerPhone}`);
+            }
+            if (metadata.customerEmail) {
+                lines.push(`Email cliente: ${metadata.customerEmail}`);
+            }
+            if (metadata.franchise) {
+                lines.push(`Franchigia: ${metadata.franchise}`);
+            }
+            if (metadata.depositRefund) {
+                lines.push(`Rimborso deposito: ${metadata.depositRefund}`);
             }
             if (metadata.uploadedAt) {
                 lines.push(`Upload registrato: ${formatDateTime(metadata.uploadedAt)}`);
