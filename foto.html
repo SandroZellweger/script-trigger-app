@@ -429,10 +429,6 @@
                         <label for="franchise">Franchigia</label>
                         <input type="text" id="franchise" readonly>
                     </div>
-                    <div class="form-group">
-                        <label for="depositRefund">Rimborso deposito</label>
-                        <input type="text" id="depositRefund" readonly>
-                    </div>
                 </div>
 
                 <div class="form-group">
@@ -520,7 +516,6 @@
     const customerEmail = document.getElementById('customerEmail');
     const referenceNumber = document.getElementById('referenceNumber');
     const franchise = document.getElementById('franchise');
-    const depositRefund = document.getElementById('depositRefund');
 
     let vehicleList = [];
     const bookingsCache = new Map();
@@ -569,7 +564,6 @@
             if (customerEmail) customerEmail.value = '';
             if (referenceNumber) referenceNumber.value = '';
             if (franchise) franchise.value = '';
-            if (depositRefund) depositRefund.value = '';
             if (customerSection) customerSection.style.display = 'none';
         }
 
@@ -850,21 +844,18 @@
                 const title = escapeHtml(booking.title || 'Prenotazione');
                 const startText = escapeHtml(formatDateTime(booking.start));
                 const endText = escapeHtml(formatDateTime(booking.end));
-                const locationText = booking.location ? `<br>${escapeHtml(booking.location)}` : '';
-                const descriptionText = booking.description ? `<br>${escapeHtml(booking.description)}` : '';
 
-                bookingPreview.innerHTML = `<strong>${title}</strong><br>${startText} - ${endText}${locationText}${descriptionText}`;
+                bookingPreview.innerHTML = `<strong>${title}</strong><br>${startText} - ${endText}`;
                 bookingPreview.classList.add('active');
 
                 // Populate customer data
-                const customerData = parseBookingDescription(booking.description || '');
+                const customerData = parseBookingDescription(booking.title || '', booking.description || '');
                 if (customerName) customerName.value = customerData.customerName || '';
                 if (customerAddress) customerAddress.value = customerData.customerAddress || '';
                 if (customerPhone) customerPhone.value = customerData.customerPhone || '';
                 if (customerEmail) customerEmail.value = customerData.customerEmail || '';
                 if (referenceNumber) referenceNumber.value = customerData.referenceNumber || '';
                 if (franchise) franchise.value = customerData.franchise || '';
-                if (depositRefund) depositRefund.value = customerData.depositRefund || '';
 
                 // Show customer section
                 if (customerSection) customerSection.style.display = 'block';
@@ -892,43 +883,47 @@
             return checked ? checked.value === 'yes' : false;
         }
 
-        function parseBookingDescription(description) {
-            if (!description) return {};
+        function parseBookingDescription(title, description) {
+            if (!title && !description) return {};
 
             const data = {};
 
-            // Extract name from title (assuming title is like "🟢 1 - 🖤 Claudio Carenzio - CHF 390.00")
-            const titleMatch = description.match(/^[^-]+-\s*🖤\s*([^-]+)-/);
-            if (titleMatch) {
-                data.customerName = titleMatch[1].trim();
+            // Extract name from title between first and second dash
+            // Format: "🟢 1 - 🖤 Claudio Carenzio - CHF 390.00"
+            if (title) {
+                const titleMatch = title.match(/-\s*([^-]+?)\s*-/);
+                if (titleMatch && titleMatch[1]) {
+                    // Remove emoji at the beginning if present
+                    data.customerName = titleMatch[1].replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '').trim();
+                }
             }
 
             // Extract address
-            const addressMatch = description.match(/Indirizzo:\s*([^N]+?)(?=Numero|$)/);
+            const addressMatch = description.match(/Indirizzo:\s*([^\n]+?)(?=\s*Numero|$)/i);
             if (addressMatch) {
                 data.customerAddress = addressMatch[1].trim();
             }
 
             // Extract phone
-            const phoneMatch = description.match(/Numero di cellulare:\s*([^\s]+)/);
+            const phoneMatch = description.match(/Numero di cellulare:\s*([^\s]+)/i);
             if (phoneMatch) {
                 data.customerPhone = phoneMatch[1].trim();
             }
 
             // Extract email
-            const emailMatch = description.match(/Email:\s*([^\s]+)/);
+            const emailMatch = description.match(/Email:\s*([^\s]+)/i);
             if (emailMatch) {
                 data.customerEmail = emailMatch[1].trim();
             }
 
             // Extract franchise
-            const franchiseMatch = description.match(/Franchigia:\s*([^D]+?)(?=Deposit|$)/);
+            const franchiseMatch = description.match(/Franchigia:\s*([^\n]+?)(?=\s*Deposit|$)/i);
             if (franchiseMatch) {
                 data.franchise = franchiseMatch[1].trim();
             }
 
             // Extract reference number
-            const refMatch = description.match(/Numero di riferimento:\s*([^\s]+)/);
+            const refMatch = description.match(/Numero di riferimento:\s*(\d+)/i);
             if (refMatch) {
                 data.referenceNumber = refMatch[1].trim();
             }
@@ -1000,9 +995,6 @@
             }
             if (metadata.franchise) {
                 lines.push(`Franchigia: ${metadata.franchise}`);
-            }
-            if (metadata.depositRefund) {
-                lines.push(`Rimborso deposito: ${metadata.depositRefund}`);
             }
             if (metadata.uploadedAt) {
                 lines.push(`Upload registrato: ${formatDateTime(metadata.uploadedAt)}`);
