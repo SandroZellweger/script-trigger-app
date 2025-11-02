@@ -526,6 +526,53 @@
     const bookingsCache = new Map();
     let selectedBookingDetails = null;
 
+        // Utility functions
+        function formatDateOnly(isoString) {
+            if (!isoString) {
+                return '';
+            }
+            const date = new Date(isoString);
+            if (Number.isNaN(date.getTime())) {
+                return isoString.split('T')[0] || isoString;
+            }
+            return date.toLocaleDateString();
+        }
+
+        function formatDateTime(isoString) {
+            if (!isoString) {
+                return '';
+            }
+            const date = new Date(isoString);
+            if (Number.isNaN(date.getTime())) {
+                return isoString;
+            }
+            return date.toLocaleString();
+        }
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : value;
+            return div.innerHTML;
+        }
+
+        function clearBookingPreview() {
+            if (bookingPreview) {
+                bookingPreview.innerHTML = '';
+                bookingPreview.classList.remove('active');
+            }
+        }
+
+        function clearCustomerData() {
+            if (customerName) customerName.value = '';
+            if (customerAddress) customerAddress.value = '';
+            if (customerPhone) customerPhone.value = '';
+            if (customerEmail) customerEmail.value = '';
+            if (referenceNumber) referenceNumber.value = '';
+            if (franchise) franchise.value = '';
+            if (depositRefund) depositRefund.value = '';
+            if (customerSection) customerSection.style.display = 'none';
+        }
+
         setDefaultDamageDate();
         initializeVehicleList();
 
@@ -840,42 +887,9 @@
             selectedBookingDetails = null;
         }
 
-        function clearCustomerData() {
-            if (customerName) customerName.value = '';
-            if (customerAddress) customerAddress.value = '';
-            if (customerPhone) customerPhone.value = '';
-            if (customerEmail) customerEmail.value = '';
-            if (referenceNumber) referenceNumber.value = '';
-            if (franchise) franchise.value = '';
-            if (depositRefund) depositRefund.value = '';
-            if (customerSection) customerSection.style.display = 'none';
-        }
-
         function isReportedByDriver() {
             const checked = document.querySelector('input[name="reportedByDriver"]:checked');
             return checked ? checked.value === 'yes' : false;
-        }
-
-        function formatDateOnly(isoString) {
-            if (!isoString) {
-                return '';
-            }
-            const date = new Date(isoString);
-            if (Number.isNaN(date.getTime())) {
-                return isoString.split('T')[0] || isoString;
-            }
-            return date.toLocaleDateString();
-        }
-
-        function formatDateTime(isoString) {
-            if (!isoString) {
-                return '';
-            }
-            const date = new Date(isoString);
-            if (Number.isNaN(date.getTime())) {
-                return isoString;
-            }
-            return date.toLocaleString();
         }
 
         function parseBookingDescription(description) {
