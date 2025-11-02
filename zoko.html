@@ -478,6 +478,11 @@
                     <h4 style="margin-bottom: 15px; color: #333;">📅 Quick: Select from Calendar Events</h4>
                     <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Choose an event to auto-fill van and phone number, then set access duration.</p>
                     
+                    <!-- Debug Test Button -->
+                    <button type="button" id="testCalendarEndpoint" style="width: 100%; padding: 8px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-size: 13px;">
+                        🔍 Debug: Test Calendar Endpoint
+                    </button>
+                    
                     <div class="event-filter-tabs" style="display: flex; margin-bottom: 15px; background: white; border-radius: 6px; padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <button type="button" class="event-filter-tab" data-period="yesterday" style="flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 13px; color: #666;">Yesterday</button>
                         <button type="button" class="event-filter-tab active" data-period="today" style="flex: 1; padding: 8px 12px; border: none; background: #007cba; color: white; border-radius: 4px; cursor: pointer; font-size: 13px;">Today</button>
@@ -542,9 +547,14 @@
         function makeJsonpRequest(url) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonpCallback' + (++callbackCounter);
+                console.log('🔄 JSONP Request starting...');
+                console.log('🔄 Callback name:', callbackName);
+                console.log('🔄 URL:', url);
                 
                 // Create the callback function
                 window[callbackName] = function(data) {
+                    console.log('✅ JSONP Callback received!');
+                    console.log('✅ Data:', data);
                     // Clean up
                     document.head.removeChild(script);
                     delete window[callbackName];
@@ -554,15 +564,36 @@
                 // Create the script tag
                 const script = document.createElement('script');
                 script.src = url + '&callback=' + callbackName;
+                console.log('🔄 Full URL with callback:', script.src);
                 
                 // Handle errors
-                script.onerror = function() {
+                script.onerror = function(error) {
+                    console.error('❌ JSONP script load error:', error);
+                    console.error('❌ Failed URL:', script.src);
                     document.head.removeChild(script);
                     delete window[callbackName];
-                    reject(new Error('JSONP request failed'));
+                    reject(new Error('JSONP request failed - script could not be loaded'));
+                };
+                
+                // Timeout after 15 seconds
+                const timeout = setTimeout(() => {
+                    console.error('❌ JSONP request timeout after 15 seconds');
+                    if (document.head.contains(script)) {
+                        document.head.removeChild(script);
+                    }
+                    delete window[callbackName];
+                    reject(new Error('JSONP request timeout'));
+                }, 15000);
+                
+                // Override callback to clear timeout
+                const originalCallback = window[callbackName];
+                window[callbackName] = function(data) {
+                    clearTimeout(timeout);
+                    originalCallback(data);
                 };
                 
                 // Add script to head to execute
+                console.log('🔄 Adding script to document head...');
                 document.head.appendChild(script);
             });
         }
@@ -839,9 +870,68 @@
             const generateQuickCode = document.getElementById('generateQuickCode');
             const loadEventsText = document.getElementById('loadEventsText');
             const loadEventsSpinner = document.getElementById('loadEventsSpinner');
+            const testCalendarBtn = document.getElementById('testCalendarEndpoint');
             
             let selectedEvent = null;
             let currentPeriod = 'today';
+            
+            // Test Calendar Endpoint button
+            testCalendarBtn.addEventListener('click', async function() {
+                console.log('🔍 ===== CALENDAR ENDPOINT TEST =====');
+                this.disabled = true;
+                this.textContent = '🔍 Testing...';
+                
+                try {
+                    const settings = getSettings();
+                    console.log('🔍 Script URL:', settings.scriptUrl);
+                    console.log('🔍 Auth Token:', settings.authToken);
+                    
+                    const today = new Date();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    
+                    const startDate = today.toISOString().split('T')[0];
+                    const endDate = tomorrow.toISOString().split('T')[0];
+                    
+                    console.log('🔍 Test date range:', startDate, 'to', endDate);
+                    
+                    const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${startDate}&endDate=${endDate}`;
+                    console.log('🔍 Full test URL:', url);
+                    
+                    console.log('🔍 Sending request...');
+                    const data = await makeJsonpRequest(url);
+                    
+                    console.log('🔍 ===== TEST RESPONSE =====');
+                    console.log('🔍 Success:', data.success);
+                    console.log('🔍 Has result:', !!data.result);
+                    console.log('🔍 Result is array:', Array.isArray(data.result));
+                    console.log('🔍 Event count:', data.result ? data.result.length : 0);
+                    console.log('🔍 Full data:', JSON.stringify(data, null, 2));
+                    
+                    if (data.success && data.result) {
+                        alert(`✅ Test Successful!\n\nFound ${data.result.length} events\n\nCheck console (F12) for details`);
+                        this.textContent = '✅ Test Passed';
+                        this.style.background = '#4caf50';
+                    } else {
+                        alert(`⚠️ Test returned data but no events\n\nError: ${data.error || 'No result array'}\n\nCheck console for details`);
+                        this.textContent = '⚠️ No Events';
+                        this.style.background = '#ff9800';
+                    }
+                } catch (error) {
+                    console.error('🔍 ===== TEST FAILED =====');
+                    console.error('🔍 Error:', error);
+                    console.error('🔍 Stack:', error.stack);
+                    alert(`❌ Test Failed!\n\n${error.message}\n\nCheck console (F12) for details`);
+                    this.textContent = '❌ Test Failed';
+                    this.style.background = '#f44336';
+                } finally {
+                    setTimeout(() => {
+                        this.disabled = false;
+                        this.textContent = '🔍 Debug: Test Calendar Endpoint';
+                        this.style.background = '#ff9800';
+                    }, 3000);
+                }
+            });
             
             // Event filter tabs
             document.querySelectorAll('.event-filter-tab').forEach(tab => {
@@ -866,29 +956,43 @@
             
             // Load events button
             loadEventsBtn.addEventListener('click', async function() {
+                console.log('📅 Load Events button clicked');
+                console.log('📅 Current period:', currentPeriod);
                 setEventsLoading(true);
                   try {
                     const settings = getSettings();
+                    console.log('📅 Settings loaded:', settings);
+                    
                     const dates = getPeriodDates(currentPeriod);
+                    console.log('📅 Date range:', dates);
                     
                     const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}`;
+                    console.log('📅 Request URL:', url);
                     
+                    console.log('📅 Making JSONP request...');
                     const data = await makeJsonpRequest(url);
+                    console.log('📅 Response received:', data);
                       if (data.result && Array.isArray(data.result)) {
+                        console.log('📅 ✅ Success! Events count:', data.result.length);
                         displayEvents(data.result);
                         eventsContainer.style.display = 'block';
                         
                         // Show info about calendars loaded
                         const totalEvents = data.result.length;
                         const uniqueCalendars = [...new Set(data.result.map(e => e.calendarName || 'Unknown'))];
+                        console.log('📅 Unique calendars:', uniqueCalendars);
                         const calendarInfo = document.createElement('div');
                         calendarInfo.style.cssText = 'background: #e8f4fd; padding: 8px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 12px; color: #0066cc;';
                         calendarInfo.innerHTML = `📊 Loaded ${totalEvents} events from ${uniqueCalendars.length} calendars: ${uniqueCalendars.join(', ')}`;
                         eventsContainer.insertBefore(calendarInfo, eventsList);
                     } else {
+                        console.log('📅 ❌ No events found or invalid format');
+                        console.log('📅 Data structure:', JSON.stringify(data, null, 2));
                         showEventError('No events found for ' + currentPeriod);
                     }
                 } catch (error) {
+                    console.error('📅 ❌ Error loading events:', error);
+                    console.error('📅 Error stack:', error.stack);
                     showEventError('Failed to load events: ' + error.message);
                 } finally {
                     setEventsLoading(false);
