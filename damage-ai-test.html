@@ -402,25 +402,30 @@
             window[callback] = function(response) {
                 const select = document.getElementById('vehicleSelect');
                 
-                if (response.success && response.data) {
+                if (response.success && response.vehicles) {
                     select.innerHTML = '<option value="">-- Seleziona un veicolo --</option>';
-                    response.data.forEach(vehicle => {
+                    response.vehicles.forEach(vehicle => {
                         const option = document.createElement('option');
-                        option.value = vehicle.calendarId;
-                        option.textContent = vehicle.displayName;
+                        option.value = vehicle.calendarId || vehicle.id;
+                        option.textContent = vehicle.name;
                         option.dataset.vehicleType = vehicle.vehicleType;
                         option.dataset.vehicleNumber = vehicle.vehicleNumber;
                         select.appendChild(option);
                     });
                 } else {
-                    select.innerHTML = '<option value="">Errore caricamento veicoli</option>';
+                    select.innerHTML = '<option value="">Errore: ' + (response.error || 'Unknown error') + '</option>';
+                    console.error('Vehicle load error:', response);
                 }
                 
                 delete window[callback];
             };
 
             const script = document.createElement('script');
-            script.src = `${window.CONFIG.scriptUrl}?action=getVehicleListJsonp&callback=${callback}`;
+            script.src = `${window.CONFIG.scriptUrl}?function=getVehicleListJsonp&authToken=${window.CONFIG.authToken}&callback=${callback}`;
+            script.onerror = () => {
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">❌ Errore connessione script</option>';
+            };
             document.body.appendChild(script);
         }
 
