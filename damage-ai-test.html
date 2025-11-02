@@ -651,14 +651,39 @@
         }
 
         async function getCustomerPhotos(phoneNumber) {
-            // This would call the backend to get photos from Drive folder
-            // For now, return mock data for testing
             console.log(`Getting photos for ${phoneNumber}...`);
             
-            // In production, call backend API:
-            // return fetch(`${window.CONFIG.scriptUrl}?action=getCustomerPhotos&phone=${phoneNumber}`)
-            
-            return []; // Mock - no photos for testing UI
+            return new Promise((resolve, reject) => {
+                const callback = 'photosCallback_' + Date.now();
+                
+                window[callback] = function(response) {
+                    delete window[callback];
+                    
+                    if (response.success) {
+                        console.log(`Found ${response.data.length} photos for ${phoneNumber}`);
+                        resolve(response.data);
+                    } else {
+                        console.error('Failed to get photos:', response.error);
+                        resolve([]); // Return empty array on error, don't reject
+                    }
+                };
+                
+                const script = document.createElement('script');
+                script.src = `${window.CONFIG.scriptUrl}?function=getCustomerPhotosJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&phone=${encodeURIComponent(phoneNumber)}&callback=${callback}&_=${Date.now()}`;
+                script.onerror = () => {
+                    console.error('Failed to load customer photos script');
+                    delete window[callback];
+                    resolve([]); // Return empty array on error
+                };
+                document.body.appendChild(script);
+                
+                // Cleanup script after 10 seconds
+                setTimeout(() => {
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                }, 10000);
+            });
         }
 
         async function analyzePhotosForDamage(damagePhotoUrl, customerPhotos, booking, vehicleInfo) {
