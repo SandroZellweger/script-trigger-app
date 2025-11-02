@@ -27,10 +27,12 @@ window.APP_CONFIG = {
     
     // IMPORTANT: Sensitive data loaded from separate config
     // These will be set by config.private.js (not committed to git)
-    scriptUrl: null,
-    authToken: null,
-    expenseSheetId: null,
-    maintenanceSheetId: null
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbzzW7jzhNi0D4FC9VnZEH1FjBO7rlTwYLQBPbPhRagE-5aMwvKPgACcee2ugrPTWoyx/exec',
+    authToken: 'mySecureVanApp_2025',
+    expenseSheetId: '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M',
+    maintenanceSheetId: '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4',
+    driveOauthClientId: '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com',
+    driveUploadFolderId: '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM'
 };
 
 // Function to merge private config when it loads
@@ -55,10 +57,12 @@ setTimeout(() => {
         // Private config not available (expected in production)
         // Set production-safe defaults
         if (!window.APP_CONFIG.scriptUrl) {
-            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbxJMHOfCcqnKKoGNNAeiBaV25VHTBoivE06MtjEgGpeCOFR_S2lAATZ-MR3VKz-ivPK/exec';
+            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbzzW7jzhNi0D4FC9VnZEH1FjBO7rlTwYLQBPbPhRagE-5aMwvKPgACcee2ugrPTWoyx/exec';
             window.APP_CONFIG.authToken = 'mySecureVanApp_2025';
             window.APP_CONFIG.expenseSheetId = '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M';
             window.APP_CONFIG.maintenanceSheetId = '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4';
+            window.APP_CONFIG.driveOauthClientId = '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com';
+            window.APP_CONFIG.driveUploadFolderId = '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM';
             console.log('🏭 Production config applied (private config not available)');
         }
         console.log('📋 Config ready - Script URL:', window.APP_CONFIG.scriptUrl);
