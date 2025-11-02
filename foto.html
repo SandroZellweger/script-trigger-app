@@ -402,6 +402,52 @@
                     <p id="bookingStatus" class="form-hint">Seleziona un veicolo per caricare le prenotazioni.</p>
                     <div id="bookingPreview" class="booking-preview"></div>
                 </div>
+
+                <div id="customerSection" class="form-group" style="display: none;">
+                    <h3>Dati del cliente</h3>
+                    <div class="form-group">
+                        <label for="customerName">Nome e cognome</label>
+                        <input type="text" id="customerName" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerAddress">Indirizzo</label>
+                        <input type="text" id="customerAddress" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerPhone">Telefono</label>
+                        <input type="text" id="customerPhone" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerEmail">Email</label>
+                        <input type="email" id="customerEmail" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="referenceNumber">Numero di riferimento</label>
+                        <input type="text" id="referenceNumber" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="franchise">Franchigia</label>
+                        <input type="text" id="franchise" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="depositRefund">Rimborso deposito</label>
+                        <input type="text" id="depositRefund" readonly>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <span>Chi ha annunciato ha fatto anche il danno?</span>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="damageByReporter" value="yes" checked>
+                            Sì
+                        </label>
+                        <label>
+                            <input type="radio" name="damageByReporter" value="no">
+                            No
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div class="preview-section">
@@ -467,6 +513,14 @@
     const bookingSelect = document.getElementById('bookingSelect');
     const bookingStatus = document.getElementById('bookingStatus');
     const bookingPreview = document.getElementById('bookingPreview');
+    const customerSection = document.getElementById('customerSection');
+    const customerName = document.getElementById('customerName');
+    const customerAddress = document.getElementById('customerAddress');
+    const customerPhone = document.getElementById('customerPhone');
+    const customerEmail = document.getElementById('customerEmail');
+    const referenceNumber = document.getElementById('referenceNumber');
+    const franchise = document.getElementById('franchise');
+    const depositRefund = document.getElementById('depositRefund');
 
     let vehicleList = [];
     const bookingsCache = new Map();
@@ -754,8 +808,22 @@
 
                 bookingPreview.innerHTML = `<strong>${title}</strong><br>${startText} - ${endText}${locationText}${descriptionText}`;
                 bookingPreview.classList.add('active');
+
+                // Populate customer data
+                const customerData = parseBookingDescription(booking.description || '');
+                if (customerName) customerName.value = customerData.customerName || '';
+                if (customerAddress) customerAddress.value = customerData.customerAddress || '';
+                if (customerPhone) customerPhone.value = customerData.customerPhone || '';
+                if (customerEmail) customerEmail.value = customerData.customerEmail || '';
+                if (referenceNumber) referenceNumber.value = customerData.referenceNumber || '';
+                if (franchise) franchise.value = customerData.franchise || '';
+                if (depositRefund) depositRefund.value = customerData.depositRefund || '';
+
+                // Show customer section
+                if (customerSection) customerSection.style.display = 'block';
             } else {
                 clearBookingPreview();
+                clearCustomerData();
             }
         }
 
@@ -768,14 +836,19 @@
                 bookingStatus.textContent = 'Seleziona un veicolo per caricare le prenotazioni.';
             }
             clearBookingPreview();
+            clearCustomerData();
             selectedBookingDetails = null;
         }
 
-        function clearBookingPreview() {
-            if (bookingPreview) {
-                bookingPreview.innerHTML = '';
-                bookingPreview.classList.remove('active');
-            }
+        function clearCustomerData() {
+            if (customerName) customerName.value = '';
+            if (customerAddress) customerAddress.value = '';
+            if (customerPhone) customerPhone.value = '';
+            if (customerEmail) customerEmail.value = '';
+            if (referenceNumber) referenceNumber.value = '';
+            if (franchise) franchise.value = '';
+            if (depositRefund) depositRefund.value = '';
+            if (customerSection) customerSection.style.display = 'none';
         }
 
         function isReportedByDriver() {
@@ -840,10 +913,10 @@
                 data.franchise = franchiseMatch[1].trim();
             }
 
-            // Extract deposit refund
-            const depositMatch = description.match(/Deposit Refund:\s*([^\s]+)/);
-            if (depositMatch) {
-                data.depositRefund = depositMatch[1].trim();
+            // Extract reference number
+            const refMatch = description.match(/Numero di riferimento:\s*([^\s]+)/);
+            if (refMatch) {
+                data.referenceNumber = refMatch[1].trim();
             }
 
             return data;
@@ -852,6 +925,7 @@
         function collectUploadMetadata() {
             const selectedOption = vehicleSelect?.options[vehicleSelect.selectedIndex];
             const reportedByDriver = isReportedByDriver();
+            const damageByReporter = document.querySelector('input[name="damageByReporter"]:checked')?.value === 'yes';
             const metadata = {
                 damageReportDate: damageDateInput?.value || '',
                 vehicleId: selectedOption?.value || '',
@@ -860,6 +934,7 @@
                 vehicleType: selectedOption?.dataset?.vehicleType || '',
                 vehicleNumber: selectedOption?.dataset?.vehicleNumber || '',
                 reportedByDriver: reportedByDriver ? 'true' : 'false',
+                damageByReporter: damageByReporter ? 'true' : 'false',
                 uploadedAt: new Date().toISOString()
             };
 
@@ -887,6 +962,7 @@
                 lines.push(`Veicolo: ${metadata.vehicleDisplayName}`);
             }
             lines.push(`Segnalato dal cliente: ${metadata.reportedByDriver === 'true' ? 'Sì' : 'No'}`);
+            lines.push(`Danno fatto dal segnalatore: ${metadata.damageByReporter === 'true' ? 'Sì' : 'No'}`);
             if (metadata.bookingTitle) {
                 lines.push(`Prenotazione: ${metadata.bookingTitle}`);
             }
@@ -929,6 +1005,12 @@
 
             reporterRadios.forEach(radio => {
                 radio.checked = radio.value === 'no';
+            });
+
+            // Reset damage by reporter radios
+            const damageRadios = document.querySelectorAll('input[name="damageByReporter"]');
+            damageRadios.forEach(radio => {
+                radio.checked = radio.value === 'yes';
             });
 
             bookingSection.style.display = 'none';
