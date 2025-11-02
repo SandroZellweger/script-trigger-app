@@ -61,7 +61,7 @@
     <div class="test-panel">
         <h3>⚙️ Settings</h3>
         <p><strong>Script URL:</strong> <span id="currentUrl"></span></p>
-        <p><strong>Auth Token:</strong> myAppToken2025</p>
+        <p><strong>Auth Token:</strong> mySecureVanApp_2025</p>
         <button onclick="resetSettings()">Reset to Default Settings</button>
     </div>
 
@@ -70,7 +70,7 @@
         function getSettings() {
             const defaultSettings = {
                 scriptUrl: 'https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec',
-                authToken: 'myAppToken2025'
+                authToken: 'mySecureVanApp_2025'
             };
             
             const savedSettings = localStorage.getItem('appSettings');

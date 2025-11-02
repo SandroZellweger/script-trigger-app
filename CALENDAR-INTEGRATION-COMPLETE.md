@@ -69,7 +69,7 @@ The van fleet calendar and CRM application has been successfully integrated with
 
 ### **API Configuration**
 - **Script URL**: `https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec`
-- **Auth Token**: `myAppToken2025`
+- **Auth Token**: `mySecureVanApp_2025`
 - **CORS Support**: Implemented via JSONP and proper headers
 
 ### **Van Fleet Calendars**

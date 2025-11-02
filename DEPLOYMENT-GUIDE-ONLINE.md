@@ -16,10 +16,10 @@ Your current script URL: `https://script.google.com/macros/s/AKfycby7RIyw5npOagp
 ### 1.2 Test API Endpoints
 ```bash
 # Test calendar names endpoint
-curl "https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=test"
+curl "https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025&callback=test"
 
 # Test events endpoint
-curl "https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec?function=getCalendarEvents&authToken=myAppToken2025&startDate=2025-06-01&endDate=2025-06-30"
+curl "https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec?function=getCalendarEvents&authToken=mySecureVanApp_2025&startDate=2025-06-01&endDate=2025-06-30"
 ```
 
 ## 🌐 Step 2: Choose Deployment Method
@@ -74,7 +74,7 @@ Create a production configuration file:
 // config.prod.js
 const PRODUCTION_CONFIG = {
     scriptUrl: 'https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec',
-    authToken: 'myAppToken2025',
+    authToken: 'mySecureVanApp_2025',
     environment: 'production',
     enableAnalytics: true,
     corsMode: 'jsonp-primary' // Use JSONP as primary method for better reliability

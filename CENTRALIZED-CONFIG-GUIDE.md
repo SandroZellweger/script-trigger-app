@@ -11,7 +11,7 @@ You're absolutely right! Instead of updating the Google Apps Script URL in every
 window.APP_CONFIG = {
     // Just update this URL and ALL files use the new one!
     scriptUrl: 'https://script.google.com/macros/s/AKfycbzuM6QlsIbT8l8GZa19WxKJOYHyryecuz1rpg1wkEKJXFs6cvZggICnrhg1gzir2tEv/exec',
-    authToken: 'myAppToken2025',
+    authToken: 'mySecureVanApp_2025',
     // ... other settings
 };
 ```
