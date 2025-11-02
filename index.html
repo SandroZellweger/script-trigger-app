@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-title" content="Script Trigger">
     <title>Script Trigger - Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="config.public.js"></script>
+    <script src="config.private.js"></script>
     <style>
         * {
             margin: 0;
@@ -266,20 +268,13 @@
             </div>
         </div>    </div>    
     
-    <!-- Centralized Configuration -->
-    <script src="./config.js"></script>
-    
     <script>
         // Function to get settings (now uses centralized config)
         function getSettings() {
-            // Use centralized config as default, allow localStorage overrides
-            const defaultSettings = {
-                scriptUrl: window.APP_CONFIG.scriptUrl,
-                authToken: window.APP_CONFIG.authToken
+            return {
+                scriptUrl: window.APP_CONFIG?.scriptUrl || 'https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec',
+                authToken: window.APP_CONFIG?.authToken || 'myAppToken2025'
             };
-            
-            const savedSettings = localStorage.getItem('appSettings');
-            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
         }
 
         // Check script status on load

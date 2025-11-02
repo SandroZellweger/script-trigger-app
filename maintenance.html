@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-title" content="Vehicle Maintenance">
     <title>Vehicle Maintenance Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="config.public.js"></script>
+    <script src="config.private.js"></script>
     <style>        * {
             margin: 0;
             padding: 0;
@@ -1777,16 +1779,13 @@
     </div>
 
     <script>
-        // Function to get settings from localStorage
+        // Function to get settings from centralized config
         function getSettings() {
-            const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec',
-                authToken: 'myAppToken2025',
-                maintenanceSheetId: '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA'
+            return {
+                scriptUrl: window.APP_CONFIG?.scriptUrl || 'https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec',
+                authToken: window.APP_CONFIG?.authToken || 'mySecureVanApp_2025',
+                maintenanceSheetId: window.APP_CONFIG?.maintenanceSheetId || '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA'
             };
-            
-            const savedSettings = localStorage.getItem('appSettings');
-            return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
         }
 
         // DOM Elements

@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-title" content="Calendar & CRM">
     <title>Calendar & CRM - Van Rentals</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="config.public.js"></script>
+    <script src="config.private.js"></script>
     <style>
         * {
             margin: 0;
@@ -1081,41 +1083,12 @@
     </div>
 
     <script>
-        // Function to get settings from localStorage with error handling
+        // Function to get settings from centralized config
         function getSettings() {
-            // Correct script URL that is confirmed to work
-            const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec',
-                authToken: 'myAppToken2025'
+            return {
+                scriptUrl: window.APP_CONFIG?.scriptUrl || 'https://script.google.com/macros/s/AKfycbzRcIg7J7D9zBLLDSW7fLymmbDHfWntScZxukXpNH8hRr3sFZKaUgUziPOej_5TlmGL/exec',
+                authToken: window.APP_CONFIG?.authToken || 'mySecureVanApp_2025'
             };
-           
-            try {
-                const savedSettings = localStorage.getItem('appSettings');
-                
-                // If no saved settings, use defaults
-                if (!savedSettings) {
-                    return defaultSettings;
-                }
-                
-                // Parse saved settings
-                const parsedSettings = JSON.parse(savedSettings);
-                
-                // Verify if stored URL is a known problematic URL
-                // If so, ignore localStorage and use the default
-                if (parsedSettings.scriptUrl && 
-                    (parsedSettings.scriptUrl.includes('AKfycbxksJAHHqDZ7E2VTp3TazcC4SOCOWef2oM2Tz5MY5Px--A7TUqNjIXeUev5J1QW-T0b') || 
-                     parsedSettings.scriptUrl !== defaultSettings.scriptUrl)) {
-                    console.log('⚠️ Found outdated script URL in localStorage. Using correct default URL instead.');
-                    // Update localStorage with correct URL
-                    localStorage.setItem('appSettings', JSON.stringify(defaultSettings));
-                    return defaultSettings;
-                }
-                
-                // Merge with defaults and return
-                return { ...defaultSettings, ...parsedSettings };            } catch (error) {
-                console.log('⚠️ localStorage not available or error occurred, using default settings:', error);
-                return defaultSettings;
-            }
         }
 
         // Calendar configuration - Updated with your actual fleet numbers
