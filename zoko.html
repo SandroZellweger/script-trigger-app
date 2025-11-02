@@ -7,6 +7,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zoko Messages">
     <title>Zoko - WhatsApp Messages</title>
+    
+    <!-- Centralized Configuration -->
+    <script src="config.private.js"></script>
+    <script src="config.public.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -472,8 +477,8 @@
                         <span class="button-spinner spinner" style="display: none;"></span>
                     </button>
                 </form>                <!-- Calendar Events Quick Selection -->
-                <div class="calendar-section" style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-                    <h4 style="margin-bottom: 15px; color: #333;">📅 Quick: Select from Calendar Events</h4>
+                <div class="calendar-section" style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 2px solid #007cba;">
+                    <h4 style="margin-bottom: 15px; color: #333; font-weight: 600;">📅 Quick: Select from Calendar Events</h4>
                     <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Choose an event to auto-fill van and phone number, then set access duration.</p>
                     
                     <div class="event-filter-tabs" style="display: flex; margin-bottom: 15px; background: white; border-radius: 6px; padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -482,9 +487,13 @@
                         <button type="button" class="event-filter-tab" data-period="tomorrow" style="flex: 1; padding: 8px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 13px; color: #666;">Tomorrow</button>
                     </div>
                     
-                    <button type="button" id="loadEventsBtn" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-size: 14px;">
+                    <button type="button" id="loadEventsBtn" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-size: 14px;">
                         <span id="loadEventsText">📋 Load Today's Events</span>
                         <span id="loadEventsSpinner" style="display: none;">⏳ Loading...</span>
+                    </button>
+                    
+                    <button type="button" id="testSpecificCalendar" style="width: 100%; padding: 8px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-size: 13px;">
+                        🧪 Test Specific Calendar (Debug)
                     </button>
                     
                     <div id="eventsContainer" style="display: none;">
@@ -525,13 +534,15 @@
         </div>
     </div>
 
-    <script>        // Function to get settings from localStorage
+    <script>        // Function to get settings from localStorage or centralized config
         function getSettings() {
+            // First try to use centralized config
             const defaultSettings = {
-                scriptUrl: 'https://script.google.com/macros/s/AKfycbyoO-GlsISkbsD1kBWv0wnIXGKXja_VS0VVBei0aAikAJ2dIaCmjtj-1sGRRn1RCPN_/exec',
-                authToken: 'myAppToken2025'
+                scriptUrl: window.APP_CONFIG?.scriptUrl || 'https://script.google.com/macros/s/AKfycby7RIyw5npOagppAl0kor5oF126QolGxwTLAAf3a7ONJLaJejMo5U8Elq5y8fY2X1b2/exec',
+                authToken: window.APP_CONFIG?.authToken || 'mySecureVanApp_2025'
             };
             
+            // Then check localStorage for overrides
             const savedSettings = localStorage.getItem('appSettings');
             return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
         }
@@ -865,6 +876,51 @@
                 });
             });
             
+            // Test specific calendar button
+            const testSpecificCalendar = document.getElementById('testSpecificCalendar');
+            testSpecificCalendar.addEventListener('click', async function() {
+                setEventsLoading(true);
+                const specificCalendarId = '6e36e87a89e5ef58137cf3c2475226dbb5c5a8aec3a60bce80e63fc72552f4b5@group.calendar.google.com';
+                
+                try {
+                    const settings = getSettings();
+                    const dates = getPeriodDates(currentPeriod);
+                    
+                    console.log('🧪 Testing specific calendar...');
+                    console.log('📋 Calendar ID:', specificCalendarId);
+                    console.log('📆 Date range:', dates);
+                    
+                    const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}&calendarId=${encodeURIComponent(specificCalendarId)}`;
+                    console.log('🌐 Test URL:', url);
+                    
+                    const data = await makeJsonpRequest(url);
+                    console.log('✅ Test calendar data received:', data);
+                    
+                    if (data.result && Array.isArray(data.result)) {
+                        console.log('📊 Events in test calendar:', data.result.length);
+                        
+                        if (data.result.length > 0) {
+                            displayEvents(data.result);
+                            eventsContainer.style.display = 'block';
+                            
+                            const calendarInfo = document.createElement('div');
+                            calendarInfo.style.cssText = 'background: #d1ecf1; padding: 8px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 12px; color: #0c5460; border: 1px solid #bee5eb;';
+                            calendarInfo.innerHTML = `🧪 TEST MODE: Found ${data.result.length} events in specific calendar`;
+                            eventsContainer.insertBefore(calendarInfo, eventsList);
+                        } else {
+                            showEventError(`No events found in test calendar for ${currentPeriod}`);
+                        }
+                    } else {
+                        showEventError('Failed to load test calendar');
+                    }
+                } catch (error) {
+                    console.error('❌ Test calendar error:', error);
+                    showEventError('Error loading test calendar: ' + error.message);
+                } finally {
+                    setEventsLoading(false);
+                }
+            });
+            
             // Load events button
             loadEventsBtn.addEventListener('click', async function() {
                 setEventsLoading(true);
@@ -872,20 +928,43 @@
                     const settings = getSettings();
                     const dates = getPeriodDates(currentPeriod);
                     
+                    console.log('📅 Loading calendar events...');
+                    console.log('🔧 Script URL:', settings.scriptUrl);
+                    console.log('🔑 Auth Token:', settings.authToken);
+                    console.log('📆 Date range:', dates);
+                    
                     const url = `${settings.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${settings.authToken}&startDate=${dates.start}&endDate=${dates.end}`;
+                    console.log('🌐 Full URL:', url);
                     
                     const data = await makeJsonpRequest(url);
+                    console.log('✅ Calendar data received:', data);
+                    
+                    // Log calendar details
+                    if (data.calendars && Array.isArray(data.calendars)) {
+                        console.log('📋 Calendars checked:', data.calendars.length);
+                        data.calendars.forEach((cal, idx) => {
+                            console.log(`  ${idx + 1}. ${cal.name || cal.id}: ${cal.id}`);
+                        });
+                    }
                       if (data.result && Array.isArray(data.result)) {
-                        displayEvents(data.result);
-                        eventsContainer.style.display = 'block';
+                        console.log('📊 Total events found:', data.result.length);
                         
-                        // Show info about calendars loaded
-                        const totalEvents = data.result.length;
-                        const uniqueCalendars = [...new Set(data.result.map(e => e.calendarName || 'Unknown'))];
-                        const calendarInfo = document.createElement('div');
-                        calendarInfo.style.cssText = 'background: #e8f4fd; padding: 8px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 12px; color: #0066cc;';
-                        calendarInfo.innerHTML = `📊 Loaded ${totalEvents} events from ${uniqueCalendars.length} calendars: ${uniqueCalendars.join(', ')}`;
-                        eventsContainer.insertBefore(calendarInfo, eventsList);
+                        if (data.result.length > 0) {
+                            displayEvents(data.result);
+                            eventsContainer.style.display = 'block';
+                            
+                            // Show info about calendars loaded
+                            const totalEvents = data.result.length;
+                            const uniqueCalendars = [...new Set(data.result.map(e => e.calendarName || 'Unknown'))];
+                            const calendarInfo = document.createElement('div');
+                            calendarInfo.style.cssText = 'background: #e8f4fd; padding: 8px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 12px; color: #0066cc;';
+                            calendarInfo.innerHTML = `📊 Loaded ${totalEvents} events from ${uniqueCalendars.length} calendars: ${uniqueCalendars.join(', ')}`;
+                            eventsContainer.insertBefore(calendarInfo, eventsList);
+                        } else {
+                            // Show no events message with calendar count
+                            const calendarCount = data.calendars ? data.calendars.length : 0;
+                            showEventError(`No events found for ${currentPeriod}. Checked ${calendarCount} calendars from vehicle config.`);
+                        }
                     } else {
                         showEventError('No events found for ' + currentPeriod);
                     }
