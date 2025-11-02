@@ -40,8 +40,6 @@ if (typeof PRIVATE_CONFIG !== 'undefined') {
     console.warn('⚠️ Private configuration not loaded. Some features may not work.');
 }
 
-<<<<<<< Updated upstream
-=======
 // Try to merge immediately (in case private config loads first)
 mergePrivateConfig();
 
@@ -62,8 +60,6 @@ setTimeout(() => {
         console.log('📋 Config ready - Script URL:', window.APP_CONFIG.scriptUrl);
     }
 }, 100);
-
->>>>>>> Stashed changes
 // Version info for debugging
 console.log('📋 App Config Loaded - Version:', window.APP_CONFIG.version);
 if (window.APP_CONFIG.scriptUrl) {
