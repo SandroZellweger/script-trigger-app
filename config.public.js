@@ -79,3 +79,4 @@ if (window.APP_CONFIG.scriptUrl) {
 
 // Backward compatibility
 window.PRODUCTION_CONFIG = window.APP_CONFIG;
+window.CONFIG = window.APP_CONFIG; // Alias for damage-ai-test.html and other pages
