@@ -346,10 +346,19 @@
         let selectedDamagePhoto = null;
         let selectedVehicle = null;
 
+        // Wait for config to load before initializing
+        function waitForConfig() {
+            if (typeof window.CONFIG !== 'undefined' && window.CONFIG.scriptUrl) {
+                loadVehicles();
+                setupEventListeners();
+            } else {
+                setTimeout(waitForConfig, 100);
+            }
+        }
+
         // Load vehicles on page load
         document.addEventListener('DOMContentLoaded', () => {
-            loadVehicles();
-            setupEventListeners();
+            waitForConfig();
         });
 
         function setupEventListeners() {
