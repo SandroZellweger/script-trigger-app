@@ -14,7 +14,7 @@ const STATIC_RESOURCES = [
 
 // API endpoints to cache (will be dynamically determined from config.js)
 const API_ENDPOINTS = [
-    'https://script.google.com/macros/s/AKfycbz_FtmMuPSaRck2VcgJfzNvcAiCtDFoxKzcKVNZn4z5bF3GkMrVB-2kXNlTVNehQOPl/exec'
+    'https://script.google.com/macros/s/AKfycbxJMHOfCcqnKKoGNNAeiBaV25VHTBoivE06MtjEgGpeCOFR_S2lAATZ-MR3VKz-ivPK/exec'
 ];
 
 // Install event - cache static resources
@@ -70,16 +70,26 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const requestUrl = new URL(event.request.url);
     
+    // Skip JSONP requests (they use script tags and need to bypass service worker)
+    if (requestUrl.hostname === 'script.google.com' && 
+        (requestUrl.searchParams.has('callback') || requestUrl.pathname.includes('Jsonp'))) {
+        // Let JSONP requests pass through without interception
+        return;
+    }
+    
     // Handle different types of requests
-    if (requestUrl.hostname === 'script.google.com') {
-        // API requests - Network First with API cache fallback
+    if (requestUrl.hostname === 'script.google.com' && event.request.method === 'GET') {
+        // GET API requests - Network First with API cache fallback
         event.respondWith(handleApiRequest(event.request));
-    } else if (requestUrl.hostname === 'fonts.googleapis.com' || 
+    } else if (requestUrl.hostname === 'script.google.com') {
+        // POST and other methods to script.google.com - Network only (no caching)
+        event.respondWith(fetch(event.request));
+    } else if (requestUrl.hostname === 'fonts.googleapis.com' ||
                requestUrl.hostname === 'fonts.gstatic.com') {
         // Font requests - Cache First
         event.respondWith(handleFontRequest(event.request));
-    } else if (event.request.destination === 'document' || 
-               event.request.destination === 'script' || 
+    } else if (event.request.destination === 'document' ||
+               event.request.destination === 'script' ||
                event.request.destination === 'style') {
         // Static resources - Cache First with Network Fallback
         event.respondWith(handleStaticRequest(event.request));

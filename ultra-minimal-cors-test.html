@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ultra Minimal CORS Test</title>
+</head>
+<body>
+    <h1>CORS Test</h1>
+    <button onclick="testCORS()">Test CORS</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCORS() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing...';
+
+            try {
+                // Replace with your NEW deployment URL
+                const url = 'https://script.google.com/macros/s/AKfycby_KUqaXYnjTGStJB18qJ1fNY6q-_YbtykoB0ziyJn861XIbw6_AND1HqU-cQReUI3b/exec';
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <h2>✅ SUCCESS!</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <p>CORS headers are working with wildcard!</p>
+                    <p>Now redeploy your main script with the same CORS approach.</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h2>❌ ERROR</h2>
+                    <p>${error.message}</p>
+                    <p>If you see CORS error, the deployment didn't work.</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

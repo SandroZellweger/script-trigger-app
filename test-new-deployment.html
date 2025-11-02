@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test New CORS-Fixed Deployment</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test New CORS-Fixed Google Apps Script Deployment</h1>
+    <p>Testing URL: <code>https://script.google.com/macros/s/AKfycbxJMHOfCcqnKKoGNNAeiBaV25VHTBoivE06MtjEgGpeCOFR_S2lAATZ-MR3VKz-ivPK/exec</code></p>
+
+    <div class="test-section">
+        <h2>GET Request Test (Ping)</h2>
+        <button onclick="testPing()">Test Ping GET</button>
+        <div id="ping-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>POST Request Test (Ping)</h2>
+        <button onclick="testPingPost()">Test Ping POST</button>
+        <div id="ping-post-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Calendar Test</h2>
+        <button onclick="testCalendar()">Test Get Calendar Names</button>
+        <div id="calendar-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Photo Upload Test</h2>
+        <input type="file" id="photoInput" accept="image/*">
+        <button onclick="testPhotoUpload()">Test Photo Upload</button>
+        <div id="photo-result"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://script.google.com/macros/s/AKfycbxJMHOfCcqnKKoGNNAeiBaV25VHTBoivE06MtjEgGpeCOFR_S2lAATZ-MR3VKz-ivPK/exec';
+        const AUTH_TOKEN = 'mySecureVanApp_2025';
+
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = success ? 'test-section success' : 'test-section error';
+            element.innerHTML = `<h3>${success ? '✅ SUCCESS' : '❌ ERROR'}</h3><p>${message}</p>`;
+            if (data) {
+                element.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+        }
+
+        async function testPing() {
+            try {
+                const url = `${BASE_URL}?function=ping&authToken=${AUTH_TOKEN}`;
+                console.log('Testing URL:', url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                showResult('ping-result', true, 'Ping successful!', data);
+            } catch (error) {
+                showResult('ping-result', false, `Ping failed: ${error.message}`);
+            }
+        }
+
+        async function testPingPost() {
+            try {
+                const requestData = {
+                    function: 'ping',
+                    authToken: AUTH_TOKEN
+                };
+
+                const response = await fetch(BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+                showResult('ping-post-result', true, 'POST Ping successful!', data);
+            } catch (error) {
+                showResult('ping-post-result', false, `POST Ping failed: ${error.message}`);
+            }
+        }
+
+        async function testCalendar() {
+            try {
+                const url = `${BASE_URL}?function=getCalendarNames&authToken=${AUTH_TOKEN}&callback=callback`;
+                console.log('Testing calendar URL:', url);
+
+                const response = await fetch(url);
+                const text = await response.text();
+
+                // Try to parse JSONP response
+                const jsonMatch = text.match(/callback\((.*)\)/);
+                if (jsonMatch) {
+                    const data = JSON.parse(jsonMatch[1]);
+                    showResult('calendar-result', true, 'Calendar data retrieved!', data);
+                } else {
+                    showResult('calendar-result', false, 'Invalid JSONP response', { rawResponse: text });
+                }
+            } catch (error) {
+                showResult('calendar-result', false, `Calendar test failed: ${error.message}`);
+            }
+        }
+
+        async function testPhotoUpload() {
+            const fileInput = document.getElementById('photoInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showResult('photo-result', false, 'Please select a photo first');
+                return;
+            }
+
+            try {
+                // Convert file to base64
+                const base64 = await fileToBase64(file);
+
+                const requestData = {
+                    function: 'uploadDamagePhoto',
+                    authToken: AUTH_TOKEN,
+                    vehicleName: 'Test Vehicle',
+                    fileName: file.name,
+                    mimeType: file.type,
+                    fileData: base64
+                };
+
+                const response = await fetch(BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+                showResult('photo-result', true, 'Photo upload test completed!', data);
+            } catch (error) {
+                showResult('photo-result', false, `Photo upload failed: ${error.message}`);
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Auto-run ping test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testPing, 1000);
+        });
+    </script>
+</body>
+</html>
