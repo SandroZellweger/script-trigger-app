@@ -309,6 +309,26 @@
                 </div>
             </div>
 
+            <div class="section">
+                <h2>3. Come vuoi ricevere i risultati?</h2>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="notifyEmail" checked style="width: auto; margin-right: 10px;">
+                        📧 Email a noleggiosemplice23@gmail.com
+                    </label>
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="notifyWhatsApp" style="width: auto; margin-right: 10px;">
+                        📱 WhatsApp (inserisci numero sotto)
+                    </label>
+                    <input type="tel" id="whatsappNumber" placeholder="+41 79 123 45 67" 
+                           style="margin-left: 30px; margin-top: 5px; display: none;">
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="showDashboard" checked style="width: auto; margin-right: 10px;">
+                        🖥️ Dashboard Live (apri in nuova finestra)
+                    </label>
+                </div>
+            </div>
+
             <button id="analyzeBtn" disabled>🔍 Analizza e Trova Responsabile</button>
 
             <div id="loading" class="loading">
@@ -338,6 +358,13 @@
             
             // Vehicle selection
             document.getElementById('vehicleSelect').addEventListener('change', handleVehicleSelection);
+            
+            // WhatsApp checkbox toggle
+            document.getElementById('notifyWhatsApp').addEventListener('change', function(e) {
+                const phoneInput = document.getElementById('whatsappNumber');
+                phoneInput.style.display = e.target.checked ? 'block' : 'none';
+                if (e.target.checked) phoneInput.focus();
+            });
             
             // Analyze button
             document.getElementById('analyzeBtn').addEventListener('click', startAnalysis);
@@ -402,11 +429,29 @@
             const resultsDiv = document.getElementById('results');
             const btn = document.getElementById('analyzeBtn');
 
+            // Get notification preferences
+            const notifyEmail = document.getElementById('notifyEmail').checked;
+            const notifyWhatsApp = document.getElementById('notifyWhatsApp').checked;
+            const whatsappNumber = document.getElementById('whatsappNumber').value;
+            const showDashboard = document.getElementById('showDashboard').checked;
+
+            // Validate WhatsApp number if selected
+            if (notifyWhatsApp && !whatsappNumber.trim()) {
+                alert('Inserisci un numero WhatsApp valido');
+                return;
+            }
+
             // Show loading
             loadingDiv.classList.add('active');
             resultsDiv.classList.remove('active');
             resultsDiv.innerHTML = '';
             btn.disabled = true;
+
+            // Open dashboard if requested
+            let dashboardWindow = null;
+            if (showDashboard) {
+                dashboardWindow = window.open('damage-results.html', '_blank');
+            }
 
             try {
                 // Step 1: Upload damage photo to get URL
@@ -430,8 +475,29 @@
                 // Step 3: Analyze each booking's photos
                 const results = await analyzeBookingsForDamage(damagePhotoUrl, bookings, vehicleInfo);
                 
-                // Step 4: Display results
+                // Step 4: Send to dashboard if open
+                if (dashboardWindow && !dashboardWindow.closed) {
+                    dashboardWindow.postMessage({
+                        type: 'DAMAGE_RESULTS',
+                        data: {
+                            results: results,
+                            vehicleInfo: vehicleInfo,
+                            damagePhotoUrl: damagePhotoUrl,
+                            timestamp: new Date().toISOString()
+                        }
+                    }, '*');
+                }
+
+                // Step 5: Display results inline
                 displayResults(results, vehicleInfo);
+
+                // Step 6: Send notifications if requested
+                if (results.length > 0) {
+                    if (notifyWhatsApp && whatsappNumber) {
+                        await sendWhatsAppNotification(whatsappNumber, results, vehicleInfo);
+                    }
+                    // Email is sent automatically by backend if confidence > 70%
+                }
 
             } catch (error) {
                 console.error('Analysis error:', error);
@@ -625,6 +691,15 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        async function sendWhatsAppNotification(phoneNumber, results, vehicleInfo) {
+            // Placeholder - would call backend to send WhatsApp via Zoko
+            console.log('WhatsApp notification would be sent to:', phoneNumber);
+            console.log('Results:', results);
+            
+            // TODO: Implement WhatsApp sending via backend
+            return Promise.resolve();
         }
     </script>
 </body>

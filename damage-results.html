@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Riconoscimento Danni AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            color: #1e3c72;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            font-size: 0.5em;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #4caf50;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .stat-card .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .vehicle-info {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .vehicle-info h2 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+        }
+
+        .vehicle-detail {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .vehicle-detail strong {
+            min-width: 150px;
+            color: #666;
+        }
+
+        .results-container {
+            display: grid;
+            gap: 30px;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-left: 8px solid #ff6b6b;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .result-card.high-confidence {
+            border-left-color: #ff4444;
+            background: linear-gradient(135deg, #fff 0%, #ffe5e5 100%);
+        }
+
+        .result-card.medium-confidence {
+            border-left-color: #ffa500;
+            background: linear-gradient(135deg, #fff 0%, #fff4e5 100%);
+        }
+
+        .result-card.low-confidence {
+            border-left-color: #51cf66;
+            background: linear-gradient(135deg, #fff 0%, #e8f5e9 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .result-title {
+            font-size: 1.5em;
+            color: #1e3c72;
+            font-weight: bold;
+        }
+
+        .confidence-badge {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .confidence-badge.high {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+        }
+
+        .confidence-badge.medium {
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+        }
+
+        .confidence-badge.low {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .result-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            border-left: 4px solid #1e3c72;
+        }
+
+        .detail-item strong {
+            display: block;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .detail-item span {
+            display: block;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .responsibility-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .responsibility-badge.yes {
+            background: #ff4444;
+            color: white;
+        }
+
+        .responsibility-badge.no {
+            background: #51cf66;
+            color: white;
+        }
+
+        .explanation-box {
+            background: #f8f9fa;
+            border-left: 5px solid #1e3c72;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .explanation-box h4 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .explanation-box p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 1.05em;
+        }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .photo-card {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .photo-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            color: white;
+            padding: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .no-results {
+            background: white;
+            border-radius: 20px;
+            padding: 60px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-results h2 {
+            color: #1e3c72;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .no-results p {
+            color: #666;
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+
+        .waiting-message {
+            background: white;
+            border-radius: 20px;
+            padding: 60px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .spinner-large {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #1e3c72;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .waiting-message h2 {
+            color: #1e3c72;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .waiting-message p {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .damage-photo-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .damage-photo-section h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+        }
+
+        .damage-photo-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .damage-photo-container img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Modal for full-size images */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 30px;
+            right: 50px;
+            color: white;
+            font-size: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .modal-close:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>
+                🔍 Dashboard AI Riconoscimento Danni
+                <span class="status-badge" id="statusBadge">In Attesa</span>
+            </h1>
+            <p style="color: #666; margin-top: 10px;">Monitoraggio in tempo reale dell'analisi danni</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="icon">📊</div>
+                <h3>Prenotazioni Analizzate</h3>
+                <div class="value" id="totalAnalyzed">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">⚠️</div>
+                <h3>Potenziali Responsabili</h3>
+                <div class="value" id="totalMatches">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">📈</div>
+                <h3>Confidenza Media</h3>
+                <div class="value" id="avgConfidence">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">✅</div>
+                <h3>Match Alta Confidenza</h3>
+                <div class="value" id="highConfidence">0</div>
+            </div>
+        </div>
+
+        <div class="vehicle-info" id="vehicleInfo" style="display: none;">
+            <h2>🚐 Informazioni Veicolo</h2>
+            <div class="vehicle-detail">
+                <strong>Veicolo:</strong>
+                <span id="vehicleName">-</span>
+            </div>
+            <div class="vehicle-detail">
+                <strong>Timestamp Analisi:</strong>
+                <span id="analysisTime">-</span>
+            </div>
+        </div>
+
+        <div class="damage-photo-section" id="damagePhotoSection" style="display: none;">
+            <h2>📸 Foto Danno Rilevato</h2>
+            <div class="damage-photo-container">
+                <img id="damagePhotoImg" src="" alt="Danno rilevato">
+            </div>
+        </div>
+
+        <div id="resultsContainer">
+            <div class="waiting-message">
+                <div class="spinner-large"></div>
+                <h2>In attesa dei risultati...</h2>
+                <p>L'analisi AI sta processando le foto delle ultime prenotazioni</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for full-size images -->
+    <div class="modal" id="imageModal">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script>
+        let analysisData = null;
+
+        // Listen for messages from parent window
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'DAMAGE_RESULTS') {
+                console.log('Received damage results:', event.data.data);
+                analysisData = event.data.data;
+                displayResults(analysisData);
+            }
+        });
+
+        function displayResults(data) {
+            const { results, vehicleInfo, damagePhotoUrl, timestamp } = data;
+
+            // Update status badge
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.textContent = 'Analisi Completata';
+            statusBadge.style.background = results.length > 0 ? '#ff4444' : '#4caf50';
+
+            // Show stats
+            document.getElementById('statsGrid').style.display = 'grid';
+            document.getElementById('totalAnalyzed').textContent = '20'; // Always checking last 20
+            document.getElementById('totalMatches').textContent = results.length;
+            
+            const avgConf = results.length > 0 
+                ? (results.reduce((sum, r) => sum + r.analysis.confidence, 0) / results.length * 100).toFixed(1)
+                : '0';
+            document.getElementById('avgConfidence').textContent = avgConf + '%';
+            
+            const highConf = results.filter(r => r.analysis.confidence > 0.75).length;
+            document.getElementById('highConfidence').textContent = highConf;
+
+            // Show vehicle info
+            document.getElementById('vehicleInfo').style.display = 'block';
+            document.getElementById('vehicleName').textContent = vehicleInfo.displayName;
+            document.getElementById('analysisTime').textContent = new Date(timestamp).toLocaleString('it-IT');
+
+            // Show damage photo
+            if (damagePhotoUrl) {
+                document.getElementById('damagePhotoSection').style.display = 'block';
+                document.getElementById('damagePhotoImg').src = damagePhotoUrl;
+            }
+
+            // Display results
+            const container = document.getElementById('resultsContainer');
+            
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <h2>✅ Nessun Danno Precedente Trovato</h2>
+                        <p>L'AI non ha trovato danni corrispondenti nelle ultime 20 prenotazioni del veicolo ${vehicleInfo.displayName}.</p>
+                        <p style="margin-top: 20px; color: #51cf66; font-weight: bold;">Il danno è probabilmente nuovo!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="results-container">';
+            
+            results.forEach((result, index) => {
+                const confidence = (result.analysis.confidence * 100).toFixed(1);
+                const confidenceClass = confidence > 75 ? 'high' : (confidence > 50 ? 'medium' : 'low');
+                const confidenceLevel = confidence > 75 ? 'high-confidence' : (confidence > 50 ? 'medium-confidence' : 'low-confidence');
+                
+                html += `
+                    <div class="result-card ${confidenceLevel}">
+                        <div class="result-header">
+                            <div class="result-title">
+                                #${index + 1}: ${escapeHtml(result.booking.title)}
+                            </div>
+                            <div class="confidence-badge ${confidenceClass}">
+                                ${confidence}% sicuro
+                            </div>
+                        </div>
+
+                        <div class="result-details">
+                            <div class="detail-item">
+                                <strong>📱 Telefono</strong>
+                                <span>${result.phoneNumber}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>📅 Periodo</strong>
+                                <span>${formatDate(result.booking.start)} - ${formatDate(result.booking.end)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>📍 Posizione Danno</strong>
+                                <span>${result.analysis.damageLocation || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>🔧 Tipo Danno</strong>
+                                <span>${result.analysis.damageType || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>👁️ Appare In</strong>
+                                <span>${result.analysis.appearsIn || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>⚖️ Responsabile?</strong>
+                                <span class="responsibility-badge ${result.analysis.isResponsible ? 'yes' : 'no'}">
+                                    ${result.analysis.isResponsible ? '✅ SÌ' : '❌ NO'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="explanation-box">
+                            <h4>💬 Spiegazione AI:</h4>
+                            <p>${result.analysis.explanation || 'Nessuna spiegazione disponibile'}</p>
+                        </div>
+
+                        ${result.analysis.matchingPhotoUrls && result.analysis.matchingPhotoUrls.length > 0 ? `
+                            <h4 style="margin-top: 25px; margin-bottom: 15px; color: #1e3c72;">📷 Foto Corrispondenti:</h4>
+                            <div class="photos-grid">
+                                ${result.analysis.matchingPhotoUrls.map(photo => `
+                                    <div class="photo-card" onclick="openModal('${photo.url}')">
+                                        <img src="${photo.url}" alt="${photo.label}">
+                                        <div class="photo-label">${escapeHtml(photo.label)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function openModal(imageUrl) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.classList.add('active');
+            modalImg.src = imageUrl;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal on click outside image
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
