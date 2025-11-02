@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Deployment Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .test-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status.pending {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+        .status.success {
+            background: #55efc4;
+            color: #00b894;
+        }
+        .status.error {
+            background: #ff7675;
+            color: #d63031;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .test-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        .test-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .test-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .config-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .config-info code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .run-all-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        .run-all-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Google Apps Script Deployment Verification</h1>
+        <p class="subtitle">Test that your script is deployed correctly and responding</p>
+
+        <div class="config-info">
+            <strong>📋 Current Configuration:</strong><br>
+            <strong>Script URL:</strong> <code id="scriptUrl">Loading...</code><br>
+            <strong>Auth Token:</strong> <code id="authToken">Loading...</code>
+        </div>
+
+        <button class="run-all-btn" onclick="runAllTests()">🚀 Run All Tests</button>
+
+        <!-- Test 1: Ping -->
+        <div class="test-section">
+            <div class="test-title">
+                ✅ Test 1: Basic Ping
+                <span class="status pending" id="status-ping">Pending</span>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                Tests if the script is accessible and responding
+            </p>
+            <button class="test-btn" onclick="testPing()">Run Test</button>
+            <div class="test-result" id="result-ping" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: JSONP Ping -->
+        <div class="test-section">
+            <div class="test-title">
+                ✅ Test 2: JSONP Ping
+                <span class="status pending" id="status-jsonp">Pending</span>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                Tests JSONP fallback for CORS-restricted environments
+            </p>
+            <button class="test-btn" onclick="testJsonpPing()">Run Test</button>
+            <div class="test-result" id="result-jsonp" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Vehicle Data -->
+        <div class="test-section">
+            <div class="test-title">
+                🚐 Test 3: Vehicle Data
+                <span class="status pending" id="status-vehicles">Pending</span>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                Tests if vehicle data is being fetched from Google Sheet
+            </p>
+            <button class="test-btn" onclick="testVehicleData()">Run Test</button>
+            <div class="test-result" id="result-vehicles" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Calendar Events -->
+        <div class="test-section">
+            <div class="test-title">
+                📅 Test 4: Calendar Events
+                <span class="status pending" id="status-calendar">Pending</span>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                Tests if calendar events can be fetched
+            </p>
+            <button class="test-btn" onclick="testCalendarEvents()">Run Test</button>
+            <div class="test-result" id="result-calendar" style="display: none;"></div>
+        </div>
+
+        <!-- Test 5: Vehicle Addresses -->
+        <div class="test-section">
+            <div class="test-title">
+                🏠 Test 5: Vehicle Addresses
+                <span class="status pending" id="status-addresses">Pending</span>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                Tests the new vehicle addresses API endpoint
+            </p>
+            <button class="test-btn" onclick="testVehicleAddresses()">Run Test</button>
+            <div class="test-result" id="result-addresses" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Load config -->
+    <script src="./config.public.js"></script>
+    <script src="./config.private.js"></script>
+
+    <script>
+        // Display current config
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const scriptUrl = window.APP_CONFIG?.scriptUrl || 'NOT CONFIGURED';
+                const authToken = window.APP_CONFIG?.authToken || 'NOT CONFIGURED';
+                
+                document.getElementById('scriptUrl').textContent = scriptUrl.substring(0, 80) + '...';
+                document.getElementById('authToken').textContent = authToken;
+            }, 100);
+        });
+
+        function updateStatus(testId, status, message) {
+            const statusEl = document.getElementById(`status-${testId}`);
+            const resultEl = document.getElementById(`result-${testId}`);
+            
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = status === 'success' ? 'Success' : status === 'error' ? 'Failed' : 'Testing...';
+            
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = message;
+        }
+
+        async function testPing() {
+            const testId = 'ping';
+            updateStatus(testId, 'pending', 'Testing...');
+            
+            try {
+                const url = `${window.APP_CONFIG.scriptUrl}?function=ping&authToken=${window.APP_CONFIG.authToken}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.result === 'Ping successful') {
+                    updateStatus(testId, 'success', `<strong>✅ Success!</strong><br>${JSON.stringify(data, null, 2)}`);
+                } else {
+                    updateStatus(testId, 'error', `<strong>❌ Unexpected response:</strong><br>${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus(testId, 'error', `<strong>❌ Error:</strong><br>${error.message}<br><br><em>This is expected if CORS is not configured. Try JSONP test instead.</em>`);
+            }
+        }
+
+        async function testJsonpPing() {
+            const testId = 'jsonp';
+            updateStatus(testId, 'pending', 'Testing...');
+            
+            return new Promise((resolve) => {
+                const callbackName = `jsonpTest_${Date.now()}`;
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Timeout:</strong><br>Request took too long');
+                    resolve();
+                }, 10000);
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    if (data.result === 'Ping successful') {
+                        updateStatus(testId, 'success', `<strong>✅ JSONP Success!</strong><br>${JSON.stringify(data, null, 2)}`);
+                    } else {
+                        updateStatus(testId, 'error', `<strong>❌ Unexpected response:</strong><br>${JSON.stringify(data, null, 2)}`);
+                    }
+                    resolve();
+                };
+
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    const script = document.getElementById(callbackName);
+                    if (script) script.remove();
+                };
+
+                const script = document.createElement('script');
+                script.id = callbackName;
+                script.src = `${window.APP_CONFIG.scriptUrl}?function=pingJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callbackName}`;
+                script.onerror = () => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Script load error:</strong><br>Could not load script');
+                    resolve();
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        async function testVehicleData() {
+            const testId = 'vehicles';
+            updateStatus(testId, 'pending', 'Testing...');
+            
+            return new Promise((resolve) => {
+                const callbackName = `vehicleTest_${Date.now()}`;
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Timeout:</strong><br>Request took too long');
+                    resolve();
+                }, 10000);
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    if (data.success && data.calendars) {
+                        const vehicleCount = data.calendars.length;
+                        const vehicleNames = data.calendars.map(c => c.name).join(', ');
+                        updateStatus(testId, 'success', `<strong>✅ Success!</strong><br><strong>Vehicles found:</strong> ${vehicleCount}<br><strong>Names:</strong> ${vehicleNames}`);
+                    } else {
+                        updateStatus(testId, 'error', `<strong>❌ Unexpected response:</strong><br>${JSON.stringify(data, null, 2)}`);
+                    }
+                    resolve();
+                };
+
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    const script = document.getElementById(callbackName);
+                    if (script) script.remove();
+                };
+
+                const script = document.createElement('script');
+                script.id = callbackName;
+                script.src = `${window.APP_CONFIG.scriptUrl}?function=getCalendarNamesAppJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callbackName}`;
+                script.onerror = () => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Script load error</strong>');
+                    resolve();
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        async function testCalendarEvents() {
+            const testId = 'calendar';
+            updateStatus(testId, 'pending', 'Testing...');
+            
+            const today = new Date();
+            const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const startDate = today.toISOString().split('T')[0];
+            const endDate = nextWeek.toISOString().split('T')[0];
+            
+            return new Promise((resolve) => {
+                const callbackName = `calendarTest_${Date.now()}`;
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Timeout:</strong><br>Request took too long');
+                    resolve();
+                }, 15000);
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    if (data.success) {
+                        const eventCount = data.result ? data.result.length : 0;
+                        updateStatus(testId, 'success', `<strong>✅ Success!</strong><br><strong>Events found:</strong> ${eventCount}<br><strong>Date range:</strong> ${startDate} to ${endDate}`);
+                    } else {
+                        updateStatus(testId, 'error', `<strong>❌ Error:</strong><br>${data.error || 'Unknown error'}`);
+                    }
+                    resolve();
+                };
+
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    const script = document.getElementById(callbackName);
+                    if (script) script.remove();
+                };
+
+                const script = document.createElement('script');
+                script.id = callbackName;
+                script.src = `${window.APP_CONFIG.scriptUrl}?function=getCalendarEventsAppJsonp&authToken=${window.APP_CONFIG.authToken}&startDate=${startDate}&endDate=${endDate}&callback=${callbackName}`;
+                script.onerror = () => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Script load error</strong>');
+                    resolve();
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        async function testVehicleAddresses() {
+            const testId = 'addresses';
+            updateStatus(testId, 'pending', 'Testing...');
+            
+            return new Promise((resolve) => {
+                const callbackName = `addressTest_${Date.now()}`;
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Timeout:</strong><br>Request took too long');
+                    resolve();
+                }, 10000);
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    if (data.success && data.addresses) {
+                        const addressCount = Object.keys(data.addresses).length;
+                        const addressList = Object.entries(data.addresses)
+                            .map(([vehicle, address]) => `${vehicle}: ${address}`)
+                            .join('<br>');
+                        updateStatus(testId, 'success', `<strong>✅ Success!</strong><br><strong>Addresses found:</strong> ${addressCount}<br><br>${addressList}`);
+                    } else {
+                        updateStatus(testId, 'error', `<strong>❌ Unexpected response:</strong><br>${JSON.stringify(data, null, 2)}`);
+                    }
+                    resolve();
+                };
+
+                const cleanup = () => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    const script = document.getElementById(callbackName);
+                    if (script) script.remove();
+                };
+
+                const script = document.createElement('script');
+                script.id = callbackName;
+                script.src = `${window.APP_CONFIG.scriptUrl}?function=getVehicleAddressesJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callbackName}`;
+                script.onerror = () => {
+                    cleanup();
+                    updateStatus(testId, 'error', '<strong>❌ Script load error</strong>');
+                    resolve();
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        async function runAllTests() {
+            const btn = document.querySelector('.run-all-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Running tests...';
+            
+            await testPing();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testJsonpPing();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testVehicleData();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testCalendarEvents();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testVehicleAddresses();
+            
+            btn.disabled = false;
+            btn.textContent = '🚀 Run All Tests Again';
+        }
+    </script>
+</body>
+</html>
