@@ -43,6 +43,33 @@
             backdrop-filter: blur(10px);
             width: 100%;
             max-width: 400px;
+            position: relative;
+        }
+
+        .admin-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .admin-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .admin-badge.logged-in {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         }
 
         .header img.logo {
@@ -205,6 +232,10 @@
 </head>
 <body>
     <div class="container">        <div class="header animate-in">
+            <div class="admin-badge" id="adminBadge" onclick="handleAdminClick()">
+                <span id="adminIcon">🔐</span>
+                <span id="adminText">Admin</span>
+            </div>
             <img src="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" alt="Company Logo" class="logo">
         </div>
 
@@ -261,6 +292,26 @@
             </a>
         </div>
 
+        <!-- Admin Section - Solo visibile se loggato -->
+        <div id="adminSection" style="display: none; width: 100%; max-width: 800px; margin-top: 20px;">
+            <h2 style="color: white; text-align: center; margin-bottom: 20px; font-size: 24px;">
+                🔐 Area Admin
+            </h2>
+            <div class="menu-grid">
+                <a href="damage-ai-test.html" class="menu-card animate-in" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="menu-icon">🤖</div>
+                    <div class="menu-title">AI Damage Recognition</div>
+                    <div class="menu-description">Analyze damage photos with AI</div>
+                </a>
+
+                <a href="admin.html" class="menu-card animate-in" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="menu-icon">📊</div>
+                    <div class="menu-title">Admin Dashboard</div>
+                    <div class="menu-description">Full admin control panel</div>
+                </a>
+            </div>
+        </div>
+
         <div class="status-bar animate-in">
             <div class="status-item">
                 <span class="status-indicator online"></span>
@@ -300,10 +351,95 @@
             return savedSettings ? { ...defaultSettings, ...JSON.parse(savedSettings) } : defaultSettings;
         }
 
+        // Admin utenti
+        const ADMIN_USERS = {
+            'Alessandro': '050187',
+            'Sandro': '191284'
+        };
+
+        // Controlla se admin loggato
+        function checkAdminStatus() {
+            const adminUser = localStorage.getItem('adminUser');
+            const adminToken = localStorage.getItem('adminToken');
+            
+            if (adminUser && adminToken) {
+                // Verifica token valido
+                const expectedToken = btoa(adminUser + ':' + ADMIN_USERS[adminUser]);
+                if (adminToken === expectedToken) {
+                    showAdminSection(adminUser);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Mostra sezione admin
+        function showAdminSection(username) {
+            document.getElementById('adminSection').style.display = 'block';
+            const badge = document.getElementById('adminBadge');
+            badge.classList.add('logged-in');
+            document.getElementById('adminIcon').textContent = '👤';
+            document.getElementById('adminText').textContent = username;
+        }
+
+        // Nascondi sezione admin
+        function hideAdminSection() {
+            document.getElementById('adminSection').style.display = 'none';
+            const badge = document.getElementById('adminBadge');
+            badge.classList.remove('logged-in');
+            document.getElementById('adminIcon').textContent = '🔐';
+            document.getElementById('adminText').textContent = 'Admin';
+        }
+
+        // Handle click su badge admin
+        function handleAdminClick() {
+            const adminUser = localStorage.getItem('adminUser');
+            
+            if (adminUser) {
+                // Già loggato - chiedi conferma logout
+                if (confirm('Vuoi uscire dall\'area admin?')) {
+                    localStorage.removeItem('adminUser');
+                    localStorage.removeItem('adminToken');
+                    localStorage.removeItem('adminLoginTime');
+                    hideAdminSection();
+                    alert('Logout effettuato con successo');
+                }
+            } else {
+                // Non loggato - mostra prompt login
+                showAdminLogin();
+            }
+        }
+
+        // Mostra prompt login admin
+        function showAdminLogin() {
+            const username = prompt('Inserisci username Admin:');
+            if (!username) return;
+            
+            const password = prompt('Inserisci password:');
+            if (!password) return;
+            
+            // Verifica credenziali
+            if (ADMIN_USERS[username] && ADMIN_USERS[username] === password) {
+                const token = btoa(username + ':' + password);
+                localStorage.setItem('adminUser', username);
+                localStorage.setItem('adminToken', token);
+                localStorage.setItem('adminLoginTime', new Date().toISOString());
+                
+                showAdminSection(username);
+                alert('✅ Login effettuato! Ora puoi accedere alle funzioni admin.');
+            } else {
+                alert('❌ Username o password non corretti');
+            }
+        }
+
         // Check script status on load
         document.addEventListener('DOMContentLoaded', async () => {
             updateVersionBadge();
             setTimeout(updateVersionBadge, 250);
+            
+            // Controlla admin status
+            checkAdminStatus();
+            
             try {
                 // Get current settings
                 const settings = getSettings();
