@@ -569,7 +569,7 @@
 
                     <div class="form-group">
                         <label>📸 Foto (opzionale)</label>
-                        <div class="photo-upload" onclick="initializePhotoUpload()">
+                        <div class="photo-upload" onclick="document.getElementById('photoInput').click()">
                             <p>📷 Clicca per caricare foto dei danni</p>
                             <input type="file" id="photoInput" accept="image/*" multiple style="display: none;" onchange="handlePhotoUpload(event)">
                         </div>
@@ -865,25 +865,27 @@
             document.body.appendChild(script);
         }
 
-        // Initialize photo upload - request permissions first
-        async function initializePhotoUpload() {
-            try {
-                // First, ensure we have Drive permissions
-                await ensureDriveToken();
-                
-                // Then open file chooser
-                document.getElementById('photoInput').click();
-            } catch (error) {
-                console.error('❌ Errore inizializzazione upload:', error);
-                alert('Errore: ' + error.message);
-            }
-        }
-
         // Handle photo upload
-        function handlePhotoUpload(event) {
+        async function handlePhotoUpload(event) {
             const files = Array.from(event.target.files);
             const preview = document.getElementById('photoPreview');
             
+            if (files.length === 0) return;
+            
+            // Request permissions on first upload
+            if (!driveAccessToken) {
+                console.log('🔐 Richiedendo permessi Drive...');
+                try {
+                    await ensureDriveToken();
+                    console.log('✅ Permessi Drive ottenuti');
+                } catch (error) {
+                    console.error('❌ Errore permessi Drive:', error);
+                    alert('Errore: Devi autorizzare l\'accesso a Google Drive per caricare foto.\n\nRiprova e accetta i permessi quando richiesto.');
+                    return;
+                }
+            }
+            
+            // Process each file
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -896,7 +898,7 @@
                 };
                 reader.readAsDataURL(file);
 
-                // Upload to Drive (permissions already granted)
+                // Upload to Drive
                 uploadPhotoToDrive(file);
             });
         }
@@ -979,12 +981,12 @@
                 // Wait for config to be ready
                 await waitForConfig();
                 
-                // Get Drive access token
-                const token = await ensureDriveToken();
-                
-                if (!token) {
-                    throw new Error('Impossibile ottenere token di accesso a Drive');
+                // Use existing token (should already be set by handlePhotoUpload)
+                if (!driveAccessToken) {
+                    throw new Error('Token di accesso a Drive non disponibile. Ricarica la pagina e riprova.');
                 }
+                
+                const token = driveAccessToken;
                 
                 // Get folder ID from config
                 const driveFolderId = '1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p';
