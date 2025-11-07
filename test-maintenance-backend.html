@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Backend Manutenzione</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success { background: #c8e6c9; color: #2e7d32; }
+        .error { background: #ffcdd2; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Backend Sistema Manutenzione</h1>
+    <p>Questo tool verifica che tutte le funzioni backend siano deployate correttamente.</p>
+
+    <div class="test-section">
+        <h3>1. Test getVehicleListWithKmJsonp</h3>
+        <button onclick="testVehicleList()">🚐 Test Carica Veicoli con KM</button>
+        <div id="result-vehicles" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Test analyzeMaintenanceIssueJsonp</h3>
+        <button onclick="testAI()">🤖 Test AI Analisi</button>
+        <div id="result-ai" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Test uploadMaintenancePhotoJsonp</h3>
+        <input type="file" id="photoTest" accept="image/*">
+        <button onclick="testPhotoUpload()">📸 Test Upload Foto</button>
+        <div id="result-photo" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Test saveMaintenanceReportJsonp</h3>
+        <button onclick="testSaveReport()">💾 Test Salva Report</button>
+        <div id="result-save" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Test getActiveMaintenanceReportsJsonp</h3>
+        <button onclick="testActiveReports()">📋 Test Report Attivi</button>
+        <div id="result-active" class="result"></div>
+    </div>
+
+    <script src="config.private.js" defer></script>
+    <script src="config.public.js" defer></script>
+    <script>
+        function waitForConfig() {
+            return new Promise((resolve) => {
+                function check() {
+                    if (window.APP_CONFIG && window.APP_CONFIG.scriptUrl) {
+                        resolve();
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                }
+                check();
+            });
+        }
+
+        async function testVehicleList() {
+            await waitForConfig();
+            const result = document.getElementById('result-vehicles');
+            result.textContent = '⏳ Caricamento...';
+            result.className = 'result';
+
+            const callback = 'testVehicles_' + Date.now();
+            window[callback] = function(response) {
+                if (response.success) {
+                    result.className = 'result success';
+                    result.textContent = '✅ SUCCESS!\n\n' + 
+                        `Veicoli trovati: ${response.vehicles.length}\n\n` +
+                        JSON.stringify(response, null, 2);
+                } else {
+                    result.className = 'result error';
+                    result.textContent = '❌ ERROR!\n\n' + JSON.stringify(response, null, 2);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getVehicleListWithKmJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                result.className = 'result error';
+                result.textContent = '❌ ERRORE: Funzione non trovata nel backend!\n\nLa funzione getVehicleListWithKmJsonp non è stata deployata.';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        async function testAI() {
+            await waitForConfig();
+            const result = document.getElementById('result-ai');
+            result.textContent = '⏳ Analizzando...';
+            result.className = 'result';
+
+            const callback = 'testAI_' + Date.now();
+            window[callback] = function(response) {
+                if (response.success) {
+                    result.className = 'result success';
+                    result.textContent = '✅ SUCCESS!\n\n' + JSON.stringify(response, null, 2);
+                } else {
+                    result.className = 'result error';
+                    result.textContent = '❌ ERROR!\n\n' + JSON.stringify(response, null, 2);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&description=freni%20rumorosi&category=freni&kmToService=5000&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                result.className = 'result error';
+                result.textContent = '❌ ERRORE: Funzione non trovata!\n\nLa funzione analyzeMaintenanceIssueJsonp non è stata deployata.';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        async function testPhotoUpload() {
+            await waitForConfig();
+            const result = document.getElementById('result-photo');
+            const fileInput = document.getElementById('photoTest');
+            
+            if (!fileInput.files[0]) {
+                result.className = 'result error';
+                result.textContent = '❌ Seleziona prima una foto!';
+                return;
+            }
+
+            result.textContent = '⏳ Caricamento foto...';
+            result.className = 'result';
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const base64Data = e.target.result.split(',')[1];
+                
+                const callback = 'testPhoto_' + Date.now();
+                window[callback] = function(response) {
+                    if (response.success) {
+                        result.className = 'result success';
+                        result.textContent = '✅ SUCCESS!\n\n' + 
+                            `File: ${response.fileName}\n` +
+                            `File ID: ${response.fileId}\n` +
+                            `URL: ${response.fileUrl}\n\n` +
+                            JSON.stringify(response, null, 2);
+                    } else {
+                        result.className = 'result error';
+                        result.textContent = '❌ ERROR!\n\n' + JSON.stringify(response, null, 2);
+                    }
+                    delete window[callback];
+                };
+
+                const params = new URLSearchParams({
+                    function: 'uploadMaintenancePhotoJsonp',
+                    authToken: window.APP_CONFIG.authToken,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    callback: callback,
+                    _: Date.now()
+                });
+
+                const url = `${window.APP_CONFIG.scriptUrl}?${params.toString()}&fileData=${encodeURIComponent(base64Data)}`;
+                
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = () => {
+                    result.className = 'result error';
+                    result.textContent = '❌ ERRORE: Funzione non trovata o URL troppo lungo!\n\nLa funzione uploadMaintenancePhotoJsonp potrebbe non essere deployata, oppure l\'immagine è troppo grande per GET.';
+                    delete window[callback];
+                };
+                document.body.appendChild(script);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        async function testSaveReport() {
+            await waitForConfig();
+            const result = document.getElementById('result-save');
+            result.textContent = '⏳ Salvando report test...';
+            result.className = 'result';
+
+            const testReport = {
+                reportId: 'TEST-' + Date.now(),
+                vehicleId: 'test-vehicle-id',
+                vehicleName: 'Test Vehicle',
+                reportedBy: 'Test User',
+                reportDate: new Date().toISOString(),
+                issues: [
+                    {
+                        category: 'altro',
+                        description: 'Test problema per verifica backend',
+                        urgency: 'low',
+                        status: 'reported',
+                        completed: false
+                    }
+                ],
+                photos: [],
+                photoIds: []
+            };
+
+            const callback = 'testSave_' + Date.now();
+            window[callback] = function(response) {
+                if (response.success) {
+                    result.className = 'result success';
+                    result.textContent = '✅ SUCCESS!\n\n' + JSON.stringify(response, null, 2);
+                } else {
+                    result.className = 'result error';
+                    result.textContent = '❌ ERROR!\n\n' + JSON.stringify(response, null, 2);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=saveMaintenanceReportJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(testReport))}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                result.className = 'result error';
+                result.textContent = '❌ ERRORE: Funzione non trovata!\n\nLa funzione saveMaintenanceReportJsonp non è stata deployata.';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        async function testActiveReports() {
+            await waitForConfig();
+            const result = document.getElementById('result-active');
+            result.textContent = '⏳ Caricando report attivi...';
+            result.className = 'result';
+
+            const callback = 'testActive_' + Date.now();
+            window[callback] = function(response) {
+                if (response.success) {
+                    result.className = 'result success';
+                    result.textContent = '✅ SUCCESS!\n\n' + 
+                        `Report attivi: ${response.reports.length}\n\n` +
+                        JSON.stringify(response, null, 2);
+                } else {
+                    result.className = 'result error';
+                    result.textContent = '❌ ERROR!\n\n' + JSON.stringify(response, null, 2);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getActiveMaintenanceReportsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                result.className = 'result error';
+                result.textContent = '❌ ERRORE: Funzione non trovata!\n\nLa funzione getActiveMaintenanceReportsJsonp non è stata deployata.';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>

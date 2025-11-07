@@ -695,8 +695,8 @@
                             option.value = value;
                             option.textContent = vehicle.name || vehicle.vehicleType || 'Veicolo';
                             option.dataset.vehicleName = vehicle.name || vehicle.vehicleType || 'Veicolo';
-                            option.dataset.calendarId = vehicle.calendarId || '';
-                            option.dataset.kmToService = 0; // Will be populated later if needed
+                            option.dataset.calendarId = vehicle.calendarId || vehicle.id || '';
+                            option.dataset.kmToService = vehicle.kmToService || 0;
                             
                             select.appendChild(option);
                         });
@@ -716,7 +716,7 @@
             };
 
             const script = document.createElement('script');
-            script.src = `${scriptUrl}?function=getVehicleListJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.src = `${scriptUrl}?function=getVehicleListWithKmJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 const select = document.getElementById('vehicleSelect');
                 select.innerHTML = '<option value="">❌ Errore connessione script</option>';
@@ -875,25 +875,49 @@
             reader.onload = function(e) {
                 const base64Data = e.target.result.split(',')[1];
                 
-                const callback = 'handlePhotoUploaded';
+                const callback = 'photoUpload_' + Date.now();
                 window[callback] = function(response) {
+                    console.log('Upload response:', response);
+                    
                     if (response.success) {
                         uploadedPhotos.push({
                             fileId: response.fileId,
                             fileName: response.fileName,
                             fileUrl: response.fileUrl
                         });
-                        console.log('Foto caricata:', response.fileName);
+                        console.log('✅ Foto caricata:', response.fileName);
+                        console.log('Total photos:', uploadedPhotos.length);
                     } else {
-                        console.error('Errore caricamento foto:', response.error);
+                        console.error('❌ Errore caricamento foto:', response.error);
                         alert('Errore nel caricamento foto: ' + response.error);
                     }
+                    
+                    delete window[callback];
                 };
 
-                const url = `${window.APP_CONFIG.scriptUrl}?function=uploadMaintenancePhotoJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(file.name)}&fileData=${encodeURIComponent(base64Data)}&mimeType=${encodeURIComponent(file.type)}&callback=${callback}&_=${Date.now()}`;
+                // Build URL properly - Google Apps Script has URL length limits
+                const params = new URLSearchParams({
+                    function: 'uploadMaintenancePhotoJsonp',
+                    authToken: window.APP_CONFIG.authToken,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    callback: callback,
+                    _: Date.now()
+                });
+                
+                // For large files, we need to POST, but JSONP only supports GET
+                // So we'll use a different approach - send via fetch if available
+                const url = `${window.APP_CONFIG.scriptUrl}?${params.toString()}&fileData=${encodeURIComponent(base64Data)}`;
+                
+                console.log('🔄 Uploading photo:', file.name, 'Size:', file.size, 'bytes');
                 
                 const script = document.createElement('script');
                 script.src = url;
+                script.onerror = () => {
+                    console.error('❌ Script load error for photo upload');
+                    alert('Errore nel caricamento dello script per la foto');
+                    delete window[callback];
+                };
                 document.body.appendChild(script);
             };
             reader.readAsDataURL(file);

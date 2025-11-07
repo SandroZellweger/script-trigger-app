@@ -16,17 +16,24 @@ function getVehicleListWithKm() {
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
     
-    // Find column indices
-    const nameIndex = headers.indexOf('Nome');
-    const idIndex = headers.indexOf('calendarId');
-    const kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
+    // Find column indices - search for different possible names
+    let nameIndex = headers.indexOf('vehicleType');
+    if (nameIndex === -1) nameIndex = headers.indexOf('Nome');
+    
+    let idIndex = headers.indexOf('CalendarID');
+    if (idIndex === -1) idIndex = headers.indexOf('calendarId');
+    
+    let kmIndex = headers.indexOf('KmNextService');
+    if (kmIndex === -1) kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
     
     const vehicles = [];
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
+      // Check if vehicle has name and calendar ID (skip empty rows)
       if (row[nameIndex] && row[idIndex]) {
         vehicles.push({
           name: row[nameIndex],
+          calendarId: row[idIndex],
           id: row[idIndex],
           kmToService: parseInt(row[kmIndex]) || 0
         });
@@ -158,13 +165,11 @@ function analyzeMaintenanceIssueJsonp(params) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
-// Upload maintenance photo to Drive
+// Upload maintenance photo to Drive using Drive API
 function uploadMaintenancePhoto(fileName, fileData, mimeType) {
   try {
     // Use specific maintenance photos folder
     const maintenanceFolderId = '1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p';
-    
-    const maintenanceFolder = DriveApp.getFolderById(maintenanceFolderId);
     
     // Decode base64 data
     const blob = Utilities.newBlob(
@@ -173,21 +178,51 @@ function uploadMaintenancePhoto(fileName, fileData, mimeType) {
       fileName
     );
     
-    // Upload file
-    const file = maintenanceFolder.createFile(blob);
+    // Use Drive API v3 to upload file
+    const file = {
+      title: fileName,
+      mimeType: mimeType,
+      parents: [{id: maintenanceFolderId}]
+    };
+    
+    const fileResource = Drive.Files.insert(file, blob, {
+      supportsAllDrives: true
+    });
+    
+    // Get shareable link
+    const fileUrl = 'https://drive.google.com/file/d/' + fileResource.id + '/view';
     
     return {
       success: true,
-      fileId: file.getId(),
-      fileUrl: file.getUrl(),
-      fileName: file.getName(),
+      fileId: fileResource.id,
+      fileUrl: fileUrl,
+      fileName: fileResource.title,
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error.toString()
-    };
+    // Fallback to DriveApp if Drive API fails
+    try {
+      const maintenanceFolder = DriveApp.getFolderById('1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p');
+      const blob = Utilities.newBlob(
+        Utilities.base64Decode(fileData),
+        mimeType,
+        fileName
+      );
+      const file = maintenanceFolder.createFile(blob);
+      
+      return {
+        success: true,
+        fileId: file.getId(),
+        fileUrl: file.getUrl(),
+        fileName: file.getName(),
+        timestamp: new Date().toISOString()
+      };
+    } catch (fallbackError) {
+      return {
+        success: false,
+        error: 'Drive API error: ' + error.toString() + ' | Fallback error: ' + fallbackError.toString()
+      };
+    }
   }
 }
 
