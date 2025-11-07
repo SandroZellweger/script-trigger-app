@@ -161,26 +161,10 @@ function analyzeMaintenanceIssueJsonp(params) {
 // Upload maintenance photo to Drive
 function uploadMaintenancePhoto(fileName, fileData, mimeType) {
   try {
-    const config = getConfig();
-    const parentFolderId = config.PARENT_FOLDER_ID;
+    // Use specific maintenance photos folder
+    const maintenanceFolderId = '1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p';
     
-    if (!parentFolderId) {
-      return {
-        success: false,
-        error: 'Parent folder ID not configured'
-      };
-    }
-    
-    const parentFolder = DriveApp.getFolderById(parentFolderId);
-    
-    // Get or create "Maintenance Photos" folder
-    let maintenanceFolder;
-    const folders = parentFolder.getFoldersByName('Maintenance Photos');
-    if (folders.hasNext()) {
-      maintenanceFolder = folders.next();
-    } else {
-      maintenanceFolder = parentFolder.createFolder('Maintenance Photos');
-    }
+    const maintenanceFolder = DriveApp.getFolderById(maintenanceFolderId);
     
     // Decode base64 data
     const blob = Utilities.newBlob(
@@ -242,12 +226,37 @@ function saveMaintenanceReport(reportData) {
     if (!sheet) {
       sheet = ss.insertSheet('Difetti e Riparazioni');
       // Add headers
-      sheet.appendRow([
-        'reportId', 'reportDate', 'vehicleName', 'vehicleId', 'reportedBy',
-        'category', 'description', 'urgency', 'status', 'completed',
-        'completionDate', 'repairType', 'cost', 'garage', 'invoiceNumber',
-        'photoURLs', 'photoIds', 'issueNumber', 'totalIssues'
-      ]);
+      const headerRow = sheet.getRange(1, 1, 1, 19);
+      headerRow.setValues([[
+        'ID Report', 'Data Segnalazione', 'Nome Veicolo', 'ID Veicolo', 'Segnalato Da',
+        'Categoria', 'Descrizione Problema', 'Urgenza', 'Stato', 'Completato',
+        'Data Completamento', 'Tipo Riparazione', 'Costo (CHF)', 'Garage/Officina', 'N. Fattura',
+        'Link Foto', 'ID Foto Drive', 'N. Problema', 'Totale Problemi'
+      ]]);
+      // Format headers
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+    
+    // Check if headers exist, if not add them
+    const firstRow = sheet.getRange(1, 1).getValue();
+    if (!firstRow || firstRow !== 'ID Report') {
+      sheet.insertRowBefore(1);
+      const headerRow = sheet.getRange(1, 1, 1, 19);
+      headerRow.setValues([[
+        'ID Report', 'Data Segnalazione', 'Nome Veicolo', 'ID Veicolo', 'Segnalato Da',
+        'Categoria', 'Descrizione Problema', 'Urgenza', 'Stato', 'Completato',
+        'Data Completamento', 'Tipo Riparazione', 'Costo (CHF)', 'Garage/Officina', 'N. Fattura',
+        'Link Foto', 'ID Foto Drive', 'N. Problema', 'Totale Problemi'
+      ]]);
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
     }
     
     const reportId = reportData.reportId;
@@ -257,10 +266,10 @@ function saveMaintenanceReport(reportData) {
     
     // Add one row per issue
     issues.forEach((issue, index) => {
-      const photoURLs = issue.photoURLs ? issue.photoURLs.join(', ') : '';
-      const photoIds = issue.photoIds ? issue.photoIds.join(', ') : '';
+      const photoURLs = reportData.photos ? reportData.photos.join('\n') : '';
+      const photoIds = reportData.photoIds ? reportData.photoIds.join('\n') : '';
       
-      sheet.appendRow([
+      const row = sheet.appendRow([
         reportId,
         reportDate,
         reportData.vehicleName,
@@ -269,7 +278,7 @@ function saveMaintenanceReport(reportData) {
         issue.category,
         issue.description,
         issue.urgency,
-        'open',
+        'Aperto',
         false,
         '',
         '',
@@ -281,6 +290,49 @@ function saveMaintenanceReport(reportData) {
         index + 1,
         totalIssues
       ]);
+      
+      // Get the last row number
+      const lastRow = sheet.getLastRow();
+      
+      // Format urgency column with colors
+      const urgencyCell = sheet.getRange(lastRow, 8);
+      switch(issue.urgency) {
+        case 'low':
+          urgencyCell.setValue('🟢 Bassa');
+          urgencyCell.setBackground('#c8e6c9');
+          break;
+        case 'medium':
+          urgencyCell.setValue('🟡 Media');
+          urgencyCell.setBackground('#fff9c4');
+          break;
+        case 'high':
+          urgencyCell.setValue('🟠 Alta');
+          urgencyCell.setBackground('#ffccbc');
+          break;
+        case 'critical':
+          urgencyCell.setValue('🔴 Critica');
+          urgencyCell.setBackground('#ffcdd2');
+          urgencyCell.setFontWeight('bold');
+          break;
+      }
+      
+      // Format status column
+      const statusCell = sheet.getRange(lastRow, 9);
+      statusCell.setBackground('#e3f2fd');
+      
+      // Add checkbox to completed column
+      const completedCell = sheet.getRange(lastRow, 10);
+      completedCell.insertCheckboxes();
+      
+      // Format photo URLs as hyperlinks if present
+      if (photoURLs) {
+        const photoCell = sheet.getRange(lastRow, 16);
+        const urls = reportData.photos;
+        if (urls.length > 0) {
+          const formula = urls.map((url, i) => `HYPERLINK("${url}", "Foto ${i+1}")`).join(' | ');
+          photoCell.setFormula('=' + formula);
+        }
+      }
     });
     
     return {
@@ -519,16 +571,21 @@ function updateIssueStatus(reportId, issueIndex, completed) {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (row[0] === reportId && row[17] === issueIndex) {
-        // Update completed column (index 9 is 0-based, column J is 10)
-        sheet.getRange(i + 1, 10).setValue(completed);
+        // Update completed checkbox (column J = 10)
+        const completedCell = sheet.getRange(i + 1, 10);
+        completedCell.setValue(completed);
         
-        // Update completion date if completed
+        // Update completion date and status if completed
         if (completed) {
           sheet.getRange(i + 1, 11).setValue(new Date());
-          sheet.getRange(i + 1, 9).setValue('completed');
+          const statusCell = sheet.getRange(i + 1, 9);
+          statusCell.setValue('✅ Completato');
+          statusCell.setBackground('#c8e6c9');
         } else {
           sheet.getRange(i + 1, 11).setValue('');
-          sheet.getRange(i + 1, 9).setValue('open');
+          const statusCell = sheet.getRange(i + 1, 9);
+          statusCell.setValue('Aperto');
+          statusCell.setBackground('#e3f2fd');
         }
         
         return {

@@ -626,13 +626,17 @@
 
             // Check admin login
             const adminUser = localStorage.getItem('adminUser');
+            const adminCode = localStorage.getItem('adminCode');
+            
             if (!adminUser) {
                 alert('Accesso non autorizzato. Effettua il login come admin.');
                 window.location.href = 'index.html';
                 return;
             }
 
-            document.getElementById('reportedBy').value = adminUser;
+            // Display full name with code
+            const displayName = adminCode ? `${adminUser} (${adminCode})` : adminUser;
+            document.getElementById('reportedBy').value = displayName;
 
             // Load vehicles
             loadVehicles();
@@ -940,6 +944,7 @@
 
             // Prepare data
             const reportData = {
+                reportId: 'RPT-' + Date.now(), // Generate unique report ID
                 vehicleId,
                 vehicleName,
                 reportedBy,
