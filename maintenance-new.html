@@ -608,12 +608,20 @@
 
     <script src="config.private.js" defer></script>
     <script src="config.public.js" defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         // Maintenance System JavaScript
 
         let issueCounter = 0;
         let currentVehicles = [];
         let uploadedPhotos = [];
+        
+        // Google Drive OAuth
+        const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+        let driveTokenClient = null;
+        let driveAccessToken = null;
+        let pendingTokenPromise = null;
+        let pendingTokenResolvers = { resolve: null, reject: null };
 
         // Wait for config to load
         function initApp() {
@@ -869,58 +877,151 @@
             });
         }
 
-        // Upload photo to Google Drive
-        function uploadPhotoToDrive(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Data = e.target.result.split(',')[1];
-                
-                const callback = 'photoUpload_' + Date.now();
-                window[callback] = function(response) {
-                    console.log('Upload response:', response);
-                    
-                    if (response.success) {
-                        uploadedPhotos.push({
-                            fileId: response.fileId,
-                            fileName: response.fileName,
-                            fileUrl: response.fileUrl
-                        });
-                        console.log('✅ Foto caricata:', response.fileName);
-                        console.log('Total photos:', uploadedPhotos.length);
-                    } else {
-                        console.error('❌ Errore caricamento foto:', response.error);
-                        alert('Errore nel caricamento foto: ' + response.error);
-                    }
-                    
-                    delete window[callback];
-                };
+        // Initialize Drive OAuth client
+        function initDriveTokenClient() {
+            if (driveTokenClient) return;
+            
+            const driveClientId = window.PRIVATE_CONFIG?.driveOauthClientId || window.APP_CONFIG?.driveOauthClientId;
+            if (!driveClientId) {
+                console.error('❌ Client ID Google Drive non configurato');
+                return;
+            }
 
-                // Build URL properly - Google Apps Script has URL length limits
-                const params = new URLSearchParams({
-                    function: 'uploadMaintenancePhotoJsonp',
-                    authToken: window.APP_CONFIG.authToken,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    callback: callback,
-                    _: Date.now()
+            if (typeof google === 'undefined' || !google.accounts?.oauth2) {
+                console.error('❌ Google Identity Services non disponibile');
+                return;
+            }
+
+            driveTokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: driveClientId,
+                scope: DRIVE_SCOPE,
+                callback: (response) => {
+                    if (response.error) {
+                        console.error('Google OAuth error:', response);
+                        if (pendingTokenResolvers.reject) {
+                            pendingTokenResolvers.reject(new Error(response.error));
+                        }
+                        pendingTokenPromise = null;
+                        pendingTokenResolvers = { resolve: null, reject: null };
+                        return;
+                    }
+
+                    driveAccessToken = response.access_token;
+                    if (pendingTokenResolvers.resolve) {
+                        pendingTokenResolvers.resolve(driveAccessToken);
+                    }
+
+                    pendingTokenPromise = null;
+                    pendingTokenResolvers = { resolve: null, reject: null };
+                }
+            });
+        }
+
+        // Ensure we have a valid Drive access token
+        async function ensureDriveToken() {
+            if (driveAccessToken) {
+                return driveAccessToken;
+            }
+
+            initDriveTokenClient();
+
+            if (!pendingTokenPromise) {
+                pendingTokenPromise = new Promise((resolve, reject) => {
+                    pendingTokenResolvers = { resolve, reject };
+
+                    try {
+                        driveTokenClient.requestAccessToken({ prompt: '' });
+                    } catch (error) {
+                        pendingTokenResolvers = { resolve: null, reject: null };
+                        pendingTokenPromise = null;
+                        reject(error);
+                    }
+                });
+
+                pendingTokenPromise = pendingTokenPromise.finally(() => {
+                    pendingTokenPromise = null;
+                    pendingTokenResolvers = { resolve: null, reject: null };
+                });
+            }
+
+            return pendingTokenPromise;
+        }
+
+        // Upload photo to Google Drive using Drive API v3
+        async function uploadPhotoToDrive(file) {
+            console.log('🔄 Uploading photo:', file.name, 'Size:', file.size, 'bytes');
+            
+            try {
+                // Get Drive access token
+                const token = await ensureDriveToken();
+                
+                if (!token) {
+                    throw new Error('Impossibile ottenere token di accesso a Drive');
+                }
+                
+                // Get folder ID from config
+                const driveFolderId = '1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p';
+                
+                // Prepare metadata
+                const metadata = {
+                    name: file.name,
+                    parents: [driveFolderId]
+                };
+                
+                // Create multipart form data
+                const formData = new FormData();
+                formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                formData.append('file', file);
+                
+                // Upload to Drive
+                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
                 });
                 
-                // For large files, we need to POST, but JSONP only supports GET
-                // So we'll use a different approach - send via fetch if available
-                const url = `${window.APP_CONFIG.scriptUrl}?${params.toString()}&fileData=${encodeURIComponent(base64Data)}`;
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Drive API error: ${response.status} - ${error}`);
+                }
                 
-                console.log('🔄 Uploading photo:', file.name, 'Size:', file.size, 'bytes');
+                const result = await response.json();
                 
-                const script = document.createElement('script');
-                script.src = url;
-                script.onerror = () => {
-                    console.error('❌ Script load error for photo upload');
-                    alert('Errore nel caricamento dello script per la foto');
-                    delete window[callback];
-                };
-                document.body.appendChild(script);
-            };
-            reader.readAsDataURL(file);
+                // Build shareable URL
+                const fileUrl = `https://drive.google.com/file/d/${result.id}/view`;
+                
+                uploadedPhotos.push({
+                    fileId: result.id,
+                    fileName: result.name,
+                    fileUrl: fileUrl
+                });
+                
+                console.log('✅ Foto caricata:', result.name);
+                console.log('File ID:', result.id);
+                console.log('Total photos:', uploadedPhotos.length);
+                
+                // Update preview with success indicator
+                const previews = document.querySelectorAll('.photo-preview-item');
+                if (previews.length > 0) {
+                    const lastPreview = previews[previews.length - 1];
+                    lastPreview.style.border = '3px solid #4caf50';
+                    lastPreview.title = 'Caricato su Drive';
+                }
+                
+            } catch (error) {
+                console.error('❌ Errore upload foto:', error);
+                alert('Errore nel caricamento della foto: ' + error.message);
+                
+                // Mark preview with error
+                const previews = document.querySelectorAll('.photo-preview-item');
+                if (previews.length > 0) {
+                    const lastPreview = previews[previews.length - 1];
+                    lastPreview.style.border = '3px solid #f44336';
+                    lastPreview.title = 'Errore caricamento';
+                }
+            }
         }
 
         // Handle form submission
