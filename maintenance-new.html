@@ -569,7 +569,7 @@
 
                     <div class="form-group">
                         <label>📸 Foto (opzionale)</label>
-                        <div class="photo-upload" onclick="document.getElementById('photoInput').click()">
+                        <div class="photo-upload" onclick="initializePhotoUpload()">
                             <p>📷 Clicca per caricare foto dei danni</p>
                             <input type="file" id="photoInput" accept="image/*" multiple style="display: none;" onchange="handlePhotoUpload(event)">
                         </div>
@@ -865,6 +865,20 @@
             document.body.appendChild(script);
         }
 
+        // Initialize photo upload - request permissions first
+        async function initializePhotoUpload() {
+            try {
+                // First, ensure we have Drive permissions
+                await ensureDriveToken();
+                
+                // Then open file chooser
+                document.getElementById('photoInput').click();
+            } catch (error) {
+                console.error('❌ Errore inizializzazione upload:', error);
+                alert('Errore: ' + error.message);
+            }
+        }
+
         // Handle photo upload
         function handlePhotoUpload(event) {
             const files = Array.from(event.target.files);
@@ -882,7 +896,7 @@
                 };
                 reader.readAsDataURL(file);
 
-                // Upload to Drive
+                // Upload to Drive (permissions already granted)
                 uploadPhotoToDrive(file);
             });
         }
