@@ -1,0 +1,563 @@
+/*************************************************************
+ * MAINTENANCE SYSTEM FUNCTIONS
+ * 
+ * INSTRUCTIONS: Copy all functions below and paste them at the END of complete-secure-script.gs
+ * (after the last function, before the closing brace if any)
+ *************************************************************/
+
+// Get vehicle list with km data from vehicle config sheet
+function getVehicleListWithKm() {
+  try {
+    const config = getConfig();
+    const sheetId = config.VEHICLE_DATA_SHEET_ID;
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Configurazione veicoli') || ss.getSheets()[0];
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    // Find column indices
+    const nameIndex = headers.indexOf('Nome');
+    const idIndex = headers.indexOf('calendarId');
+    const kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
+    
+    const vehicles = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[nameIndex] && row[idIndex]) {
+        vehicles.push({
+          name: row[nameIndex],
+          id: row[idIndex],
+          kmToService: parseInt(row[kmIndex]) || 0
+        });
+      }
+    }
+    
+    return {
+      success: true,
+      vehicles: vehicles,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getVehicleListWithKmJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getVehicleListWithKm();
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Analyze maintenance issue with AI
+function analyzeMaintenanceIssue(description, category, kmToService) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
+    }
+    
+    // Calculate days to service (assuming 100km/day)
+    const daysToService = Math.floor(kmToService / 100);
+    
+    const prompt = `Sei un meccanico esperto. Analizza questo problema di manutenzione:
+
+Categoria: ${category}
+Descrizione: ${description}
+Km fino al prossimo tagliando: ${kmToService} km (circa ${daysToService} giorni)
+
+Rispondi in formato JSON con:
+1. urgency: "low", "medium", "high", o "critical"
+2. canWaitUntilService: true/false (può aspettare fino al prossimo tagliando?)
+3. recommendation: breve consiglio in italiano (max 100 caratteri)
+
+Esempio risposta:
+{"urgency": "medium", "canWaitUntilService": true, "recommendation": "Controlla al prossimo tagliando"}`;
+
+    const payload = {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Sei un meccanico esperto che analizza problemi di veicoli. Rispondi sempre in italiano e in formato JSON.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 200
+    };
+    
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
+    const result = JSON.parse(response.getContentText());
+    
+    if (result.error) {
+      return {
+        success: false,
+        error: result.error.message
+      };
+    }
+    
+    const aiResponse = result.choices[0].message.content;
+    const analysis = JSON.parse(aiResponse);
+    
+    return {
+      success: true,
+      analysis: analysis,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function analyzeMaintenanceIssueJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = analyzeMaintenanceIssue(
+    params.description,
+    params.category,
+    parseInt(params.kmToService) || 0
+  );
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Upload maintenance photo to Drive
+function uploadMaintenancePhoto(fileName, fileData, mimeType) {
+  try {
+    const config = getConfig();
+    const parentFolderId = config.PARENT_FOLDER_ID;
+    
+    if (!parentFolderId) {
+      return {
+        success: false,
+        error: 'Parent folder ID not configured'
+      };
+    }
+    
+    const parentFolder = DriveApp.getFolderById(parentFolderId);
+    
+    // Get or create "Maintenance Photos" folder
+    let maintenanceFolder;
+    const folders = parentFolder.getFoldersByName('Maintenance Photos');
+    if (folders.hasNext()) {
+      maintenanceFolder = folders.next();
+    } else {
+      maintenanceFolder = parentFolder.createFolder('Maintenance Photos');
+    }
+    
+    // Decode base64 data
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(fileData),
+      mimeType,
+      fileName
+    );
+    
+    // Upload file
+    const file = maintenanceFolder.createFile(blob);
+    
+    return {
+      success: true,
+      fileId: file.getId(),
+      fileUrl: file.getUrl(),
+      fileName: file.getName(),
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function uploadMaintenancePhotoJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = uploadMaintenancePhoto(
+    params.fileName,
+    params.fileData,
+    params.mimeType
+  );
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Save maintenance report to Google Sheets
+function saveMaintenanceReport(reportData) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+    
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Difetti e Riparazioni');
+      // Add headers
+      sheet.appendRow([
+        'reportId', 'reportDate', 'vehicleName', 'vehicleId', 'reportedBy',
+        'category', 'description', 'urgency', 'status', 'completed',
+        'completionDate', 'repairType', 'cost', 'garage', 'invoiceNumber',
+        'photoURLs', 'photoIds', 'issueNumber', 'totalIssues'
+      ]);
+    }
+    
+    const reportId = reportData.reportId;
+    const reportDate = new Date(reportData.reportDate);
+    const issues = reportData.issues;
+    const totalIssues = issues.length;
+    
+    // Add one row per issue
+    issues.forEach((issue, index) => {
+      const photoURLs = issue.photoURLs ? issue.photoURLs.join(', ') : '';
+      const photoIds = issue.photoIds ? issue.photoIds.join(', ') : '';
+      
+      sheet.appendRow([
+        reportId,
+        reportDate,
+        reportData.vehicleName,
+        reportData.vehicleId,
+        reportData.reportedBy,
+        issue.category,
+        issue.description,
+        issue.urgency,
+        'open',
+        false,
+        '',
+        '',
+        '',
+        '',
+        '',
+        photoURLs,
+        photoIds,
+        index + 1,
+        totalIssues
+      ]);
+    });
+    
+    return {
+      success: true,
+      reportId: reportId,
+      issuesAdded: issues.length,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function saveMaintenanceReportJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const reportData = JSON.parse(params.data);
+  const response = saveMaintenanceReport(reportData);
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Get active maintenance reports (not completed)
+function getActiveMaintenanceReports() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+    
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    if (!sheet) {
+      return {
+        success: true,
+        reports: []
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    // Group rows by reportId
+    const reportsMap = {};
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const reportId = row[0];
+      const completed = row[9]; // completed column
+      
+      // Only include incomplete reports
+      if (!completed) {
+        if (!reportsMap[reportId]) {
+          reportsMap[reportId] = {
+            reportId: reportId,
+            reportDate: row[1],
+            vehicleName: row[2],
+            vehicleId: row[3],
+            reportedBy: row[4],
+            issues: [],
+            totalIssues: row[18]
+          };
+        }
+        
+        reportsMap[reportId].issues.push({
+          issueNumber: row[17],
+          category: row[5],
+          description: row[6],
+          urgency: row[7],
+          status: row[8],
+          completed: row[9],
+          photoURLs: row[15] ? row[15].split(', ') : [],
+          photoIds: row[16] ? row[16].split(', ') : []
+        });
+      }
+    }
+    
+    const reports = Object.values(reportsMap);
+    
+    return {
+      success: true,
+      reports: reports,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getActiveMaintenanceReportsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getActiveMaintenanceReports();
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Get maintenance history (completed reports)
+function getMaintenanceHistory() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+    
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    if (!sheet) {
+      return {
+        success: true,
+        reports: []
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // Group rows by reportId
+    const reportsMap = {};
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const reportId = row[0];
+      const allCompleted = row[9]; // This checks if all issues in report are completed
+      
+      if (!reportsMap[reportId]) {
+        reportsMap[reportId] = {
+          reportId: reportId,
+          reportDate: row[1],
+          vehicleName: row[2],
+          vehicleId: row[3],
+          reportedBy: row[4],
+          issues: [],
+          totalIssues: row[18],
+          allCompleted: true
+        };
+      }
+      
+      if (!row[9]) {
+        reportsMap[reportId].allCompleted = false;
+      }
+      
+      reportsMap[reportId].issues.push({
+        issueNumber: row[17],
+        category: row[5],
+        description: row[6],
+        urgency: row[7],
+        status: row[8],
+        completed: row[9],
+        completionDate: row[10],
+        repairType: row[11],
+        cost: row[12],
+        garage: row[13],
+        invoiceNumber: row[14],
+        photoURLs: row[15] ? row[15].split(', ') : [],
+        photoIds: row[16] ? row[16].split(', ') : []
+      });
+    }
+    
+    // Filter only completed reports
+    const completedReports = Object.values(reportsMap).filter(r => r.allCompleted);
+    
+    return {
+      success: true,
+      reports: completedReports,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getMaintenanceHistoryJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getMaintenanceHistory();
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Update issue status (mark as completed/not completed)
+function updateIssueStatus(reportId, issueIndex, completed) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+    
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    if (!sheet) {
+      return {
+        success: false,
+        error: 'Sheet not found'
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // Find the row for this reportId and issueIndex
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0] === reportId && row[17] === issueIndex) {
+        // Update completed column (index 9 is 0-based, column J is 10)
+        sheet.getRange(i + 1, 10).setValue(completed);
+        
+        // Update completion date if completed
+        if (completed) {
+          sheet.getRange(i + 1, 11).setValue(new Date());
+          sheet.getRange(i + 1, 9).setValue('completed');
+        } else {
+          sheet.getRange(i + 1, 11).setValue('');
+          sheet.getRange(i + 1, 9).setValue('open');
+        }
+        
+        return {
+          success: true,
+          updated: true,
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Issue not found'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function updateIssueStatusJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = updateIssueStatus(
+    params.reportId,
+    parseInt(params.issueIndex),
+    params.completed === 'true'
+  );
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
