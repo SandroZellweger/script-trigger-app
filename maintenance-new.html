@@ -257,6 +257,30 @@
             margin-top: 20px;
         }
 
+        .drive-auth {
+            margin-top: 15px;
+            background: #fce4ec;
+            border: 1px solid #f48fb1;
+            border-radius: 10px;
+            padding: 15px;
+            color: #880e4f;
+        }
+
+        .drive-auth button {
+            background: linear-gradient(135deg, #ec407a 0%, #d81b60 100%);
+            border: none;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .drive-auth button:hover {
+            opacity: 0.9;
+        }
+
         .photo-preview-item {
             position: relative;
             border-radius: 10px;
@@ -573,6 +597,10 @@
                             <p>📷 Clicca per caricare foto dei danni</p>
                             <input type="file" id="photoInput" accept="image/*" multiple style="display: none;" onchange="handlePhotoUpload(event)">
                         </div>
+                        <div id="driveAuthPrompt" class="drive-auth" style="display: none;">
+                            <button type="button" onclick="requestDriveAuthorization()">🔐 Autorizza accesso Google Drive</button>
+                            <p>Richiediamo questa autorizzazione una sola volta per salvare le foto nella cartella aziendale su Google Drive.</p>
+                        </div>
                         <div class="photo-preview" id="photoPreview"></div>
                     </div>
 
@@ -622,6 +650,7 @@
         let driveAccessToken = null;
         let pendingTokenPromise = null;
         let pendingTokenResolvers = { resolve: null, reject: null };
+    let driveAuthorized = false;
         
         // Wait for config to load
         function waitForConfig() {
@@ -635,6 +664,28 @@
                 }
                 check();
             });
+        }
+
+        function updateDriveAuthUI() {
+            const prompt = document.getElementById('driveAuthPrompt');
+            if (!prompt) return;
+            prompt.style.display = driveAuthorized ? 'none' : 'block';
+        }
+
+        async function requestDriveAuthorization() {
+            await waitForConfig();
+            try {
+                console.log('🔐 Richiedendo autorizzazione Google Drive...');
+                const token = await ensureDriveToken();
+                if (token) {
+                    driveAuthorized = true;
+                    updateDriveAuthUI();
+                    alert('✅ Accesso a Google Drive autorizzato. Ora puoi caricare le foto.');
+                }
+            } catch (error) {
+                console.error('❌ Errore autorizzazione Drive:', error);
+                alert('Errore nell\'autorizzazione Google Drive: ' + error.message);
+            }
         }
 
         // Initialize app after config loads
@@ -655,6 +706,9 @@
             // Display full name with code
             const displayName = adminCode ? `${adminUser} (${adminCode})` : adminUser;
             document.getElementById('reportedBy').value = displayName;
+
+            // Update Drive authorization UI
+            updateDriveAuthUI();
 
             // Load vehicles
             loadVehicles();
@@ -872,15 +926,20 @@
             
             if (files.length === 0) return;
             
-            // Request permissions on first upload
+            if (!driveAuthorized) {
+                alert('Devi prima autorizzare l\'accesso a Google Drive. Clicca sul pulsante "Autorizza accesso Google Drive" e riprova.');
+                event.target.value = '';
+                return;
+            }
+            
+            // Refresh token if necessario (non mostra popup se già autorizzato)
             if (!driveAccessToken) {
-                console.log('🔐 Richiedendo permessi Drive...');
                 try {
                     await ensureDriveToken();
-                    console.log('✅ Permessi Drive ottenuti');
                 } catch (error) {
-                    console.error('❌ Errore permessi Drive:', error);
-                    alert('Errore: Devi autorizzare l\'accesso a Google Drive per caricare foto.\n\nRiprova e accetta i permessi quando richiesto.');
+                    console.error('❌ Errore aggiornamento token Drive:', error);
+                    alert('Errore nel recupero del token Google Drive. Riprova l\'autorizzazione.');
+                    event.target.value = '';
                     return;
                 }
             }
@@ -933,6 +992,8 @@
                     }
 
                     driveAccessToken = response.access_token;
+                    driveAuthorized = true;
+                    updateDriveAuthUI();
                     if (pendingTokenResolvers.resolve) {
                         pendingTokenResolvers.resolve(driveAccessToken);
                     }
