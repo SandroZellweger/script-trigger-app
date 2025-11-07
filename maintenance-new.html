@@ -821,17 +821,19 @@
             // Call AI
             const callback = `handleAI_${issueId.replace('-', '_')}`;
             window[callback] = function(response) {
-                if (response.success) {
-                    recText.textContent = response.recommendation;
+                if (response.success && response.analysis) {
+                    const analysis = response.analysis;
+                    recText.textContent = analysis.recommendation || 'Analisi completata';
 
                     // Auto-suggest urgency if not set
                     const urgencySelect = issueElement.querySelector('.issue-urgency');
-                    if (!urgencySelect.value && response.suggestedUrgency) {
-                        urgencySelect.value = response.suggestedUrgency;
+                    if (!urgencySelect.value && analysis.urgency) {
+                        urgencySelect.value = analysis.urgency;
                     }
                 } else {
-                    recText.textContent = 'Errore nell\'analisi AI: ' + response.error;
+                    recText.textContent = 'Errore nell\'analisi AI: ' + (response.error || 'Errore sconosciuto');
                 }
+                delete window[callback];
             };
 
             const url = `${window.APP_CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;

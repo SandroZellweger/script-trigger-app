@@ -123,7 +123,11 @@ Esempio risposta:
       };
     }
     
-    const aiResponse = result.choices[0].message.content;
+    let aiResponse = result.choices[0].message.content;
+    
+    // Remove markdown code blocks if present
+    aiResponse = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    
     const analysis = JSON.parse(aiResponse);
     
     return {
