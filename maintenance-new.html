@@ -664,33 +664,61 @@
 
         // Load vehicles
         function loadVehicles() {
-            const callback = 'handleVehiclesLoaded';
-            window[callback] = function(response) {
-                if (response.success) {
-                    currentVehicles = response.vehicles;
-                    const select = document.getElementById('vehicleSelect');
-                    select.innerHTML = '<option value="">Seleziona un veicolo...</option>';
-                    
-                    response.vehicles.forEach(vehicle => {
-                        const option = document.createElement('option');
-                        option.value = vehicle.id;
-                        option.textContent = `${vehicle.name}${vehicle.licencePlate ? ' - ' + vehicle.licencePlate : ''}`;
-                        option.dataset.kmToService = vehicle.kmToService || 0;
-                        option.dataset.vehicleName = vehicle.name;
-                        select.appendChild(option);
-                    });
+            const scriptUrl = window.APP_CONFIG?.scriptUrl;
+            const authToken = window.APP_CONFIG?.authToken;
+            
+            if (!scriptUrl || !authToken) {
+                console.error('Config not loaded');
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">⚠️ Configurazione mancante</option>';
+                return;
+            }
 
-                    select.addEventListener('change', handleVehicleChange);
-                } else {
-                    console.error('Error loading vehicles:', response.error);
-                    alert('Errore nel caricamento dei veicoli: ' + response.error);
+            const callback = 'vehicleCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                const select = document.getElementById('vehicleSelect');
+                
+                try {
+                    if (response.success && response.vehicles) {
+                        select.innerHTML = '<option value="">-- Seleziona un veicolo --</option>';
+                        currentVehicles = response.vehicles;
+                        
+                        response.vehicles.forEach(vehicle => {
+                            const option = document.createElement('option');
+                            const value = vehicle.calendarId || vehicle.id || '';
+                            
+                            option.value = value;
+                            option.textContent = vehicle.name || vehicle.vehicleType || 'Veicolo';
+                            option.dataset.vehicleName = vehicle.name || vehicle.vehicleType || 'Veicolo';
+                            option.dataset.calendarId = vehicle.calendarId || '';
+                            option.dataset.kmToService = 0; // Will be populated later if needed
+                            
+                            select.appendChild(option);
+                        });
+                        
+                        select.addEventListener('change', handleVehicleChange);
+                        console.log('✅ Loaded ' + response.vehicles.length + ' vehicles');
+                    } else {
+                        select.innerHTML = '<option value="">❌ ' + (response.error || 'Errore caricamento') + '</option>';
+                        console.error('Vehicle load error:', response);
+                    }
+                } catch (error) {
+                    console.error('Error processing vehicles:', error);
+                    select.innerHTML = '<option value="">❌ Errore processamento</option>';
                 }
+                
+                delete window[callback];
             };
 
-            const url = `${window.APP_CONFIG.scriptUrl}?function=getVehicleListWithKmJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
             const script = document.createElement('script');
-            script.src = url;
-            document.body.appendChild(script);
+            script.src = `${scriptUrl}?function=getVehicleListJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">❌ Errore connessione script</option>';
+                delete window[callback];
+            };
+            document.head.appendChild(script);
         }
 
         // Handle vehicle selection change
