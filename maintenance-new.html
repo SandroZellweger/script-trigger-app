@@ -6,6 +6,8 @@
     <title>Manutenzione Veicoli - Noleggio Semplice</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#667eea">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -540,6 +542,415 @@
                 gap: 10px;
             }
         }
+
+        /* PDF Wizard Modal */
+        .pdf-wizard-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .pdf-wizard-overlay.active {
+            display: flex;
+        }
+
+        .pdf-wizard-modal {
+            background: white;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .pdf-wizard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px 15px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .pdf-wizard-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .pdf-wizard-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .wizard-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wizard-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .wizard-progress {
+            padding: 20px 25px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .wizard-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            padding: 10px;
+        }
+
+        .wizard-step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #ddd;
+            z-index: -1;
+        }
+
+        .wizard-step:last-child::after {
+            display: none;
+        }
+
+        .wizard-step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ddd;
+            color: #999;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .wizard-step.active .wizard-step-circle {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .wizard-step.completed .wizard-step-circle {
+            background: #28a745;
+            color: white;
+        }
+
+        .wizard-step.completed::after {
+            background: #28a745;
+        }
+
+        .wizard-step-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .wizard-step.active .wizard-step-label {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .pdf-wizard-content {
+            padding: 30px;
+        }
+
+        .wizard-section {
+            display: none;
+        }
+
+        .wizard-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .wizard-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .wizard-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .wizard-btn-prev {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .wizard-btn-prev:hover {
+            background: #dee2e6;
+        }
+
+        .wizard-btn-next {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .wizard-btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .wizard-btn-generate {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .wizard-btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .wizard-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .damage-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .damage-item {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .damage-item:hover {
+            border-color: #667eea;
+            background: #f8f9fe;
+        }
+
+        .damage-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-top: 3px;
+        }
+
+        .damage-item-content {
+            flex: 1;
+        }
+
+        .damage-item-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .damage-item-desc {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .damage-item-urgency {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .service-checklist {
+            display: grid;
+            gap: 10px;
+        }
+
+        .service-item {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .service-item:hover {
+            border-color: #667eea;
+            background: #f8f9fe;
+        }
+
+        .service-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .service-item label {
+            cursor: pointer;
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .summary-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .summary-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .summary-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .summary-list li:last-child {
+            border-bottom: none;
+        }
+
+        .summary-empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        .add-damage-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-damage-btn:hover {
+            background: #218838;
+        }
+
+        .quick-damage-form {
+            display: none;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .quick-damage-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .quick-damage-form .form-group {
+            margin-bottom: 15px;
+        }
+
+        .quick-damage-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .quick-damage-form input,
+        .quick-damage-form textarea,
+        .quick-damage-form select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .quick-damage-form textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .quick-damage-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .quick-damage-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -612,6 +1023,17 @@
         <!-- ACTIVE REPORTS TAB -->
         <div id="active-reports" class="tab-content">
             <div class="content-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="font-weight: bold;">🚐 Filtra per veicolo:</label>
+                        <select id="vehicleFilterSelect" onchange="filterActiveReports()" style="padding: 8px 12px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px;">
+                            <option value="">Tutti i veicoli</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="openMaintenancePdfWizard()" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        📄 Crea Lista Manutenzione (PDF)
+                    </button>
+                </div>
                 <div id="activeReportsList" class="reports-grid">
                     <div class="loading">
                         <div class="spinner"></div>
@@ -1214,21 +1636,49 @@
                     return;
                 }
 
-                if (response.reports.length === 0) {
-                    container.innerHTML = `<div class="success-message">✅ Nessun report attivo. Tutti i problemi sono stati risolti! 👍</div>`;
-                    return;
-                }
+                // Save globally for filter and PDF wizard
+                allActiveReports = response.reports || [];
+                filteredActiveReports = [...allActiveReports];
 
-                container.innerHTML = '';
-                response.reports.forEach(report => {
-                    container.insertAdjacentHTML('beforeend', createReportCard(report));
+                // Populate vehicle filter
+                const filterSelect = document.getElementById('vehicleFilterSelect');
+                const uniqueVehicles = {};
+                allActiveReports.forEach(report => {
+                    if (report.vehicleId && !uniqueVehicles[report.vehicleId]) {
+                        uniqueVehicles[report.vehicleId] = report.vehicleName;
+                    }
                 });
+                
+                filterSelect.innerHTML = '<option value="">Tutti i veicoli</option>';
+                Object.keys(uniqueVehicles).forEach(id => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = uniqueVehicles[id];
+                    filterSelect.appendChild(option);
+                });
+
+                // Display reports
+                displayActiveReports(filteredActiveReports);
             };
 
             const url = `${window.APP_CONFIG.scriptUrl}?function=getActiveMaintenanceReportsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
             const script = document.createElement('script');
             script.src = url;
             document.body.appendChild(script);
+        }
+
+        function displayActiveReports(reports) {
+            const container = document.getElementById('activeReportsList');
+            
+            if (reports.length === 0) {
+                container.innerHTML = `<div class="success-message">✅ Nessun report attivo per questo filtro. 👍</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            reports.forEach(report => {
+                container.insertAdjacentHTML('beforeend', createReportCard(report));
+            });
         }
 
         // Create report card HTML
@@ -1384,6 +1834,692 @@
             };
             return labels[category] || category;
         }
+
+        // ===== PDF WIZARD FUNCTIONS =====
+
+        let pdfWizardData = {
+            step: 1,
+            vehicleId: null,
+            vehicleName: null,
+            selectedDamages: [],
+            serviceWorks: [],
+            extraWorks: []
+        };
+
+        let allActiveReports = [];
+        let filteredActiveReports = [];
+
+        function filterActiveReports() {
+            const filterSelect = document.getElementById('vehicleFilterSelect');
+            const selectedVehicleId = filterSelect.value;
+
+            if (!selectedVehicleId) {
+                filteredActiveReports = [...allActiveReports];
+            } else {
+                filteredActiveReports = allActiveReports.filter(r => r.vehicleId === selectedVehicleId);
+            }
+
+            displayActiveReports(filteredActiveReports);
+        }
+
+        function openMaintenancePdfWizard() {
+            // Reset wizard data
+            pdfWizardData = {
+                step: 1,
+                vehicleId: null,
+                vehicleName: null,
+                selectedDamages: [],
+                serviceWorks: [],
+                extraWorks: []
+            };
+
+            // Show modal
+            document.getElementById('pdfWizardOverlay').classList.add('active');
+            
+            // Load vehicles in step 1
+            loadWizardVehicles();
+            
+            // Show step 1
+            showWizardStep(1);
+        }
+
+        function closeMaintenancePdfWizard() {
+            document.getElementById('pdfWizardOverlay').classList.remove('active');
+        }
+
+        function showWizardStep(stepNumber) {
+            pdfWizardData.step = stepNumber;
+
+            // Update step indicators
+            document.querySelectorAll('.wizard-step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < stepNumber) {
+                    step.classList.add('completed');
+                } else if (index + 1 === stepNumber) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Show current section
+            document.querySelectorAll('.wizard-section').forEach((section, index) => {
+                section.classList.remove('active');
+                if (index + 1 === stepNumber) {
+                    section.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const prevBtn = document.getElementById('wizardPrevBtn');
+            const nextBtn = document.getElementById('wizardNextBtn');
+            const generateBtn = document.getElementById('wizardGenerateBtn');
+
+            prevBtn.style.display = stepNumber > 1 ? 'block' : 'none';
+            
+            if (stepNumber < 5) {
+                nextBtn.style.display = 'block';
+                generateBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'none';
+                generateBtn.style.display = 'block';
+            }
+
+            // Load data for specific steps
+            if (stepNumber === 2) {
+                loadWizardDamages();
+            } else if (stepNumber === 5) {
+                showWizardSummary();
+            }
+        }
+
+        function wizardPrevStep() {
+            if (pdfWizardData.step > 1) {
+                showWizardStep(pdfWizardData.step - 1);
+            }
+        }
+
+        function wizardNextStep() {
+            // Validate current step
+            if (pdfWizardData.step === 1) {
+                const vehicleSelect = document.getElementById('wizardVehicleSelect');
+                if (!vehicleSelect.value) {
+                    alert('Seleziona un veicolo');
+                    return;
+                }
+                const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+                pdfWizardData.vehicleId = vehicleSelect.value;
+                pdfWizardData.vehicleName = selectedOption.text;
+            }
+
+            if (pdfWizardData.step < 5) {
+                showWizardStep(pdfWizardData.step + 1);
+            }
+        }
+
+        function loadWizardVehicles() {
+            const vehicleSelect = document.getElementById('wizardVehicleSelect');
+            vehicleSelect.innerHTML = '<option value="">Seleziona veicolo...</option>';
+            
+            currentVehicles.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle.id;
+                option.textContent = vehicle.name;
+                vehicleSelect.appendChild(option);
+            });
+        }
+
+        function loadWizardDamages() {
+            const damagesList = document.getElementById('wizardDamagesList');
+            damagesList.innerHTML = '';
+
+            // Filter damages for selected vehicle
+            const vehicleDamages = allActiveReports.filter(r => r.vehicleId === pdfWizardData.vehicleId);
+            
+            if (vehicleDamages.length === 0) {
+                damagesList.innerHTML = '<p class="summary-empty">Nessun danno aperto per questo veicolo</p>';
+                return;
+            }
+
+            vehicleDamages.forEach(report => {
+                report.issues.forEach((issue, idx) => {
+                    const damageId = `${report.reportId}-${idx}`;
+                    const urgencyClass = issue.urgency === 'critical' ? '#ffcdd2' : 
+                                       issue.urgency === 'high' ? '#ffccbc' : 
+                                       issue.urgency === 'medium' ? '#fff9c4' : '#c8e6c9';
+                    
+                    const urgencyLabel = issue.urgency === 'critical' ? '🔴 Critica' : 
+                                       issue.urgency === 'high' ? '🟠 Alta' : 
+                                       issue.urgency === 'medium' ? '🟡 Media' : '🟢 Bassa';
+
+                    const damageHtml = `
+                        <div class="damage-item">
+                            <input type="checkbox" id="damage-${damageId}" value="${damageId}" 
+                                   data-report="${report.reportId}" data-issue-idx="${idx}"
+                                   data-category="${issue.category}" data-description="${issue.description.replace(/"/g, '&quot;')}"
+                                   data-urgency="${issue.urgency}" data-photos='${JSON.stringify(issue.photoURLs || [])}'>
+                            <div class="damage-item-content">
+                                <div class="damage-item-title">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
+                                <div class="damage-item-desc">${issue.description}</div>
+                                <span class="damage-item-urgency" style="background: ${urgencyClass};">${urgencyLabel}</span>
+                            </div>
+                        </div>
+                    `;
+                    damagesList.insertAdjacentHTML('beforeend', damageHtml);
+                });
+            });
+
+            // Show add damage button
+            document.getElementById('addDamageSection').style.display = 'block';
+        }
+
+        function toggleQuickDamageForm() {
+            const form = document.getElementById('quickDamageForm');
+            form.classList.toggle('active');
+            
+            if (form.classList.contains('active')) {
+                document.getElementById('quickDamageCategory').focus();
+            }
+        }
+
+        function saveQuickDamage() {
+            const category = document.getElementById('quickDamageCategory').value;
+            const description = document.getElementById('quickDamageDescription').value;
+            const urgency = document.getElementById('quickDamageUrgency').value;
+
+            if (!category || !description || !urgency) {
+                alert('Compila tutti i campi');
+                return;
+            }
+
+            // Add to wizard data immediately
+            const newDamage = {
+                id: `quick-${Date.now()}`,
+                category: category,
+                description: description,
+                urgency: urgency,
+                photoURLs: [],
+                isQuick: true
+            };
+
+            pdfWizardData.selectedDamages.push(newDamage);
+
+            // Add to UI
+            const damagesList = document.getElementById('wizardDamagesList');
+            const urgencyClass = urgency === 'critical' ? '#ffcdd2' : 
+                               urgency === 'high' ? '#ffccbc' : 
+                               urgency === 'medium' ? '#fff9c4' : '#c8e6c9';
+            
+            const urgencyLabel = urgency === 'critical' ? '🔴 Critica' : 
+                               urgency === 'high' ? '🟠 Alta' : 
+                               urgency === 'medium' ? '🟡 Media' : '🟢 Bassa';
+
+            const damageHtml = `
+                <div class="damage-item" style="border-color: #28a745; background: #f0f8f4;">
+                    <input type="checkbox" id="damage-${newDamage.id}" value="${newDamage.id}" checked
+                           data-category="${category}" data-description="${description.replace(/"/g, '&quot;')}"
+                           data-urgency="${urgency}" data-photos='[]' data-isquick="true">
+                    <div class="damage-item-content">
+                        <div class="damage-item-title">${getCategoryIcon(category)} ${getCategoryLabel(category)} <span style="color: #28a745; font-size: 12px;">(Appena aggiunto)</span></div>
+                        <div class="damage-item-desc">${description}</div>
+                        <span class="damage-item-urgency" style="background: ${urgencyClass};">${urgencyLabel}</span>
+                    </div>
+                </div>
+            `;
+            damagesList.insertAdjacentHTML('afterbegin', damageHtml);
+
+            // Reset form
+            document.getElementById('quickDamageCategory').value = '';
+            document.getElementById('quickDamageDescription').value = '';
+            document.getElementById('quickDamageUrgency').value = '';
+            toggleQuickDamageForm();
+
+            alert('Danno aggiunto! È già selezionato per il PDF.');
+        }
+
+        function collectServiceWorks() {
+            pdfWizardData.serviceWorks = [];
+            document.querySelectorAll('#wizardServiceWorks input[type="checkbox"]:checked').forEach(cb => {
+                pdfWizardData.serviceWorks.push(cb.value);
+            });
+        }
+
+        function collectExtraWorks() {
+            pdfWizardData.extraWorks = [];
+            document.querySelectorAll('#wizardExtraWorks input[type="checkbox"]:checked').forEach(cb => {
+                pdfWizardData.extraWorks.push(cb.value);
+            });
+        }
+
+        function showWizardSummary() {
+            // Collect selected damages
+            pdfWizardData.selectedDamages = [];
+            document.querySelectorAll('#wizardDamagesList input[type="checkbox"]:checked').forEach(cb => {
+                pdfWizardData.selectedDamages.push({
+                    id: cb.value,
+                    category: cb.dataset.category,
+                    description: cb.dataset.description,
+                    urgency: cb.dataset.urgency,
+                    photoURLs: JSON.parse(cb.dataset.photos || '[]'),
+                    isQuick: cb.dataset.isquick === 'true'
+                });
+            });
+
+            collectServiceWorks();
+            collectExtraWorks();
+
+            // Display summary
+            const damagesSummary = document.getElementById('summaryDamages');
+            const servicesSummary = document.getElementById('summaryServices');
+            const extrasSummary = document.getElementById('summaryExtras');
+
+            // Damages
+            if (pdfWizardData.selectedDamages.length > 0) {
+                damagesSummary.innerHTML = '<ul class="summary-list">' + 
+                    pdfWizardData.selectedDamages.map(d => 
+                        `<li>${getCategoryIcon(d.category)} ${getCategoryLabel(d.category)}: ${d.description}</li>`
+                    ).join('') + '</ul>';
+            } else {
+                damagesSummary.innerHTML = '<p class="summary-empty">Nessun danno selezionato</p>';
+            }
+
+            // Service works
+            if (pdfWizardData.serviceWorks.length > 0) {
+                servicesSummary.innerHTML = '<ul class="summary-list">' + 
+                    pdfWizardData.serviceWorks.map(w => `<li>✓ ${w}</li>`).join('') + '</ul>';
+            } else {
+                servicesSummary.innerHTML = '<p class="summary-empty">Nessun lavoro di tagliando selezionato</p>';
+            }
+
+            // Extra works
+            if (pdfWizardData.extraWorks.length > 0) {
+                extrasSummary.innerHTML = '<ul class="summary-list">' + 
+                    pdfWizardData.extraWorks.map(w => `<li>✓ ${w}</li>`).join('') + '</ul>';
+            } else {
+                extrasSummary.innerHTML = '<p class="summary-empty">Nessun lavoro extra selezionato</p>';
+            }
+        }
+
+        async function generateMaintenancePDF() {
+            const { jsPDF } = window.jspdf;
+            
+            if (!jsPDF) {
+                alert('Libreria PDF non caricata. Ricarica la pagina.');
+                return;
+            }
+
+            try {
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                let yPos = 20;
+
+                // Header
+                doc.setFillColor(102, 126, 234);
+                doc.rect(0, 0, pageWidth, 40, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(20);
+                doc.setFont(undefined, 'bold');
+                doc.text('LISTA MANUTENZIONE', pageWidth / 2, 15, { align: 'center' });
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                doc.text(pdfWizardData.vehicleName, pageWidth / 2, 25, { align: 'center' });
+                doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, 33, { align: 'center' });
+
+                yPos = 50;
+                doc.setTextColor(0, 0, 0);
+
+                // Damages section
+                if (pdfWizardData.selectedDamages.length > 0) {
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(102, 126, 234);
+                    doc.text('DANNI DA RIPARARE', 15, yPos);
+                    yPos += 10;
+
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+
+                    for (let i = 0; i < pdfWizardData.selectedDamages.length; i++) {
+                        const damage = pdfWizardData.selectedDamages[i];
+                        
+                        // Check if we need a new page
+                        if (yPos > 250) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${i + 1}. ${getCategoryLabel(damage.category)}`, 15, yPos);
+                        yPos += 6;
+
+                        doc.setFont(undefined, 'normal');
+                        const descLines = doc.splitTextToSize(damage.description, pageWidth - 30);
+                        doc.text(descLines, 20, yPos);
+                        yPos += descLines.length * 5;
+
+                        const urgencyLabel = damage.urgency === 'critical' ? 'CRITICA' : 
+                                           damage.urgency === 'high' ? 'ALTA' : 
+                                           damage.urgency === 'medium' ? 'MEDIA' : 'BASSA';
+                        doc.setTextColor(damage.urgency === 'critical' ? 200 : 100, 100, 100);
+                        doc.text(`Urgenza: ${urgencyLabel}`, 20, yPos);
+                        yPos += 6;
+
+                        doc.setTextColor(0, 0, 0);
+
+                        // Add photos if available
+                        if (damage.photoURLs && damage.photoURLs.length > 0) {
+                            doc.setFontSize(9);
+                            doc.setTextColor(102, 126, 234);
+                            doc.text(`Foto disponibili: ${damage.photoURLs.length}`, 20, yPos);
+                            yPos += 5;
+                            doc.setFontSize(10);
+                            doc.setTextColor(0, 0, 0);
+                        }
+
+                        yPos += 5;
+                    }
+                    
+                    yPos += 5;
+                }
+
+                // Service works section
+                if (pdfWizardData.serviceWorks.length > 0) {
+                    if (yPos > 220) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(102, 126, 234);
+                    doc.text('LAVORI TAGLIANDO', 15, yPos);
+                    yPos += 10;
+
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+
+                    pdfWizardData.serviceWorks.forEach((work, idx) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(`☐ ${work}`, 15, yPos);
+                        yPos += 7;
+                    });
+
+                    yPos += 5;
+                }
+
+                // Extra works section
+                if (pdfWizardData.extraWorks.length > 0) {
+                    if (yPos > 220) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(102, 126, 234);
+                    doc.text('LAVORI EXTRA', 15, yPos);
+                    yPos += 10;
+
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+
+                    pdfWizardData.extraWorks.forEach((work, idx) => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(`☐ ${work}`, 15, yPos);
+                        yPos += 7;
+                    });
+                }
+
+                // Footer
+                const totalPages = doc.internal.pages.length - 1;
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text(`Pagina ${i} di ${totalPages}`, pageWidth / 2, 285, { align: 'center' });
+                    doc.text('Noleggio Semplice - Sistema di Gestione Manutenzione', pageWidth / 2, 290, { align: 'center' });
+                }
+
+                // Save PDF
+                const fileName = `Lista_Manutenzione_${pdfWizardData.vehicleName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+
+                alert('PDF generato con successo!');
+                closeMaintenancePdfWizard();
+
+            } catch (error) {
+                console.error('Errore generazione PDF:', error);
+                alert('Errore durante la generazione del PDF: ' + error.message);
+            }
+        }
     </script>
+
+    <!-- PDF Wizard Modal -->
+    <div id="pdfWizardOverlay" class="pdf-wizard-overlay">
+        <div class="pdf-wizard-modal">
+            <div class="pdf-wizard-header">
+                <button class="wizard-close" onclick="closeMaintenancePdfWizard()">×</button>
+                <h2>📄 Crea Lista Manutenzione per Meccanico</h2>
+                <p>Segui i passaggi per generare un PDF completo</p>
+            </div>
+
+            <div class="wizard-progress">
+                <div class="wizard-steps">
+                    <div class="wizard-step active">
+                        <div class="wizard-step-circle">1</div>
+                        <div class="wizard-step-label">Veicolo</div>
+                    </div>
+                    <div class="wizard-step">
+                        <div class="wizard-step-circle">2</div>
+                        <div class="wizard-step-label">Danni</div>
+                    </div>
+                    <div class="wizard-step">
+                        <div class="wizard-step-circle">3</div>
+                        <div class="wizard-step-label">Tagliando</div>
+                    </div>
+                    <div class="wizard-step">
+                        <div class="wizard-step-circle">4</div>
+                        <div class="wizard-step-label">Extra</div>
+                    </div>
+                    <div class="wizard-step">
+                        <div class="wizard-step-circle">5</div>
+                        <div class="wizard-step-label">Riepilogo</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pdf-wizard-content">
+                <!-- Step 1: Vehicle Selection -->
+                <div class="wizard-section active" id="wizardStep1">
+                    <h3 style="margin-bottom: 20px;">🚐 Seleziona il veicolo per la manutenzione</h3>
+                    <div class="form-group">
+                        <label>Veicolo</label>
+                        <select id="wizardVehicleSelect" style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px;">
+                            <option value="">Seleziona veicolo...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Damage Selection -->
+                <div class="wizard-section" id="wizardStep2">
+                    <h3 style="margin-bottom: 20px;">🔧 Seleziona i danni da includere nel PDF</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Questi sono i danni aperti per il veicolo selezionato. Spunta quelli da includere nella lista per il meccanico.</p>
+                    <div class="damage-list" id="wizardDamagesList"></div>
+                    
+                    <div id="addDamageSection" style="display: none;">
+                        <button class="add-damage-btn" onclick="toggleQuickDamageForm()">+ Aggiungi nuovo danno</button>
+                        
+                        <div class="quick-damage-form" id="quickDamageForm">
+                            <h4 style="margin-bottom: 15px;">Aggiungi danno veloce</h4>
+                            <div class="form-group">
+                                <label>Categoria</label>
+                                <select id="quickDamageCategory">
+                                    <option value="">Seleziona...</option>
+                                    <option value="motore">⚙️ Motore / Meccanica</option>
+                                    <option value="freni">🛑 Freni</option>
+                                    <option value="pneumatici">🛞 Pneumatici</option>
+                                    <option value="elettrico">⚡ Sistema Elettrico</option>
+                                    <option value="carrozzeria">🚗 Carrozzeria / Esterno</option>
+                                    <option value="interni">🪑 Interni</option>
+                                    <option value="fluidi">💧 Fluidi / Manutenzione</option>
+                                    <option value="climatizzazione">❄️ Climatizzazione</option>
+                                    <option value="luci">💡 Luci / Fari</option>
+                                    <option value="altro">🔧 Altro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Descrizione</label>
+                                <textarea id="quickDamageDescription" placeholder="Descrivi il danno..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Urgenza</label>
+                                <select id="quickDamageUrgency">
+                                    <option value="">Seleziona...</option>
+                                    <option value="low">🟢 Bassa</option>
+                                    <option value="medium">🟡 Media</option>
+                                    <option value="high">🟠 Alta</option>
+                                    <option value="critical">🔴 Critica</option>
+                                </select>
+                            </div>
+                            <div class="quick-damage-actions">
+                                <button onclick="toggleQuickDamageForm()" style="background: #6c757d; color: white;">Annulla</button>
+                                <button onclick="saveQuickDamage()" style="background: #28a745; color: white;">Aggiungi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Service Works -->
+                <div class="wizard-section" id="wizardStep3">
+                    <h3 style="margin-bottom: 20px;">🔧 Lavori di tagliando standard</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Seleziona i lavori di manutenzione programmata da eseguire.</p>
+                    <div class="service-checklist" id="wizardServiceWorks">
+                        <div class="service-item">
+                            <input type="checkbox" id="service1" value="Cambio olio motore">
+                            <label for="service1">Cambio olio motore</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service2" value="Sostituzione filtro olio">
+                            <label for="service2">Sostituzione filtro olio</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service3" value="Sostituzione filtro aria">
+                            <label for="service3">Sostituzione filtro aria</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service4" value="Sostituzione filtro abitacolo">
+                            <label for="service4">Sostituzione filtro abitacolo</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service5" value="Controllo freni e pastiglie">
+                            <label for="service5">Controllo freni e pastiglie</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service6" value="Controllo pneumatici e pressione">
+                            <label for="service6">Controllo pneumatici e pressione</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service7" value="Controllo luci e lampadine">
+                            <label for="service7">Controllo luci e lampadine</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service8" value="Controllo batteria">
+                            <label for="service8">Controllo batteria</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service9" value="Rotazione pneumatici">
+                            <label for="service9">Rotazione pneumatici</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="service10" value="Allineamento ruote">
+                            <label for="service10">Allineamento ruote</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Extra Works -->
+                <div class="wizard-section" id="wizardStep4">
+                    <h3 style="margin-bottom: 20px;">✨ Lavori extra e pulizie</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Seleziona eventuali lavori aggiuntivi da eseguire.</p>
+                    <div class="service-checklist" id="wizardExtraWorks">
+                        <div class="service-item">
+                            <input type="checkbox" id="extra1" value="Reimpimento antigelo">
+                            <label for="extra1">Reimpimento antigelo</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra2" value="Reimpimento liquido lavavetri">
+                            <label for="extra2">Reimpimento liquido lavavetri</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra3" value="Pulizia esterna completa">
+                            <label for="extra3">Pulizia esterna completa</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra4" value="Pulizia interna completa">
+                            <label for="extra4">Pulizia interna completa</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra5" value="Lucidatura carrozzeria">
+                            <label for="extra5">Lucidatura carrozzeria</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra6" value="Sanificazione abitacolo">
+                            <label for="extra6">Sanificazione abitacolo</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra7" value="Controllo climatizzatore">
+                            <label for="extra7">Controllo climatizzatore</label>
+                        </div>
+                        <div class="service-item">
+                            <input type="checkbox" id="extra8" value="Rabbocco AdBlue">
+                            <label for="extra8">Rabbocco AdBlue</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Summary -->
+                <div class="wizard-section" id="wizardStep5">
+                    <h3 style="margin-bottom: 20px;">📋 Riepilogo lista manutenzione</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Controlla che tutto sia corretto prima di generare il PDF.</p>
+                    
+                    <div class="summary-section">
+                        <h3>🔧 Danni selezionati</h3>
+                        <div id="summaryDamages"></div>
+                    </div>
+
+                    <div class="summary-section">
+                        <h3>⚙️ Lavori tagliando</h3>
+                        <div id="summaryServices"></div>
+                    </div>
+
+                    <div class="summary-section">
+                        <h3>✨ Lavori extra</h3>
+                        <div id="summaryExtras"></div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="wizard-buttons">
+                    <button id="wizardPrevBtn" class="wizard-btn wizard-btn-prev" onclick="wizardPrevStep()" style="display: none;">
+                        ← Indietro
+                    </button>
+                    <div style="flex: 1;"></div>
+                    <button id="wizardNextBtn" class="wizard-btn wizard-btn-next" onclick="wizardNextStep()">
+                        Avanti →
+                    </button>
+                    <button id="wizardGenerateBtn" class="wizard-btn wizard-btn-generate" onclick="generateMaintenancePDF()" style="display: none;">
+                        📄 Genera PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

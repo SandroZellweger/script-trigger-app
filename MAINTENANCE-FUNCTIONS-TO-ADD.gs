@@ -364,8 +364,10 @@ function saveMaintenanceReport(reportData) {
         const photoCell = sheet.getRange(lastRow, 16);
         const urls = reportData.photos;
         if (urls.length > 0) {
-          const formula = urls.map((url, i) => `HYPERLINK("${url}", "Foto ${i+1}")`).join(' | ');
-          photoCell.setFormula('=' + formula);
+          // Create multiple HYPERLINK formulas separated by text
+          const formulas = urls.map((url, i) => `HYPERLINK("${url}"; "Foto ${i+1}")`);
+          photoCell.setFormula('=' + formulas.join(' & " | " & '));
+          photoCell.setWrap(true);
         }
       }
     });

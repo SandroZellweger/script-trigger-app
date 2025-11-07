@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Wizard - Manutenzione</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-list {
+            list-style: none;
+            padding: 0;
+        }
+        .test-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .test-list li::before {
+            content: "✓";
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background: #28a745;
+            color: white;
+            text-align: center;
+            line-height: 25px;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .feature-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            margin: 5px 5px 5px 0;
+            font-weight: bold;
+        }
+        .btn-test {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px 10px 10px 0;
+        }
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+        .workflow-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .workflow-content {
+            flex: 1;
+        }
+        .workflow-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .workflow-desc {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🧪 Test: Sistema PDF Manutenzione + Filtro Veicoli</h1>
+        <p style="color: #666; font-size: 16px;">Verifica delle nuove funzionalità implementate in maintenance-new.html</p>
+        
+        <div style="margin: 20px 0;">
+            <span class="feature-tag">📋 Filtro Veicoli</span>
+            <span class="feature-tag">📄 PDF Wizard</span>
+            <span class="feature-tag">➕ Aggiungi Danno Quick</span>
+            <span class="feature-tag">✨ jsPDF Integration</span>
+        </div>
+
+        <a href="maintenance-new.html" class="btn-test">🚀 Apri Maintenance System</a>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>✅ Funzionalità Implementate</h3>
+            <ul class="test-list">
+                <li><strong>Filtro Veicoli nei Report Attivi</strong> - Dropdown per filtrare report per veicolo specifico</li>
+                <li><strong>Bottone "Crea Lista Manutenzione (PDF)"</strong> - Nella tab Report Attivi</li>
+                <li><strong>Wizard Multi-Step (5 passi)</strong> - Processo guidato per creare PDF</li>
+                <li><strong>Selezione Veicolo</strong> - Step 1: Scegli veicolo da portare in officina</li>
+                <li><strong>Selezione Danni</strong> - Step 2: Spunta danni aperti da includere nel PDF</li>
+                <li><strong>Aggiungi Danno Quick</strong> - Possibilità di aggiungere nuovo danno al volo</li>
+                <li><strong>Lavori Tagliando</strong> - Step 3: Checkbox per manutenzione programmata</li>
+                <li><strong>Lavori Extra</strong> - Step 4: Checkbox per pulizie e lavori aggiuntivi</li>
+                <li><strong>Riassunto</strong> - Step 5: Visualizza tutto prima di generare PDF</li>
+                <li><strong>Generazione PDF</strong> - Download automatico con jsPDF</li>
+                <li><strong>Layout Professionale</strong> - Header colorato, sezioni ben divise, footer</li>
+                <li><strong>Indicatori Foto</strong> - Mostra numero foto disponibili per ogni danno</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>🔄 Workflow Wizard PDF</h3>
+            
+            <div class="workflow-step">
+                <div class="workflow-number">1</div>
+                <div class="workflow-content">
+                    <div class="workflow-title">Selezione Veicolo</div>
+                    <div class="workflow-desc">Scegli il veicolo per cui vuoi creare la lista manutenzione. Dropdown popolato con tutti i veicoli disponibili.</div>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="workflow-number">2</div>
+                <div class="workflow-content">
+                    <div class="workflow-title">Selezione Danni</div>
+                    <div class="workflow-desc">
+                        • Visualizza tutti i danni aperti per il veicolo selezionato<br>
+                        • Spunta i checkbox per includere nel PDF<br>
+                        • Mostra categoria, descrizione, urgenza<br>
+                        • <strong>➕ Bottone "Aggiungi nuovo danno"</strong> per inserire danno veloce
+                    </div>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="workflow-number">3</div>
+                <div class="workflow-content">
+                    <div class="workflow-title">Lavori Tagliando Standard</div>
+                    <div class="workflow-desc">
+                        Checkbox per lavori di manutenzione programmata:<br>
+                        • Cambio olio motore<br>
+                        • Filtro olio, aria, abitacolo<br>
+                        • Controllo freni, pneumatici, luci, batteria<br>
+                        • Rotazione pneumatici, allineamento ruote
+                    </div>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="workflow-number">4</div>
+                <div class="workflow-content">
+                    <div class="workflow-title">Lavori Extra</div>
+                    <div class="workflow-desc">
+                        Checkbox per lavori aggiuntivi:<br>
+                        • Reimpimento antigelo, lavavetri, AdBlue<br>
+                        • Pulizia esterna/interna completa<br>
+                        • Lucidatura carrozzeria<br>
+                        • Sanificazione abitacolo<br>
+                        • Controllo climatizzatore
+                    </div>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="workflow-number">5</div>
+                <div class="workflow-content">
+                    <div class="workflow-title">Riassunto e Generazione PDF</div>
+                    <div class="workflow-desc">
+                        • Visualizza riepilogo completo<br>
+                        • Lista danni con foto<br>
+                        • Lista lavori tagliando selezionati<br>
+                        • Lista lavori extra selezionati<br>
+                        • <strong>📄 Bottone "Genera PDF"</strong> → Download automatico
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>🎨 Caratteristiche PDF Generato</h3>
+            <ul class="test-list">
+                <li><strong>Header Professionale</strong> - Background gradiente viola con titolo, veicolo e data</li>
+                <li><strong>Sezione Danni</strong> - Ogni danno con categoria, descrizione, urgenza e n. foto disponibili</li>
+                <li><strong>Sezione Tagliando</strong> - Checkbox per ogni lavoro selezionato (☐)</li>
+                <li><strong>Sezione Lavori Extra</strong> - Checkbox per lavori aggiuntivi</li>
+                <li><strong>Pagination Automatica</strong> - Nuova pagina quando necessario</li>
+                <li><strong>Footer</strong> - Numero pagina e nome azienda su ogni pagina</li>
+                <li><strong>Nome File</strong> - Lista_Manutenzione_[Veicolo]_[Data].pdf</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>🧪 Piano di Test</h3>
+            <ol style="line-height: 2; color: #333;">
+                <li><strong>Test Filtro Veicoli</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Apri tab "Report Attivi"</li>
+                        <li>Verifica che il dropdown filtro veicoli sia visibile</li>
+                        <li>Seleziona un veicolo → Verifica che mostra solo i report di quel veicolo</li>
+                        <li>Seleziona "Tutti i veicoli" → Verifica che mostra tutti i report</li>
+                    </ul>
+                </li>
+                <li><strong>Test Apertura Wizard</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Clicca bottone "📄 Crea Lista Manutenzione (PDF)"</li>
+                        <li>Verifica che si apre il modal wizard</li>
+                        <li>Verifica che mostra Step 1 (Veicolo)</li>
+                        <li>Verifica indicatori progresso in alto (5 steps)</li>
+                    </ul>
+                </li>
+                <li><strong>Test Navigazione Wizard</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Step 1: Seleziona veicolo → Clicca "Avanti"</li>
+                        <li>Step 2: Verifica caricamento danni aperti per quel veicolo</li>
+                        <li>Spunta alcuni danni</li>
+                        <li>Clicca "Aggiungi nuovo danno" → Compila form → Salva</li>
+                        <li>Verifica che il danno appare nella lista (con sfondo verde)</li>
+                        <li>Clicca "Avanti" → Step 3</li>
+                    </ul>
+                </li>
+                <li><strong>Test Selezione Lavori</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Step 3: Spunta alcuni lavori tagliando</li>
+                        <li>Clicca "Avanti" → Step 4</li>
+                        <li>Step 4: Spunta alcuni lavori extra</li>
+                        <li>Clicca "Avanti" → Step 5 (Riassunto)</li>
+                    </ul>
+                </li>
+                <li><strong>Test Riassunto e PDF</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Step 5: Verifica che il riassunto mostra:
+                            <ul style="margin-left: 20px;">
+                                <li>Danni selezionati con descrizioni</li>
+                                <li>Lavori tagliando selezionati</li>
+                                <li>Lavori extra selezionati</li>
+                            </ul>
+                        </li>
+                        <li>Clicca "📄 Genera PDF"</li>
+                        <li>Verifica download automatico del PDF</li>
+                        <li>Apri PDF e controlla:
+                            <ul style="margin-left: 20px;">
+                                <li>Header con nome veicolo e data</li>
+                                <li>Sezione danni completa</li>
+                                <li>Indicatori foto per ogni danno</li>
+                                <li>Sezioni tagliando ed extra con checkbox</li>
+                                <li>Footer su ogni pagina</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Test Bottone Indietro</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Durante il wizard, clicca "← Indietro"</li>
+                        <li>Verifica che torna allo step precedente</li>
+                        <li>Verifica che i dati sono conservati</li>
+                    </ul>
+                </li>
+                <li><strong>Test Chiusura Wizard</strong>
+                    <ul style="margin-top: 5px; color: #666;">
+                        <li>Clicca "×" in alto a destra</li>
+                        <li>Verifica che il modal si chiude</li>
+                        <li>Riapri → Verifica che riparte da Step 1</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>📚 Librerie JavaScript Utilizzate</h3>
+            <div class="code-block">
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"&gt;&lt;/script&gt;
+            </div>
+            <p style="color: #666; margin-top: 10px;">
+                <strong>jsPDF</strong> - Generazione PDF lato client (nessun backend richiesto)<br>
+                <strong>jspdf-autotable</strong> - Plugin per tabelle (disponibile ma non utilizzato, layout personalizzato)
+            </p>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>🎯 Variabili Globali Aggiunte</h3>
+            <div class="code-block">
+let pdfWizardData = {
+    step: 1,
+    vehicleId: null,
+    vehicleName: null,
+    selectedDamages: [],
+    serviceWorks: [],
+    extraWorks: []
+};
+
+let allActiveReports = [];       // Tutti i report attivi
+let filteredActiveReports = [];  // Report filtrati per veicolo
+            </div>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>🔧 Funzioni JavaScript Principali</h3>
+            <ul class="test-list">
+                <li><code>filterActiveReports()</code> - Filtra report per veicolo selezionato</li>
+                <li><code>openMaintenancePdfWizard()</code> - Apre modal wizard</li>
+                <li><code>showWizardStep(stepNumber)</code> - Naviga tra gli steps</li>
+                <li><code>loadWizardDamages()</code> - Carica danni per veicolo selezionato</li>
+                <li><code>toggleQuickDamageForm()</code> - Mostra/nasconde form aggiungi danno</li>
+                <li><code>saveQuickDamage()</code> - Salva nuovo danno nel wizard</li>
+                <li><code>showWizardSummary()</code> - Prepara riassunto finale</li>
+                <li><code>generateMaintenancePDF()</code> - Genera e scarica PDF</li>
+                <li><code>displayActiveReports(reports)</code> - Mostra report filtrati</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-section">
+            <h3>✅ Checklist Pre-Produzione</h3>
+            <ol style="line-height: 2.5; color: #333;">
+                <li>☐ <strong>Backend deployato</strong> - MAINTENANCE-FUNCTIONS-TO-ADD.gs copiato in complete-secure-script.gs</li>
+                <li>☐ <strong>Drive API abilitata</strong> - Drive API v3 nelle Services di Apps Script</li>
+                <li>☐ <strong>Test filtro veicoli</strong> - Verifica che filtra correttamente i report</li>
+                <li>☐ <strong>Test wizard completo</strong> - Tutti i 5 steps funzionanti</li>
+                <li>☐ <strong>Test aggiungi danno</strong> - Form quick funziona e aggiunge alla lista</li>
+                <li>☐ <strong>Test PDF generato</strong> - Layout professionale, tutte le sezioni presenti</li>
+                <li>☐ <strong>Test foto nel PDF</strong> - Indicatori "Foto disponibili: X" mostrati correttamente</li>
+                <li>☐ <strong>Test responsive</strong> - Wizard funziona su mobile/tablet</li>
+                <li>☐ <strong>Test chiusura wizard</strong> - Bottone X funziona, dati si resettano</li>
+                <li>☐ <strong>Test nome file PDF</strong> - Nome corretto: Lista_Manutenzione_[Veicolo]_[Data].pdf</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h2 style="margin: 0 0 15px 0;">🚀 Pronto per il Test</h2>
+        <p style="margin: 0 0 20px 0; opacity: 0.9;">Tutte le funzionalità sono state implementate. Segui il piano di test sopra per verificare ogni aspetto del sistema.</p>
+        <a href="maintenance-new.html" class="btn-test" style="background: white; color: #667eea;">
+            🧪 Inizia Test Completo
+        </a>
+    </div>
+</body>
+</html>
