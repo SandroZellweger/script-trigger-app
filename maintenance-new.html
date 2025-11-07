@@ -622,15 +622,25 @@
         let driveAccessToken = null;
         let pendingTokenPromise = null;
         let pendingTokenResolvers = { resolve: null, reject: null };
-
+        
         // Wait for config to load
-        function initApp() {
-            // Check if config is ready
-            if (!window.APP_CONFIG || !window.APP_CONFIG.scriptUrl) {
-                console.log('Waiting for config...');
-                setTimeout(initApp, 100);
-                return;
-            }
+        function waitForConfig() {
+            return new Promise((resolve) => {
+                function check() {
+                    if (window.APP_CONFIG && window.APP_CONFIG.scriptUrl) {
+                        resolve();
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                }
+                check();
+            });
+        }
+
+        // Initialize app after config loads
+        async function initApp() {
+            // Wait for config to load
+            await waitForConfig();
 
             // Check admin login
             const adminUser = localStorage.getItem('adminUser');
@@ -952,6 +962,9 @@
             console.log('🔄 Uploading photo:', file.name, 'Size:', file.size, 'bytes');
             
             try {
+                // Wait for config to be ready
+                await waitForConfig();
+                
                 // Get Drive access token
                 const token = await ensureDriveToken();
                 
