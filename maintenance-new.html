@@ -606,7 +606,8 @@
         </div>
     </div>
 
-    <script src="config.public.js"></script>
+    <script src="config.private.js" defer></script>
+    <script src="config.public.js" defer></script>
     <script>
         // Maintenance System JavaScript
 
@@ -614,8 +615,15 @@
         let currentVehicles = [];
         let uploadedPhotos = [];
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        // Wait for config to load
+        function initApp() {
+            // Check if config is ready
+            if (!window.APP_CONFIG || !window.APP_CONFIG.scriptUrl) {
+                console.log('Waiting for config...');
+                setTimeout(initApp, 100);
+                return;
+            }
+
             // Check admin login
             const adminUser = localStorage.getItem('adminUser');
             if (!adminUser) {
@@ -634,7 +642,10 @@
 
             // Setup form submission
             document.getElementById('maintenanceForm').addEventListener('submit', handleSubmit);
-        });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', initApp);
 
         // Switch tabs
         function switchTab(tabName) {
@@ -676,7 +687,7 @@
                 }
             };
 
-            const url = `${window.CONFIG.scriptUrl}?function=getVehicleListWithKmJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=getVehicleListWithKmJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
             const script = document.createElement('script');
             script.src = url;
             document.body.appendChild(script);
@@ -795,7 +806,7 @@
                 }
             };
 
-            const url = `${window.CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;
             
             const script = document.createElement('script');
             script.src = url;
@@ -845,7 +856,7 @@
                     }
                 };
 
-                const url = `${window.CONFIG.scriptUrl}?function=uploadMaintenancePhotoJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&fileName=${encodeURIComponent(file.name)}&fileData=${encodeURIComponent(base64Data)}&mimeType=${encodeURIComponent(file.type)}&callback=${callback}&_=${Date.now()}`;
+                const url = `${window.APP_CONFIG.scriptUrl}?function=uploadMaintenancePhotoJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(file.name)}&fileData=${encodeURIComponent(base64Data)}&mimeType=${encodeURIComponent(file.type)}&callback=${callback}&_=${Date.now()}`;
                 
                 const script = document.createElement('script');
                 script.src = url;
@@ -935,7 +946,7 @@
                 }
             };
 
-            const url = `${window.CONFIG.scriptUrl}?function=saveMaintenanceReportJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(reportData))}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=saveMaintenanceReportJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(reportData))}&callback=${callback}&_=${Date.now()}`;
             
             const script = document.createElement('script');
             script.src = url;
@@ -964,7 +975,7 @@
                 });
             };
 
-            const url = `${window.CONFIG.scriptUrl}?function=getActiveMaintenanceReportsJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=getActiveMaintenanceReportsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
             const script = document.createElement('script');
             script.src = url;
             document.body.appendChild(script);
@@ -1041,7 +1052,7 @@
                 }
             };
 
-            const url = `${window.CONFIG.scriptUrl}?function=updateIssueStatusJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueIndex=${issueIndex}&completed=${completed}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=updateIssueStatusJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueIndex=${issueIndex}&completed=${completed}&callback=${callback}&_=${Date.now()}`;
             
             const script = document.createElement('script');
             script.src = url;
@@ -1070,7 +1081,7 @@
                 });
             };
 
-            const url = `${window.CONFIG.scriptUrl}?function=getMaintenanceHistoryJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=getMaintenanceHistoryJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
             const script = document.createElement('script');
             script.src = url;
             document.body.appendChild(script);

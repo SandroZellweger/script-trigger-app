@@ -115,7 +115,7 @@ Another issue to track</textarea>
             // Create the script tag
             const script = document.createElement('script');
             const notesParam = encodeURIComponent(notesArray.join('|||'));
-            script.src = `${scriptUrl}?function=updateVehicleNotesJsonp&authToken=myAppToken2025&sheetId=${sheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}&callback=${callbackName}`;
+            script.src = `${scriptUrl}?function=updateVehicleNotesJsonp&authToken=mySecureVanApp_2025&sheetId=${sheetId}&vehicleNumber=${vehicleNumber}&notes=${notesParam}&callback=${callbackName}`;
             
             // Handle errors
             script.onerror = function() {

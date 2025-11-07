@@ -63,7 +63,7 @@
             setTimeout(() => {
                 if (typeof SCRIPT_URL !== 'undefined') {
                     scriptUrl = SCRIPT_URL;
-                    const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=testCallback`;
+                    const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025&callback=testCallback`;
                     document.getElementById('test-url').textContent = testUrl;
                 } else {
                     addResult('error', 'Config not loaded - SCRIPT_URL undefined');
@@ -92,7 +92,7 @@
             addResult('info', '🔄 Testing JSONP with dynamic callback...');
             
             const callbackName = 'testCallback_' + Date.now();
-            const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=${callbackName}`;
+            const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025&callback=${callbackName}`;
             
             console.log('JSONP Test URL:', testUrl);
             
@@ -144,7 +144,7 @@
             
             addResult('info', '🔄 Testing with Fetch API...');
             
-            const testUrl = `${scriptUrl}?function=getCalendarNames&authToken=myAppToken2025`;
+            const testUrl = `${scriptUrl}?function=getCalendarNames&authToken=mySecureVanApp_2025`;
             
             try {
                 const response = await fetch(testUrl, {
@@ -166,7 +166,7 @@
         }
 
         function testOpenUrl() {
-            const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=test`;
+            const testUrl = `${scriptUrl}?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025&callback=test`;
             addResult('info', `🔗 Opening URL in new tab: ${testUrl}`);
             window.open(testUrl, '_blank');
         }

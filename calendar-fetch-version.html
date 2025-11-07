@@ -130,7 +130,7 @@
             addResult('🔄 Testing backend connectivity...');
             
             try {
-                const pingUrl = `${scriptUrl}?function=ping&authToken=myAppToken2025`;
+                const pingUrl = `${scriptUrl}?function=ping&authToken=mySecureVanApp_2025`;
                 const response = await fetch(pingUrl, {
                     method: 'GET',
                     mode: 'cors',
@@ -162,7 +162,7 @@
             addResult('🔄 Loading calendar names...');
             
             try {
-                const calendarUrl = `${scriptUrl}?function=getCalendarNames&authToken=myAppToken2025`;
+                const calendarUrl = `${scriptUrl}?function=getCalendarNames&authToken=mySecureVanApp_2025`;
                 console.log('📡 Fetching from:', calendarUrl);
                 
                 const response = await fetch(calendarUrl, {

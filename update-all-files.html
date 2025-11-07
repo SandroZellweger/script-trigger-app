@@ -103,7 +103,7 @@
             addResult('🧪 Testing new script URL...', 'info');
 
             try {
-                const testUrl = newUrl + '?function=ping&authToken=myAppToken2025&timestamp=' + Date.now();
+                const testUrl = newUrl + '?function=ping&authToken=mySecureVanApp_2025&timestamp=' + Date.now();
                 const response = await fetch(testUrl);
                 const data = await response.json();
 

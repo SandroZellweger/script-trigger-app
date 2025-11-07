@@ -82,7 +82,7 @@
             addResult('info', 'Testing basic URL connectivity...');
             
             try {
-                const testUrl = `${baseUrl}?function=ping&authToken=myAppToken2025`;
+                const testUrl = `${baseUrl}?function=ping&authToken=mySecureVanApp_2025`;
                 console.log('Testing URL:', testUrl);
                 
                 const response = await fetch(testUrl, {
@@ -125,7 +125,7 @@
             
             // Create script tag for JSONP
             const script = document.createElement('script');
-            const jsonpUrl = `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=testJsonpCallback`;
+            const jsonpUrl = `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025&callback=testJsonpCallback`;
             
             console.log('Testing JSONP URL:', jsonpUrl);
             script.src = jsonpUrl;
@@ -151,7 +151,7 @@
         }
 
         function testInBrowser() {
-            const testUrl = `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025`;
+            const testUrl = `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025`;
             addResult('info', `Opening URL in browser: <pre>${testUrl}</pre>`);
             window.open(testUrl, '_blank');
         }
@@ -161,8 +161,8 @@
             setTimeout(() => {
                 if (baseUrl) {
                     console.log('Base URL:', baseUrl);
-                    console.log('Test ping URL:', `${baseUrl}?function=ping&authToken=myAppToken2025`);
-                    console.log('Test JSONP URL:', `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=myAppToken2025&callback=testCallback`);
+                    console.log('Test ping URL:', `${baseUrl}?function=ping&authToken=mySecureVanApp_2025`);
+                    console.log('Test JSONP URL:', `${baseUrl}?function=getCalendarNamesAppJsonp&authToken=mySecureVanApp_2025&callback=testCallback`);
                 }
             }, 200);
         });
