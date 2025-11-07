@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manutenzione Veicoli - Noleggio Semplice</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .maintenance-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .maintenance-header {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .maintenance-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .maintenance-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #667eea;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .issues-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .issues-container h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .issue-item {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .issue-item.completed {
+            opacity: 0.6;
+            border-left-color: #4caf50;
+        }
+
+        .remove-issue {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            transition: all 0.3s;
+        }
+
+        .remove-issue:hover {
+            background: #cc0000;
+            transform: scale(1.1);
+        }
+
+        .add-issue-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .add-issue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .urgency-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .urgency-low { background: #4caf50; color: white; }
+        .urgency-medium { background: #ff9800; color: white; }
+        .urgency-high { background: #f44336; color: white; }
+        .urgency-critical { 
+            background: #d32f2f; 
+            color: white; 
+            animation: pulse 1.5s infinite; 
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .ai-recommendation {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f0f4ff 100%);
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .ai-recommendation strong {
+            color: #1976d2;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .ai-recommendation p {
+            color: #555;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .photo-upload {
+            border: 2px dashed #667eea;
+            padding: 40px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .photo-upload:hover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+
+        .photo-upload p {
+            margin: 0;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .photo-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .photo-preview-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 18px;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reports-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .report-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .vehicle-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .report-date {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .issue-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .issue-list-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: start;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+
+        .issue-list-item:hover {
+            background: #f0f4ff;
+        }
+
+        .issue-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            margin-top: 2px;
+        }
+
+        .issue-content {
+            flex: 1;
+        }
+
+        .issue-category {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .issue-description {
+            color: #666;
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .km-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f5e9 100%);
+            border-radius: 12px;
+        }
+
+        .km-item {
+            text-align: center;
+        }
+
+        .km-item label {
+            font-size: 13px;
+            color: #666;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .km-item .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.9);
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateX(-5px);
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .progress-bar-container {
+            background: #e0e0e0;
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .maintenance-header {
+                padding: 20px;
+            }
+
+            .maintenance-header h1 {
+                font-size: 24px;
+            }
+
+            .content-card {
+                padding: 20px;
+            }
+
+            .issue-item {
+                padding: 20px;
+            }
+
+            .photo-preview {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+
+            .km-info {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="maintenance-header">
+            <h1>🔧 Gestione Manutenzione Veicoli</h1>
+            <p>Sistema intelligente per tracciare riparazioni e manutenzione della flotta</p>
+        </div>
+
+        <button class="back-btn" onclick="window.location.href='index.html'">← Torna alla Dashboard</button>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('new-report')">📝 Nuovo Report</button>
+            <button class="tab" onclick="switchTab('active-reports')">🔨 Report Attivi</button>
+            <button class="tab" onclick="switchTab('history')">📊 Storico Completo</button>
+        </div>
+
+        <!-- NEW REPORT TAB -->
+        <div id="new-report" class="tab-content active">
+            <div class="content-card">
+                <form id="maintenanceForm">
+                    <div class="form-group">
+                        <label>🚐 Seleziona Veicolo</label>
+                        <select id="vehicleSelect" required>
+                            <option value="">Caricamento veicoli...</option>
+                        </select>
+                    </div>
+
+                    <div class="km-info" id="kmInfo" style="display: none;">
+                        <div class="km-item">
+                            <label>KM fino al prossimo servizio</label>
+                            <div class="value" id="kmToService">-</div>
+                        </div>
+                        <div class="km-item">
+                            <label>Giorni stimati (100km/giorno)</label>
+                            <div class="value" id="daysToService">-</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>👤 Segnalato da</label>
+                        <input type="text" id="reportedBy" readonly>
+                    </div>
+
+                    <div class="issues-container">
+                        <h3>📋 Problemi da Segnalare</h3>
+                        <p style="color: #666; margin-bottom: 20px;">Aggiungi uno o più problemi. Puoi segnalare più difetti in un unico report.</p>
+                        <div id="issuesList"></div>
+                        <button type="button" class="add-issue-btn" onclick="addIssue()">+ Aggiungi Altro Problema</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📸 Foto (opzionale)</label>
+                        <div class="photo-upload" onclick="document.getElementById('photoInput').click()">
+                            <p>📷 Clicca per caricare foto dei danni</p>
+                            <input type="file" id="photoInput" accept="image/*" multiple style="display: none;" onchange="handlePhotoUpload(event)">
+                        </div>
+                        <div class="photo-preview" id="photoPreview"></div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">💾 Salva Report Manutenzione</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ACTIVE REPORTS TAB -->
+        <div id="active-reports" class="tab-content">
+            <div class="content-card">
+                <div id="activeReportsList" class="reports-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Caricamento report attivi...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="tab-content">
+            <div class="content-card">
+                <div id="historyList" class="reports-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Caricamento storico...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.public.js"></script>
+    <script>
+        // Maintenance System JavaScript
+
+        let issueCounter = 0;
+        let currentVehicles = [];
+        let uploadedPhotos = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check admin login
+            const adminUser = localStorage.getItem('adminUser');
+            if (!adminUser) {
+                alert('Accesso non autorizzato. Effettua il login come admin.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            document.getElementById('reportedBy').value = adminUser;
+
+            // Load vehicles
+            loadVehicles();
+            
+            // Add first issue by default
+            addIssue();
+
+            // Setup form submission
+            document.getElementById('maintenanceForm').addEventListener('submit', handleSubmit);
+        });
+
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            if (tabName === 'active-reports') {
+                loadActiveReports();
+            } else if (tabName === 'history') {
+                loadHistory();
+            }
+        }
+
+        // Load vehicles
+        function loadVehicles() {
+            const callback = 'handleVehiclesLoaded';
+            window[callback] = function(response) {
+                if (response.success) {
+                    currentVehicles = response.vehicles;
+                    const select = document.getElementById('vehicleSelect');
+                    select.innerHTML = '<option value="">Seleziona un veicolo...</option>';
+                    
+                    response.vehicles.forEach(vehicle => {
+                        const option = document.createElement('option');
+                        option.value = vehicle.id;
+                        option.textContent = `${vehicle.name}${vehicle.licencePlate ? ' - ' + vehicle.licencePlate : ''}`;
+                        option.dataset.kmToService = vehicle.kmToService || 0;
+                        option.dataset.vehicleName = vehicle.name;
+                        select.appendChild(option);
+                    });
+
+                    select.addEventListener('change', handleVehicleChange);
+                } else {
+                    console.error('Error loading vehicles:', response.error);
+                    alert('Errore nel caricamento dei veicoli: ' + response.error);
+                }
+            };
+
+            const url = `${window.CONFIG.scriptUrl}?function=getVehicleListWithKmJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Handle vehicle selection change
+        function handleVehicleChange(event) {
+            const selectedOption = event.target.options[event.target.selectedIndex];
+            const kmToService = parseInt(selectedOption.dataset.kmToService) || 0;
+            
+            if (kmToService > 0) {
+                const daysToService = Math.floor(kmToService / 100);
+                
+                document.getElementById('kmInfo').style.display = 'grid';
+                document.getElementById('kmToService').textContent = kmToService.toLocaleString('it-IT') + ' km';
+                document.getElementById('daysToService').textContent = daysToService + ' giorni';
+            } else {
+                document.getElementById('kmInfo').style.display = 'none';
+            }
+        }
+
+        // Add new issue
+        function addIssue() {
+            issueCounter++;
+            const issueId = `issue-${issueCounter}`;
+            
+            const issueHtml = `
+                <div class="issue-item" id="${issueId}">
+                    ${issueCounter > 1 ? '<button type="button" class="remove-issue" onclick="removeIssue(\'' + issueId + '\')">×</button>' : ''}
+                    
+                    <div class="form-group">
+                        <label>🔧 Categoria Problema</label>
+                        <select class="issue-category" required onchange="updateAIAnalysis('${issueId}')">
+                            <option value="">Seleziona categoria...</option>
+                            <option value="motore">⚙️ Motore / Meccanica</option>
+                            <option value="freni">🛑 Freni</option>
+                            <option value="pneumatici">🛞 Pneumatici</option>
+                            <option value="elettrico">⚡ Sistema Elettrico</option>
+                            <option value="carrozzeria">🚗 Carrozzeria / Esterno</option>
+                            <option value="interni">🪑 Interni</option>
+                            <option value="fluidi">💧 Fluidi / Manutenzione</option>
+                            <option value="climatizzazione">❄️ Climatizzazione</option>
+                            <option value="luci">💡 Luci / Fari</option>
+                            <option value="altro">🔧 Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📝 Descrizione Dettagliata del Problema</label>
+                        <textarea class="issue-description" rows="4" placeholder="Descrivi il problema in dettaglio (es: 'Il freno posteriore sinistro fa rumore quando freno', 'Ammaccatura sul parafango anteriore destro', ecc.)" required onblur="updateAIAnalysis('${issueId}')"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>⚠️ Urgenza Riparazione</label>
+                        <select class="issue-urgency" required>
+                            <option value="">Seleziona urgenza...</option>
+                            <option value="low">🟢 Bassa - Può attendere servizio programmato</option>
+                            <option value="medium">🟡 Media - Da fare entro 1-2 settimane</option>
+                            <option value="high">🟠 Alta - Urgente, da fare al più presto</option>
+                            <option value="critical">🔴 Critica - Non utilizzare il veicolo</option>
+                        </select>
+                    </div>
+
+                    <div class="ai-recommendation" id="ai-${issueId}" style="display: none;">
+                        <strong>🤖 Raccomandazione AI:</strong>
+                        <p class="ai-text"></p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('issuesList').insertAdjacentHTML('beforeend', issueHtml);
+        }
+
+        // Remove issue
+        function removeIssue(issueId) {
+            const issuesCount = document.querySelectorAll('.issue-item').length;
+            if (issuesCount <= 1) {
+                alert('Devi avere almeno un problema nel report');
+                return;
+            }
+            document.getElementById(issueId).remove();
+        }
+
+        // Update AI analysis
+        function updateAIAnalysis(issueId) {
+            const issueElement = document.getElementById(issueId);
+            const description = issueElement.querySelector('.issue-description').value.trim();
+            const category = issueElement.querySelector('.issue-category').value;
+            
+            if (!description || !category || description.length < 10) return;
+
+            // Get km to service
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+            const kmToService = parseInt(selectedOption.dataset.kmToService) || 0;
+
+            // Show loading
+            const recDiv = issueElement.querySelector(`#ai-${issueId}`);
+            const recText = recDiv.querySelector('.ai-text');
+            recText.textContent = 'Analisi in corso...';
+            recDiv.style.display = 'block';
+
+            // Call AI
+            const callback = `handleAI_${issueId.replace('-', '_')}`;
+            window[callback] = function(response) {
+                if (response.success) {
+                    recText.textContent = response.recommendation;
+
+                    // Auto-suggest urgency if not set
+                    const urgencySelect = issueElement.querySelector('.issue-urgency');
+                    if (!urgencySelect.value && response.suggestedUrgency) {
+                        urgencySelect.value = response.suggestedUrgency;
+                    }
+                } else {
+                    recText.textContent = 'Errore nell\'analisi AI: ' + response.error;
+                }
+            };
+
+            const url = `${window.CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;
+            
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Handle photo upload
+        function handlePhotoUpload(event) {
+            const files = Array.from(event.target.files);
+            const preview = document.getElementById('photoPreview');
+            
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.className = 'photo-preview-item';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    div.appendChild(img);
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+
+                // Upload to Drive
+                uploadPhotoToDrive(file);
+            });
+        }
+
+        // Upload photo to Google Drive
+        function uploadPhotoToDrive(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result.split(',')[1];
+                
+                const callback = 'handlePhotoUploaded';
+                window[callback] = function(response) {
+                    if (response.success) {
+                        uploadedPhotos.push({
+                            fileId: response.fileId,
+                            fileName: response.fileName,
+                            fileUrl: response.fileUrl
+                        });
+                        console.log('Foto caricata:', response.fileName);
+                    } else {
+                        console.error('Errore caricamento foto:', response.error);
+                        alert('Errore nel caricamento foto: ' + response.error);
+                    }
+                };
+
+                const url = `${window.CONFIG.scriptUrl}?function=uploadMaintenancePhotoJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&fileName=${encodeURIComponent(file.name)}&fileData=${encodeURIComponent(base64Data)}&mimeType=${encodeURIComponent(file.type)}&callback=${callback}&_=${Date.now()}`;
+                
+                const script = document.createElement('script');
+                script.src = url;
+                document.body.appendChild(script);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Handle form submission
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            const vehicleId = vehicleSelect.value;
+            const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+            const vehicleName = selectedOption.dataset.vehicleName;
+            const reportedBy = document.getElementById('reportedBy').value;
+
+            if (!vehicleId) {
+                alert('Seleziona un veicolo');
+                return;
+            }
+
+            // Collect all issues
+            const issues = [];
+            document.querySelectorAll('.issue-item').forEach(issueElement => {
+                const category = issueElement.querySelector('.issue-category').value;
+                const description = issueElement.querySelector('.issue-description').value;
+                const urgency = issueElement.querySelector('.issue-urgency').value;
+                
+                if (category && description && urgency) {
+                    issues.push({
+                        category,
+                        description,
+                        urgency,
+                        status: 'reported',
+                        completed: false
+                    });
+                }
+            });
+
+            if (issues.length === 0) {
+                alert('Compila almeno un problema');
+                return;
+            }
+
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Salvataggio in corso...';
+
+            // Prepare data
+            const reportData = {
+                vehicleId,
+                vehicleName,
+                reportedBy,
+                reportDate: new Date().toISOString(),
+                issues,
+                photos: uploadedPhotos.map(p => p.fileUrl),
+                photoIds: uploadedPhotos.map(p => p.fileId)
+            };
+
+            // Submit to Google Sheets
+            const callback = 'handleReportSaved';
+            window[callback] = function(response) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 Salva Report Manutenzione';
+
+                if (response.success) {
+                    alert('✅ Report manutenzione salvato con successo!');
+                    
+                    // Reset form
+                    document.getElementById('maintenanceForm').reset();
+                    document.getElementById('issuesList').innerHTML = '';
+                    document.getElementById('photoPreview').innerHTML = '';
+                    document.getElementById('kmInfo').style.display = 'none';
+                    uploadedPhotos = [];
+                    issueCounter = 0;
+                    
+                    // Add first issue
+                    addIssue();
+                    
+                    // Switch to active reports tab
+                    document.querySelector('.tab:nth-child(2)').click();
+                } else {
+                    alert('❌ Errore nel salvataggio: ' + response.error);
+                }
+            };
+
+            const url = `${window.CONFIG.scriptUrl}?function=saveMaintenanceReportJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(reportData))}&callback=${callback}&_=${Date.now()}`;
+            
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Load active reports
+        function loadActiveReports() {
+            const callback = 'handleActiveReportsLoaded';
+            window[callback] = function(response) {
+                const container = document.getElementById('activeReportsList');
+                
+                if (!response.success) {
+                    container.innerHTML = `<div class="error-message">Errore: ${response.error}</div>`;
+                    return;
+                }
+
+                if (response.reports.length === 0) {
+                    container.innerHTML = `<div class="success-message">✅ Nessun report attivo. Tutti i problemi sono stati risolti! 👍</div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                response.reports.forEach(report => {
+                    container.insertAdjacentHTML('beforeend', createReportCard(report));
+                });
+            };
+
+            const url = `${window.CONFIG.scriptUrl}?function=getActiveMaintenanceReportsJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Create report card HTML
+        function createReportCard(report) {
+            const urgencyClass = getHighestUrgency(report.issues);
+            const completedCount = report.issues.filter(i => i.completed).length;
+            const totalCount = report.issues.length;
+            const progress = (completedCount / totalCount) * 100;
+
+            const urgencyLabels = {
+                low: 'BASSA',
+                medium: 'MEDIA',
+                high: 'ALTA',
+                critical: 'CRITICA'
+            };
+
+            return `
+                <div class="report-card">
+                    <div class="report-header">
+                        <div>
+                            <div class="vehicle-name">${report.vehicleName}</div>
+                            <div class="report-date">📅 ${new Date(report.reportDate).toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric'})} - 👤 ${report.reportedBy}</div>
+                        </div>
+                        <span class="urgency-badge urgency-${urgencyClass}">${urgencyLabels[urgencyClass] || urgencyClass}</span>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${progress}%"></div>
+                    </div>
+                    <p class="progress-text">${completedCount}/${totalCount} problemi risolti</p>
+
+                    <ul class="issue-list">
+                        ${report.issues.map((issue, index) => `
+                            <li class="issue-list-item">
+                                <input type="checkbox" class="issue-checkbox" 
+                                    ${issue.completed ? 'checked' : ''} 
+                                    onchange="toggleIssueStatus('${report.id}', ${index}, this.checked)">
+                                <div class="issue-content">
+                                    <div class="issue-category">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
+                                    <div class="issue-description">${issue.description}</div>
+                                    <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 11px; padding: 4px 10px;">${urgencyLabels[issue.urgency] || issue.urgency}</span>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+
+                    ${report.photos && report.photos.length > 0 ? `
+                        <div style="margin-top: 20px;">
+                            <strong style="display: block; margin-bottom: 10px;">📸 Foto Allegate:</strong>
+                            <div class="photo-preview">
+                                ${report.photos.map(url => `
+                                    <div class="photo-preview-item">
+                                        <img src="${url}" onclick="window.open('${url}', '_blank')">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Toggle issue completion status
+        function toggleIssueStatus(reportId, issueIndex, completed) {
+            const callback = 'handleIssueUpdated';
+            window[callback] = function(response) {
+                if (response.success) {
+                    loadActiveReports();
+                } else {
+                    alert('Errore nell\'aggiornamento: ' + response.error);
+                }
+            };
+
+            const url = `${window.CONFIG.scriptUrl}?function=updateIssueStatusJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueIndex=${issueIndex}&completed=${completed}&callback=${callback}&_=${Date.now()}`;
+            
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Load history
+        function loadHistory() {
+            const callback = 'handleHistoryLoaded';
+            window[callback] = function(response) {
+                const container = document.getElementById('historyList');
+                
+                if (!response.success) {
+                    container.innerHTML = `<div class="error-message">Errore: ${response.error}</div>`;
+                    return;
+                }
+
+                if (response.reports.length === 0) {
+                    container.innerHTML = `<div class="success-message">Nessuno storico disponibile.</div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                response.reports.forEach(report => {
+                    container.insertAdjacentHTML('beforeend', createReportCard(report));
+                });
+            };
+
+            const url = `${window.CONFIG.scriptUrl}?function=getMaintenanceHistoryJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Helper functions
+        function getHighestUrgency(issues) {
+            const priorities = { critical: 4, high: 3, medium: 2, low: 1 };
+            let highest = 'low';
+            let highestValue = 0;
+
+            issues.forEach(issue => {
+                if (priorities[issue.urgency] > highestValue) {
+                    highestValue = priorities[issue.urgency];
+                    highest = issue.urgency;
+                }
+            });
+
+            return highest;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                motore: '⚙️',
+                freni: '🛑',
+                pneumatici: '🛞',
+                elettrico: '⚡',
+                carrozzeria: '🚗',
+                interni: '🪑',
+                fluidi: '💧',
+                climatizzazione: '❄️',
+                luci: '💡',
+                altro: '🔧'
+            };
+            return icons[category] || '🔧';
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                motore: 'Motore / Meccanica',
+                freni: 'Freni',
+                pneumatici: 'Pneumatici',
+                elettrico: 'Sistema Elettrico',
+                carrozzeria: 'Carrozzeria / Esterno',
+                interni: 'Interni',
+                fluidi: 'Fluidi / Manutenzione',
+                climatizzazione: 'Climatizzazione',
+                luci: 'Luci / Fari',
+                altro: 'Altro'
+            };
+            return labels[category] || category;
+        }
+    </script>
+</body>
+</html>
