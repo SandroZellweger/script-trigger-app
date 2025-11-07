@@ -29,8 +29,11 @@ function getVehicleListWithKm() {
     const vehicles = [];
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
+      const vehicleName = row[nameIndex] || '';
+      
       // Check if vehicle has name and calendar ID (skip empty rows)
-      if (row[nameIndex] && row[idIndex]) {
+      // AND filter: only include vehicles starting with "N"
+      if (row[nameIndex] && row[idIndex] && vehicleName.toString().trim().toUpperCase().startsWith('N')) {
         vehicles.push({
           name: row[nameIndex],
           calendarId: row[idIndex],

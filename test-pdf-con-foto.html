@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF con Foto - Sistema Manutenzione</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .test-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .feature-new {
+            display: inline-block;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 10px 5px 10px 0;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .feature-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            margin: 5px 5px 5px 0;
+            font-weight: bold;
+        }
+        .btn-test {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px 10px 10px 0;
+        }
+        .workflow-step {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .workflow-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .workflow-content {
+            flex: 1;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .alert-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .alert-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .success-box {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success-box h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .comparison-card {
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        .comparison-card h4 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .comparison-card.before {
+            background: #fff5f5;
+            border-color: #ff6b6b;
+        }
+        .comparison-card.after {
+            background: #f0f8f4;
+            border-color: #28a745;
+        }
+        .image-preview {
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .image-preview img {
+            max-width: 200px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>📸 Test: Foto Incluse nel PDF</h1>
+        <p style="color: #666; font-size: 16px;">Nuova funzionalità per includere le foto dei danni direttamente nel PDF generato</p>
+        
+        <div style="margin: 20px 0;">
+            <span class="feature-new">🆕 NUOVO!</span>
+            <span class="feature-tag">📸 Foto nel PDF</span>
+            <span class="feature-tag">⏳ Loading Progressivo</span>
+            <span class="feature-tag">🖼️ Base64 Conversion</span>
+        </div>
+
+        <a href="maintenance-new.html" class="btn-test">🚀 Testa con Maintenance System</a>
+    </div>
+
+    <div class="test-card">
+        <h2>✨ Cosa è stato aggiunto</h2>
+        
+        <div class="comparison">
+            <div class="comparison-card before">
+                <h4>❌ PRIMA</h4>
+                <ul style="line-height: 2;">
+                    <li>Solo testo "Foto disponibili: 2"</li>
+                    <li>Nessuna immagine nel PDF</li>
+                    <li>Meccanico deve cercare foto separatamente</li>
+                    <li>Link Google Drive da aprire manualmente</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-card after">
+                <h4>✅ ADESSO</h4>
+                <ul style="line-height: 2;">
+                    <li>📸 Foto caricate automaticamente</li>
+                    <li>🖼️ Immagini incluse direttamente nel PDF</li>
+                    <li>✅ Tutto in un unico documento</li>
+                    <li>📄 PDF completo e autosufficiente</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>🔧 Implementazione Tecnica</h2>
+        
+        <div class="workflow-step">
+            <div class="workflow-number">1</div>
+            <div class="workflow-content">
+                <strong>Conversione URL Google Drive</strong>
+                <p style="color: #666; margin: 5px 0 0 0;">Converte link di visualizzazione in link di download diretto</p>
+                <div class="code-block">
+// Da: https://drive.google.com/file/d/ABC123/view
+// A:  https://drive.google.com/uc?export=download&id=ABC123
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <div class="workflow-number">2</div>
+            <div class="workflow-content">
+                <strong>Download Immagine</strong>
+                <p style="color: #666; margin: 5px 0 0 0;">Scarica l'immagine come Blob usando Fetch API</p>
+                <div class="code-block">
+const response = await fetch(imageUrl);
+const blob = await response.blob();
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <div class="workflow-number">3</div>
+            <div class="workflow-content">
+                <strong>Conversione Base64</strong>
+                <p style="color: #666; margin: 5px 0 0 0;">Converte il Blob in stringa Base64 per jsPDF</p>
+                <div class="code-block">
+const reader = new FileReader();
+reader.readAsDataURL(blob); // Ritorna "data:image/jpeg;base64,..."
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <div class="workflow-number">4</div>
+            <div class="workflow-content">
+                <strong>Inserimento nel PDF</strong>
+                <p style="color: #666; margin: 5px 0 0 0;">Aggiunge l'immagine al PDF con dimensioni fisse</p>
+                <div class="code-block">
+doc.addImage(imageData, 'JPEG', x: 20, y: yPos, width: 80, height: 50);
+// Dimensioni: 80mm x 50mm (proporzioni 16:10)
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <div class="workflow-number">5</div>
+            <div class="workflow-content">
+                <strong>Gestione Pagination</strong>
+                <p style="color: #666; margin: 5px 0 0 0;">Crea nuova pagina automaticamente se immagine non entra</p>
+                <div class="code-block">
+if (yPos + imageHeight > pageHeight - 20) {
+    doc.addPage();
+    yPos = 20;
+}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>🎬 Workflow Generazione PDF</h2>
+        
+        <ol style="line-height: 2.5; color: #333;">
+            <li><strong>Utente clicca "📄 Genera PDF"</strong></li>
+            <li>Bottone mostra: "⏳ Caricamento foto e generazione PDF..."</li>
+            <li><strong>Per ogni danno con foto:</strong>
+                <ul style="margin: 10px 0; color: #666;">
+                    <li>Mostra: "⏳ Caricamento foto 1/3 del danno 1..."</li>
+                    <li>Scarica foto da Google Drive</li>
+                    <li>Converte in Base64</li>
+                    <li>Aggiunge al PDF sotto la descrizione danno</li>
+                    <li>Aggiunge label "Foto 1" sotto l'immagine</li>
+                </ul>
+            </li>
+            <li>Aggiunge sezioni tagliando e lavori extra</li>
+            <li>Bottone mostra: "💾 Salvataggio PDF..."</li>
+            <li><strong>Download automatico del PDF</strong></li>
+            <li>Alert: "✅ PDF generato con successo con foto incluse!"</li>
+            <li>Modal si chiude automaticamente</li>
+        </ol>
+    </div>
+
+    <div class="test-card">
+        <div class="success-box">
+            <h3>✅ Caratteristiche Foto nel PDF</h3>
+            <ul style="line-height: 2; margin: 10px 0;">
+                <li><strong>Dimensioni fisse:</strong> 80mm larghezza × 50mm altezza</li>
+                <li><strong>Posizione:</strong> Sotto la descrizione di ogni danno</li>
+                <li><strong>Label:</strong> "Foto 1", "Foto 2", ecc. sotto ogni immagine</li>
+                <li><strong>Gestione errori:</strong> Mostra "⚠️ Foto X: Non disponibile" se fallisce</li>
+                <li><strong>Pagination:</strong> Nuova pagina automatica se necessario</li>
+                <li><strong>Progress:</strong> Bottone mostra avanzamento caricamento</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>🧪 Piano di Test</h2>
+        
+        <h3 style="color: #667eea;">Test 1: PDF con Foto</h3>
+        <ol style="line-height: 2; color: #333;">
+            <li>Apri <strong>maintenance-new.html</strong></li>
+            <li>Crea un report con foto caricate (o usa report esistenti)</li>
+            <li>Vai su tab "Report Attivi"</li>
+            <li>Clicca "📄 Crea Lista Manutenzione (PDF)"</li>
+            <li>Seleziona veicolo con danni che hanno foto</li>
+            <li>Step 2: Seleziona danni con foto</li>
+            <li>Completa gli altri steps (tagliando, extra, riassunto)</li>
+            <li>Step 5: Clicca "📄 Genera PDF"</li>
+            <li><strong>Osserva:</strong>
+                <ul style="margin: 10px 0; color: #666;">
+                    <li>Bottone mostra "⏳ Caricamento foto..."</li>
+                    <li>Progress aggiornato per ogni foto</li>
+                    <li>Download PDF avviene automaticamente</li>
+                    <li>Alert conferma successo</li>
+                </ul>
+            </li>
+            <li><strong>Apri il PDF generato e verifica:</strong>
+                <ul style="margin: 10px 0; color: #666;">
+                    <li>✅ Immagini visibili sotto ogni danno</li>
+                    <li>✅ Label "Foto 1", "Foto 2" presente</li>
+                    <li>✅ Qualità immagine buona</li>
+                    <li>✅ Layout professionale mantenuto</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3 style="color: #667eea; margin-top: 30px;">Test 2: PDF senza Foto</h3>
+        <ol style="line-height: 2; color: #333;">
+            <li>Crea PDF per danno SENZA foto</li>
+            <li>Verifica che funziona normalmente</li>
+            <li>Non mostra sezione foto</li>
+            <li>Layout compatto</li>
+        </ol>
+
+        <h3 style="color: #667eea; margin-top: 30px;">Test 3: Gestione Errori</h3>
+        <ol style="line-height: 2; color: #333;">
+            <li>Testa con link foto invalidi/scaduti</li>
+            <li>Verifica che mostra: "⚠️ Foto X: Non disponibile"</li>
+            <li>PDF si genera comunque con testo e dati</li>
+            <li>Nessun crash dell'applicazione</li>
+        </ol>
+
+        <h3 style="color: #667eea; margin-top: 30px;">Test 4: Performance</h3>
+        <ol style="line-height: 2; color: #333;">
+            <li>Testa con 5+ foto per danno</li>
+            <li>Verifica tempo di generazione accettabile</li>
+            <li>Progress bar chiaro e aggiornato</li>
+            <li>Nessun freeze del browser</li>
+        </ol>
+    </div>
+
+    <div class="test-card">
+        <div class="alert-box">
+            <h3>⚠️ Note Tecniche Importanti</h3>
+            <ul style="line-height: 2; margin: 10px 0;">
+                <li><strong>CORS:</strong> Google Drive permette download cross-origin con link /uc?export=download</li>
+                <li><strong>Timeout:</strong> Foto grandi possono richiedere tempo (normale per immagini 5+ MB)</li>
+                <li><strong>Formato:</strong> Supporta JPEG, PNG (convertiti automaticamente da jsPDF)</li>
+                <li><strong>Dimensioni PDF:</strong> File size aumenta con numero di foto (normale)</li>
+                <li><strong>Cache:</strong> Foto scaricate solo durante generazione PDF (non salvate localmente)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>📋 Funzioni JavaScript Aggiunte</h2>
+        
+        <div class="code-block">
+// Nuova funzione helper per caricare immagini
+async function loadImageAsBase64(url) {
+    // 1. Converte URL Google Drive
+    // 2. Scarica immagine con fetch
+    // 3. Converte Blob in Base64
+    // 4. Ritorna data URL per jsPDF
+}
+
+// Funzione generateMaintenancePDF() modificata:
+// - Aggiunto loading progress nel bottone
+// - Loop per caricare ogni foto
+// - Inserimento immagini nel PDF
+// - Gestione errori per foto non disponibili
+// - Ripristino stato bottone alla fine
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>🎨 Esempio Layout PDF</h2>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; font-family: monospace; line-height: 1.8;">
+            <div style="background: #667eea; color: white; padding: 20px; text-align: center; margin-bottom: 20px;">
+                <strong>LISTA MANUTENZIONE</strong><br>
+                N001 Sprinter<br>
+                Data: 08/11/2025
+            </div>
+            
+            <div style="color: #667eea; font-weight: bold; margin: 15px 0;">DANNI DA RIPARARE</div>
+            
+            <div style="margin-left: 20px;">
+                <strong>1. Freni</strong><br>
+                Problema: Il freno posteriore sinistro fa rumore<br>
+                Urgenza: ALTA<br>
+                <br>
+                <strong style="color: #667eea;">📸 Foto (2):</strong><br>
+                <div class="image-preview">
+                    <div style="display: inline-block; margin: 10px;">
+                        <div style="width: 150px; height: 100px; background: #ddd; display: flex; align-items: center; justify-content: center; border-radius: 5px;">
+                            [Immagine Freno]
+                        </div>
+                        <div style="text-align: center; color: #999; font-size: 12px; margin-top: 5px;">Foto 1</div>
+                    </div>
+                    <div style="display: inline-block; margin: 10px;">
+                        <div style="width: 150px; height: 100px; background: #ddd; display: flex; align-items: center; justify-content: center; border-radius: 5px;">
+                            [Immagine Dettaglio]
+                        </div>
+                        <div style="text-align: center; color: #999; font-size: 12px; margin-top: 5px;">Foto 2</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-left: 20px; margin-top: 20px;">
+                <strong>2. Carrozzeria / Esterno</strong><br>
+                Problema: Ammaccatura portiera lato passeggero<br>
+                Urgenza: MEDIA<br>
+                <br>
+                <strong style="color: #667eea;">📸 Foto (1):</strong><br>
+                <div class="image-preview">
+                    <div style="display: inline-block; margin: 10px;">
+                        <div style="width: 150px; height: 100px; background: #ddd; display: flex; align-items: center; justify-content: center; border-radius: 5px;">
+                            [Immagine Ammaccatura]
+                        </div>
+                        <div style="text-align: center; color: #999; font-size: 12px; margin-top: 5px;">Foto 1</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="color: #667eea; font-weight: bold; margin: 20px 0 10px 0;">LAVORI TAGLIANDO</div>
+            <div style="margin-left: 20px;">
+                ☐ Cambio olio motore<br>
+                ☐ Sostituzione filtro olio<br>
+                ☐ Controllo freni e pastiglie
+            </div>
+            
+            <div style="text-align: center; color: #999; font-size: 12px; margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd;">
+                Pagina 1 di 2<br>
+                Noleggio Semplice - Sistema di Gestione Manutenzione
+            </div>
+        </div>
+    </div>
+
+    <div class="test-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h2 style="margin: 0 0 15px 0; color: white;">🚀 Pronto per il Test</h2>
+        <p style="margin: 0 0 20px 0; opacity: 0.9;">Le foto vengono ora incluse automaticamente nel PDF generato. Testa subito la funzionalità!</p>
+        <a href="maintenance-new.html" class="btn-test" style="background: white; color: #667eea;">
+            🧪 Apri Sistema Manutenzione
+        </a>
+        <a href="test-maintenance-pdf-wizard.html" class="btn-test" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white;">
+            📚 Guida Completa Wizard
+        </a>
+    </div>
+</body>
+</html>

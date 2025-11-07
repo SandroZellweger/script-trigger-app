@@ -1180,9 +1180,16 @@
                 try {
                     if (response.success && response.vehicles) {
                         select.innerHTML = '<option value="">-- Seleziona un veicolo --</option>';
-                        currentVehicles = response.vehicles;
                         
-                        response.vehicles.forEach(vehicle => {
+                        // Filter vehicles: only include those starting with "N"
+                        const filteredVehicles = response.vehicles.filter(vehicle => {
+                            const vehicleName = vehicle.name || vehicle.vehicleType || '';
+                            return vehicleName.trim().toUpperCase().startsWith('N');
+                        });
+                        
+                        currentVehicles = filteredVehicles;
+                        
+                        filteredVehicles.forEach(vehicle => {
                             const option = document.createElement('option');
                             const value = vehicle.calendarId || vehicle.id || '';
                             
@@ -1196,7 +1203,7 @@
                         });
                         
                         select.addEventListener('change', handleVehicleChange);
-                        console.log('✅ Loaded ' + response.vehicles.length + ' vehicles');
+                        console.log('✅ Loaded ' + filteredVehicles.length + ' vehicles (filtered with "N")');
                     } else {
                         select.innerHTML = '<option value="">❌ ' + (response.error || 'Errore caricamento') + '</option>';
                         console.error('Vehicle load error:', response);
@@ -1224,12 +1231,25 @@
             const selectedOption = event.target.options[event.target.selectedIndex];
             const kmToService = parseInt(selectedOption.dataset.kmToService) || 0;
             
-            if (kmToService > 0) {
-                const daysToService = Math.floor(kmToService / 100);
+            // Show info for any non-zero km value (positive or negative)
+            if (kmToService !== 0) {
+                const daysToService = Math.floor(Math.abs(kmToService) / 100);
                 
                 document.getElementById('kmInfo').style.display = 'grid';
-                document.getElementById('kmToService').textContent = kmToService.toLocaleString('it-IT') + ' km';
-                document.getElementById('daysToService').textContent = daysToService + ' giorni';
+                
+                // Handle negative km (overdue service)
+                if (kmToService < 0) {
+                    document.getElementById('kmInfo').style.borderColor = '#ff6b6b';
+                    document.getElementById('kmInfo').style.background = '#fff0f0';
+                    document.getElementById('kmToService').innerHTML = `⚠️ ${Math.abs(kmToService).toLocaleString('it-IT')} km <span style="color: #ff6b6b; font-weight: bold;">FUORI SERVIZIO</span>`;
+                    document.getElementById('daysToService').innerHTML = `⚠️ ${daysToService} giorni di ritardo`;
+                } else {
+                    // Positive km - normal display
+                    document.getElementById('kmInfo').style.borderColor = '#667eea';
+                    document.getElementById('kmInfo').style.background = 'transparent';
+                    document.getElementById('kmToService').textContent = kmToService.toLocaleString('it-IT') + ' km';
+                    document.getElementById('daysToService').textContent = daysToService + ' giorni';
+                }
             } else {
                 document.getElementById('kmInfo').style.display = 'none';
             }
@@ -2138,6 +2158,31 @@
             }
         }
 
+        // Helper function to load image from URL and convert to base64
+        async function loadImageAsBase64(url) {
+            try {
+                // Convert Google Drive view link to direct download link
+                let imageUrl = url;
+                if (url.includes('drive.google.com/file/d/')) {
+                    const fileId = url.match(/\/d\/([^\/]+)/)[1];
+                    imageUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                }
+
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Error loading image:', error);
+                return null;
+            }
+        }
+
         async function generateMaintenancePDF() {
             const { jsPDF } = window.jspdf;
             
@@ -2147,8 +2192,15 @@
             }
 
             try {
+                // Show loading message
+                const generateBtn = document.getElementById('wizardGenerateBtn');
+                const originalText = generateBtn.textContent;
+                generateBtn.disabled = true;
+                generateBtn.textContent = '⏳ Caricamento foto e generazione PDF...';
+
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
                 let yPos = 20;
 
                 // Header
@@ -2209,10 +2261,61 @@
                         if (damage.photoURLs && damage.photoURLs.length > 0) {
                             doc.setFontSize(9);
                             doc.setTextColor(102, 126, 234);
-                            doc.text(`Foto disponibili: ${damage.photoURLs.length}`, 20, yPos);
-                            yPos += 5;
-                            doc.setFontSize(10);
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`📸 Foto (${damage.photoURLs.length}):`, 20, yPos);
+                            yPos += 7;
+                            doc.setFont(undefined, 'normal');
                             doc.setTextColor(0, 0, 0);
+
+                            // Load and add images
+                            for (let photoIdx = 0; photoIdx < damage.photoURLs.length; photoIdx++) {
+                                const photoUrl = damage.photoURLs[photoIdx];
+                                
+                                // Update loading message
+                                generateBtn.textContent = `⏳ Caricamento foto ${photoIdx + 1}/${damage.photoURLs.length} del danno ${i + 1}...`;
+                                
+                                const imageData = await loadImageAsBase64(photoUrl);
+                                
+                                if (imageData) {
+                                    // Check if we need a new page for the image
+                                    const imageHeight = 50; // Fixed height for images
+                                    if (yPos + imageHeight > pageHeight - 20) {
+                                        doc.addPage();
+                                        yPos = 20;
+                                    }
+
+                                    try {
+                                        // Add image to PDF (width: 80mm, height: 50mm)
+                                        doc.addImage(imageData, 'JPEG', 20, yPos, 80, 50);
+                                        
+                                        // Add photo label below image
+                                        doc.setFontSize(8);
+                                        doc.setTextColor(100, 100, 100);
+                                        doc.text(`Foto ${photoIdx + 1}`, 60, yPos + 52, { align: 'center' });
+                                        doc.setFontSize(10);
+                                        doc.setTextColor(0, 0, 0);
+                                        
+                                        yPos += 58; // Image height + label + spacing
+                                    } catch (imgError) {
+                                        console.error('Error adding image to PDF:', imgError);
+                                        doc.setFontSize(8);
+                                        doc.setTextColor(200, 50, 50);
+                                        doc.text(`⚠️ Foto ${photoIdx + 1}: Errore caricamento`, 20, yPos);
+                                        yPos += 5;
+                                        doc.setFontSize(10);
+                                        doc.setTextColor(0, 0, 0);
+                                    }
+                                } else {
+                                    doc.setFontSize(8);
+                                    doc.setTextColor(200, 50, 50);
+                                    doc.text(`⚠️ Foto ${photoIdx + 1}: Non disponibile`, 20, yPos);
+                                    yPos += 5;
+                                    doc.setFontSize(10);
+                                    doc.setTextColor(0, 0, 0);
+                                }
+                            }
+
+                            yPos += 5;
                         }
 
                         yPos += 5;
@@ -2288,14 +2391,25 @@
                 }
 
                 // Save PDF
+                generateBtn.textContent = '💾 Salvataggio PDF...';
                 const fileName = `Lista_Manutenzione_${pdfWizardData.vehicleName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
                 doc.save(fileName);
 
-                alert('PDF generato con successo!');
+                // Restore button
+                generateBtn.textContent = originalText;
+                generateBtn.disabled = false;
+
+                alert('✅ PDF generato con successo con foto incluse!');
                 closeMaintenancePdfWizard();
 
             } catch (error) {
                 console.error('Errore generazione PDF:', error);
+                
+                // Restore button
+                const generateBtn = document.getElementById('wizardGenerateBtn');
+                generateBtn.textContent = '📄 Genera PDF';
+                generateBtn.disabled = false;
+                
                 alert('Errore durante la generazione del PDF: ' + error.message);
             }
         }
