@@ -3189,19 +3189,22 @@
                 const pageHeight = doc.internal.pageSize.getHeight();
                 let yPos = 20;
 
+                // Set font to Helvetica for better compatibility
+                doc.setFont('helvetica', 'normal');
+
                 // Header with company info on left, garage on right
                 doc.setFillColor(102, 126, 234);
                 doc.rect(0, 0, pageWidth, 60, 'F');
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(18);
-                doc.setFont(undefined, 'bold');
+                doc.setFont('helvetica', 'bold');
                 doc.text('LISTA MANUTENZIONE', pageWidth / 2, 15, { align: 'center' });
                 doc.setFontSize(12);
-                doc.setFont(undefined, 'normal');
+                doc.setFont('helvetica', 'normal');
                 doc.text(pdfWizardData.vehicleName, pageWidth / 2, 25, { align: 'center' });
                 doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, 33, { align: 'center' });
 
-                // Company info on left
+                // Company info on left with better spacing
                 doc.setFontSize(10);
                 doc.setTextColor(255, 255, 255);
                 doc.text('Barbone & Zellweger Sagl', 15, 45);
@@ -3218,9 +3221,9 @@
                     const rightX = pageWidth - 15;
 
                     doc.text('OFFICINA:', rightX, 45, { align: 'right' });
-                    doc.setFont(undefined, 'bold');
+                    doc.setFont('helvetica', 'bold');
                     doc.text(garage.name, rightX, 50, { align: 'right' });
-                    doc.setFont(undefined, 'normal');
+                    doc.setFont('helvetica', 'normal');
 
                     if (garage.phone) {
                         doc.text(`Tel: ${garage.phone}`, rightX, 55, { align: 'right' });
@@ -3237,15 +3240,20 @@
                 yPos = 75;
                 doc.setTextColor(0, 0, 0);
 
+                // Add subtle border around content area
+                doc.setDrawColor(200, 200, 200);
+                doc.setLineWidth(0.5);
+                doc.rect(10, 70, pageWidth - 20, pageHeight - 90);
+
                 // Vehicle details section
                 doc.setFontSize(12);
-                doc.setFont(undefined, 'bold');
+                doc.setFont('helvetica', 'bold');
                 doc.setTextColor(102, 126, 234);
                 doc.text('DETTAGLI VEICOLO', 15, yPos);
                 yPos += 8;
 
                 doc.setFontSize(10);
-                doc.setFont(undefined, 'normal');
+                doc.setFont('helvetica', 'normal');
                 doc.setTextColor(0, 0, 0);
 
                 if (pdfWizardData.vehicleLicencePlate) {
@@ -3276,7 +3284,7 @@
                         const cartaGrigiaBase64 = await loadImageAsBase64(pdfWizardData.vehicleCartaGrigia);
                         if (cartaGrigiaBase64) {
                             yPos += 5;
-                            doc.setFont(undefined, 'bold');
+                            doc.setFont('helvetica', 'bold');
                             doc.text('Carta Grigia:', 15, yPos);
                             yPos += 5;
 
@@ -3307,13 +3315,13 @@
                 // Damages section
                 if (pdfWizardData.selectedDamages.length > 0) {
                     doc.setFontSize(14);
-                    doc.setFont(undefined, 'bold');
+                    doc.setFont('helvetica', 'bold');
                     doc.setTextColor(102, 126, 234);
                     doc.text('DANNI DA RIPARARE', 15, yPos);
                     yPos += 10;
 
                     doc.setFontSize(10);
-                    doc.setFont(undefined, 'normal');
+                    doc.setFont('helvetica', 'normal');
                     doc.setTextColor(0, 0, 0);
 
                     for (let i = 0; i < pdfWizardData.selectedDamages.length; i++) {
@@ -3326,11 +3334,11 @@
                         }
 
                         // Checkbox and damage title
-                        doc.setFont(undefined, 'bold');
-                        doc.text(`☐ ${getCategoryLabel(damage.category)}`, 15, yPos);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`[ ] ${getCategoryLabel(damage.category)}`, 15, yPos);
                         yPos += 6;
 
-                        doc.setFont(undefined, 'normal');
+                        doc.setFont('helvetica', 'normal');
                         const descLines = doc.splitTextToSize(damage.description, pageWidth - 30);
                         doc.text(descLines, 20, yPos);
                         yPos += descLines.length * 5;
@@ -3354,12 +3362,12 @@
                                 yPos = 20;
                             }
 
-                            doc.setFont(undefined, 'italic');
+                            doc.setFont('helvetica', 'italic');
                             doc.setFontSize(10);
                             doc.setTextColor(80, 80, 80);
                             doc.text(noteLines, 20, yPos);
                             yPos += noteLines.length * 5;
-                            doc.setFont(undefined, 'normal');
+                            doc.setFont('helvetica', 'normal');
                             doc.setFontSize(10);
                             doc.setTextColor(0, 0, 0);
                         }
@@ -3389,10 +3397,10 @@
                         if (photos.length > 0) {
                             doc.setFontSize(9);
                             doc.setTextColor(102, 126, 234);
-                            doc.setFont(undefined, 'bold');
+                            doc.setFont('helvetica', 'bold');
                             doc.text(`Foto (${photos.length}):`, 20, yPos);
                             yPos += 7;
-                            doc.setFont(undefined, 'normal');
+                            doc.setFont('helvetica', 'normal');
                             doc.setTextColor(0, 0, 0);
 
                             for (let photoIdx = 0; photoIdx < photos.length; photoIdx++) {
@@ -3479,13 +3487,13 @@
                     }
 
                     doc.setFontSize(14);
-                    doc.setFont(undefined, 'bold');
+                    doc.setFont('helvetica', 'bold');
                     doc.setTextColor(102, 126, 234);
                     doc.text('LAVORI TAGLIANDO', 15, yPos);
                     yPos += 10;
 
                     doc.setFontSize(10);
-                    doc.setFont(undefined, 'normal');
+                    doc.setFont('helvetica', 'normal');
                     doc.setTextColor(0, 0, 0);
 
                     pdfWizardData.serviceWorks.forEach((work, idx) => {
@@ -3493,7 +3501,7 @@
                             doc.addPage();
                             yPos = 20;
                         }
-                        doc.text(`☐ ${work}`, 15, yPos);
+                        doc.text(`[ ] ${work}`, 15, yPos);
                         yPos += 7;
                     });
 
@@ -3508,13 +3516,13 @@
                     }
 
                     doc.setFontSize(14);
-                    doc.setFont(undefined, 'bold');
+                    doc.setFont('helvetica', 'bold');
                     doc.setTextColor(102, 126, 234);
                     doc.text('LAVORI EXTRA', 15, yPos);
                     yPos += 10;
 
                     doc.setFontSize(10);
-                    doc.setFont(undefined, 'normal');
+                    doc.setFont('helvetica', 'normal');
                     doc.setTextColor(0, 0, 0);
 
                     pdfWizardData.extraWorks.forEach((work, idx) => {
@@ -3522,7 +3530,7 @@
                             doc.addPage();
                             yPos = 20;
                         }
-                        doc.text(`☐ ${work}`, 15, yPos);
+                        doc.text(`[ ] ${work}`, 15, yPos);
                         yPos += 7;
                     });
                 }
