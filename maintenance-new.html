@@ -819,6 +819,59 @@
             font-style: italic;
         }
 
+        .summary-damage-card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.06);
+        }
+
+        .summary-damage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+        }
+
+        .summary-damage-title {
+            font-weight: 600;
+            color: #4a4a4a;
+            font-size: 15px;
+        }
+
+        .summary-damage-desc {
+            color: #5c5c5c;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .summary-damage-note {
+            width: 100%;
+            min-height: 70px;
+            border: 1px solid #d7dcf5;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            resize: vertical;
+            background: #f8f9fe;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .summary-damage-note:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+            background: #ffffff;
+        }
+
+        .summary-note-hint {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 15px;
+        }
+
         .add-damage-btn {
             background: #28a745;
             color: white;
@@ -860,6 +913,49 @@
             font-weight: bold;
             margin-bottom: 5px;
             color: #333;
+        }
+
+        .ai-helper-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .ai-helper-btn {
+            background: #4c6ef5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .ai-helper-btn:hover:not(:disabled) {
+            background: #3b5bdb;
+        }
+
+        .ai-helper-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .ai-status-message {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .ai-status-message.success {
+            color: #28a745;
+        }
+
+        .ai-status-message.error {
+            color: #dc3545;
         }
 
         .quick-damage-form input,
@@ -1795,6 +1891,30 @@
             return labels[category] || category;
         }
 
+        function escapeHtml(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function decodeURIComponentSafe(value) {
+            if (!value) {
+                return '';
+            }
+            try {
+                return decodeURIComponent(value);
+            } catch (error) {
+                console.warn('⚠️ Impossibile decodificare il valore', value, error);
+                return value;
+            }
+        }
+
         // ===== PDF WIZARD FUNCTIONS =====
 
         const photoBase64Cache = new Map();
@@ -1805,7 +1925,8 @@
             vehicleName: null,
             selectedDamages: [],
             serviceWorks: [],
-            extraWorks: []
+            extraWorks: [],
+            damageNotes: {}
         };
 
         let allActiveReports = [];
@@ -1832,7 +1953,8 @@
                 vehicleName: null,
                 selectedDamages: [],
                 serviceWorks: [],
-                extraWorks: []
+                extraWorks: [],
+                damageNotes: {}
             };
 
             photoBase64Cache.clear();
@@ -1953,17 +2075,20 @@
                     const urgencyLabel = issue.urgency === 'critical' ? '🔴 Critica' : 
                                        issue.urgency === 'high' ? '🟠 Alta' : 
                                        issue.urgency === 'medium' ? '🟡 Media' : '🟢 Bassa';
+                    const originalDescription = issue.description || '';
+                    const encodedDescription = encodeURIComponent(originalDescription);
+                    const displayDescription = escapeHtml(originalDescription).replace(/\n/g, '<br>');
 
                     const damageHtml = `
                         <div class="damage-item">
                             <input type="checkbox" id="damage-${damageId}" value="${damageId}" 
                                    data-report="${report.reportId}" data-issue-idx="${idx}"
-                                   data-category="${issue.category}" data-description="${issue.description.replace(/"/g, '&quot;')}"
+                                   data-category="${issue.category}" data-description="${encodedDescription}"
                                    data-urgency="${issue.urgency}" data-photos='${JSON.stringify(issue.photoURLs || [])}'
                                    data-photo-ids='${JSON.stringify(issue.photoIds || [])}'>
                             <div class="damage-item-content">
                                 <div class="damage-item-title">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
-                                <div class="damage-item-desc">${issue.description}</div>
+                                <div class="damage-item-desc">${displayDescription}</div>
                                 <span class="damage-item-urgency" style="background: ${urgencyClass};">${urgencyLabel}</span>
                             </div>
                         </div>
@@ -1981,32 +2106,152 @@
             form.classList.toggle('active');
             
             if (form.classList.contains('active')) {
-                document.getElementById('quickDamageCategory').focus();
+                document.getElementById('quickDamageDescription').focus();
             }
         }
 
-        function saveQuickDamage() {
-            const category = document.getElementById('quickDamageCategory').value;
-            const description = document.getElementById('quickDamageDescription').value;
-            const urgency = document.getElementById('quickDamageUrgency').value;
+        function analyzeQuickDamageWithAI() {
+            const descriptionInput = document.getElementById('quickDamageDescription');
+            const categorySelect = document.getElementById('quickDamageCategory');
+            const urgencySelect = document.getElementById('quickDamageUrgency');
+            const noteInput = document.getElementById('quickDamageNote');
+            const aiStatus = document.getElementById('quickDamageAiStatus');
+            const aiButton = document.getElementById('quickDamageAiButton');
 
-            if (!category || !description || !urgency) {
-                alert('Compila tutti i campi');
+            const description = (descriptionInput.value || '').trim();
+
+            if (description.length < 10) {
+                if (aiStatus) {
+                    aiStatus.textContent = 'Scrivi qualche dettaglio in più (almeno 10 caratteri).';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                descriptionInput.focus();
+                return;
+            }
+
+            if (!window.APP_CONFIG?.scriptUrl || !window.APP_CONFIG?.authToken) {
+                console.error('❌ Configurazione mancante per l\'AI');
+                if (aiStatus) {
+                    aiStatus.textContent = 'Configurazione mancante per contattare l\'AI.';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                return;
+            }
+
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+            const vehicleName = pdfWizardData.vehicleName || '';
+
+            const callback = `quickDamageAI_${Date.now()}`;
+
+            if (aiButton) {
+                aiButton.disabled = true;
+                aiButton.textContent = 'Analisi in corso...';
+            }
+            if (aiStatus) {
+                aiStatus.textContent = 'Analisi AI in corso...';
+                aiStatus.className = 'ai-status-message';
+            }
+
+            window[callback] = function(response) {
+                if (aiButton) {
+                    aiButton.disabled = false;
+                    aiButton.textContent = '🤖 Suggerimento AI';
+                }
+
+                try {
+                    if (response.success && response.suggestion) {
+                        const suggestion = response.suggestion;
+                        if (suggestion.standardizedDescription) {
+                            descriptionInput.value = suggestion.standardizedDescription;
+                        }
+                        if (suggestion.category) {
+                            categorySelect.value = suggestion.category;
+                        }
+                        if (suggestion.urgency) {
+                            urgencySelect.value = suggestion.urgency;
+                        }
+                        if (noteInput && suggestion.recommendedNote !== undefined) {
+                            noteInput.value = suggestion.recommendedNote;
+                        }
+                        if (aiStatus) {
+                            aiStatus.textContent = 'Suggerimento AI applicato ✅';
+                            aiStatus.className = 'ai-status-message success';
+                        }
+                    } else {
+                        const message = response.error || 'Risposta non valida dall\'AI';
+                        if (aiStatus) {
+                            aiStatus.textContent = `Analisi AI non disponibile: ${message}`;
+                            aiStatus.className = 'ai-status-message error';
+                        }
+                    }
+                } finally {
+                    delete window[callback];
+                }
+            };
+
+            const script = document.createElement('script');
+            const url = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.src = url;
+            script.onerror = () => {
+                if (aiButton) {
+                    aiButton.disabled = false;
+                    aiButton.textContent = '🤖 Suggerimento AI';
+                }
+                if (aiStatus) {
+                    aiStatus.textContent = 'Errore di rete durante l\'analisi AI.';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                delete window[callback];
+            };
+
+            document.body.appendChild(script);
+        }
+
+        function saveQuickDamage() {
+            const categorySelect = document.getElementById('quickDamageCategory');
+            const descriptionInput = document.getElementById('quickDamageDescription');
+            const urgencySelect = document.getElementById('quickDamageUrgency');
+            const noteInput = document.getElementById('quickDamageNote');
+            const aiStatus = document.getElementById('quickDamageAiStatus');
+
+            const category = categorySelect.value;
+            const description = (descriptionInput.value || '').trim();
+            const urgency = urgencySelect.value;
+            const customNote = noteInput ? noteInput.value.trim() : '';
+
+            if (!description) {
+                alert('Scrivi una descrizione per il danno.');
+                descriptionInput.focus();
+                return;
+            }
+
+            if (!category) {
+                alert('Seleziona una categoria oppure usa il suggerimento AI.');
+                categorySelect.focus();
+                return;
+            }
+
+            if (!urgency) {
+                alert('Seleziona l\'urgenza.');
+                urgencySelect.focus();
                 return;
             }
 
             // Add to wizard data immediately
             const newDamage = {
                 id: `quick-${Date.now()}`,
-                category: category,
-                description: description,
-                urgency: urgency,
+                category,
+                description,
+                urgency,
                 photoURLs: [],
                 photoIds: [],
-                isQuick: true
+                isQuick: true,
+                note: customNote
             };
 
             pdfWizardData.selectedDamages.push(newDamage);
+            pdfWizardData.damageNotes[newDamage.id] = customNote;
 
             // Add to UI
             const damagesList = document.getElementById('wizardDamagesList');
@@ -2017,15 +2262,17 @@
             const urgencyLabel = urgency === 'critical' ? '🔴 Critica' : 
                                urgency === 'high' ? '🟠 Alta' : 
                                urgency === 'medium' ? '🟡 Media' : '🟢 Bassa';
+            const encodedDescription = encodeURIComponent(description);
+            const displayDescription = escapeHtml(description).replace(/\n/g, '<br>');
 
             const damageHtml = `
                 <div class="damage-item" style="border-color: #28a745; background: #f0f8f4;">
                     <input type="checkbox" id="damage-${newDamage.id}" value="${newDamage.id}" checked
-                           data-category="${category}" data-description="${description.replace(/"/g, '&quot;')}"
+                           data-category="${category}" data-description="${encodedDescription}"
                            data-urgency="${urgency}" data-photos='[]' data-photo-ids='[]' data-isquick="true">
                     <div class="damage-item-content">
                         <div class="damage-item-title">${getCategoryIcon(category)} ${getCategoryLabel(category)} <span style="color: #28a745; font-size: 12px;">(Appena aggiunto)</span></div>
-                        <div class="damage-item-desc">${description}</div>
+                        <div class="damage-item-desc">${displayDescription}</div>
                         <span class="damage-item-urgency" style="background: ${urgencyClass};">${urgencyLabel}</span>
                     </div>
                 </div>
@@ -2033,9 +2280,16 @@
             damagesList.insertAdjacentHTML('afterbegin', damageHtml);
 
             // Reset form
-            document.getElementById('quickDamageCategory').value = '';
-            document.getElementById('quickDamageDescription').value = '';
-            document.getElementById('quickDamageUrgency').value = '';
+            categorySelect.value = '';
+            descriptionInput.value = '';
+            urgencySelect.value = '';
+            if (noteInput) {
+                noteInput.value = '';
+            }
+            if (aiStatus) {
+                aiStatus.textContent = '';
+                aiStatus.className = 'ai-status-message';
+            }
             toggleQuickDamageForm();
 
             alert('Danno aggiunto! È già selezionato per il PDF.');
@@ -2059,15 +2313,27 @@
             // Collect selected damages
             pdfWizardData.selectedDamages = [];
             document.querySelectorAll('#wizardDamagesList input[type="checkbox"]:checked').forEach(cb => {
+                const damageId = cb.value;
+                const decodedDescription = decodeURIComponentSafe(cb.dataset.description || '');
+                const note = pdfWizardData.damageNotes[damageId] || '';
+
                 pdfWizardData.selectedDamages.push({
-                    id: cb.value,
+                    id: damageId,
                     category: cb.dataset.category,
-                    description: cb.dataset.description,
+                    description: decodedDescription,
                     urgency: cb.dataset.urgency,
                     photoURLs: JSON.parse(cb.dataset.photos || '[]'),
                     photoIds: JSON.parse(cb.dataset.photoIds || '[]'),
-                    isQuick: cb.dataset.isquick === 'true'
+                    isQuick: cb.dataset.isquick === 'true',
+                    note
                 });
+            });
+
+            const selectedIds = new Set(pdfWizardData.selectedDamages.map(d => d.id));
+            Object.keys(pdfWizardData.damageNotes).forEach(id => {
+                if (!selectedIds.has(id)) {
+                    delete pdfWizardData.damageNotes[id];
+                }
             });
 
             collectServiceWorks();
@@ -2080,10 +2346,80 @@
 
             // Damages
             if (pdfWizardData.selectedDamages.length > 0) {
-                damagesSummary.innerHTML = '<ul class="summary-list">' + 
-                    pdfWizardData.selectedDamages.map(d => 
-                        `<li>${getCategoryIcon(d.category)} ${getCategoryLabel(d.category)}: ${d.description}</li>`
-                    ).join('') + '</ul>';
+                damagesSummary.innerHTML = '';
+
+                const hint = document.createElement('p');
+                hint.className = 'summary-note-hint';
+                hint.textContent = 'Aggiungi istruzioni personalizzate per il meccanico. Queste note saranno incluse nel PDF sotto ogni danno.';
+                damagesSummary.appendChild(hint);
+
+                pdfWizardData.selectedDamages.forEach((damage, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'summary-damage-card';
+
+                    const header = document.createElement('div');
+                    header.className = 'summary-damage-header';
+
+                    const title = document.createElement('div');
+                    title.className = 'summary-damage-title';
+                    title.textContent = `${getCategoryIcon(damage.category)} ${getCategoryLabel(damage.category)}`;
+
+                    const urgencyBadge = document.createElement('span');
+                    urgencyBadge.className = 'damage-item-urgency';
+                    let urgencyLabel;
+                    let urgencyColor;
+                    switch (damage.urgency) {
+                        case 'critical':
+                            urgencyLabel = '🔴 Critica';
+                            urgencyColor = '#ffcdd2';
+                            break;
+                        case 'high':
+                            urgencyLabel = '🟠 Alta';
+                            urgencyColor = '#ffccbc';
+                            break;
+                        case 'medium':
+                            urgencyLabel = '🟡 Media';
+                            urgencyColor = '#fff9c4';
+                            break;
+                        default:
+                            urgencyLabel = '🟢 Bassa';
+                            urgencyColor = '#c8e6c9';
+                            break;
+                    }
+                    urgencyBadge.style.background = urgencyColor;
+                    urgencyBadge.textContent = urgencyLabel;
+
+                    header.appendChild(title);
+                    header.appendChild(urgencyBadge);
+                    card.appendChild(header);
+
+                    const descriptionDiv = document.createElement('div');
+                    descriptionDiv.className = 'summary-damage-desc';
+                    descriptionDiv.innerHTML = escapeHtml(damage.description).replace(/\n/g, '<br>');
+                    card.appendChild(descriptionDiv);
+
+                    if (damage.isQuick) {
+                        const quickLabel = document.createElement('div');
+                        quickLabel.style.color = '#28a745';
+                        quickLabel.style.fontSize = '12px';
+                        quickLabel.textContent = 'Aggiunta rapida';
+                        card.appendChild(quickLabel);
+                    }
+
+                    const noteTextarea = document.createElement('textarea');
+                    noteTextarea.className = 'summary-damage-note';
+                    noteTextarea.placeholder = 'Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm';
+                    noteTextarea.value = damage.note || '';
+                    noteTextarea.dataset.damageId = damage.id;
+                    noteTextarea.addEventListener('input', (event) => {
+                        const value = event.target.value;
+                        pdfWizardData.damageNotes[damage.id] = value;
+                        damage.note = value;
+                    });
+                    card.appendChild(noteTextarea);
+
+                    damagesSummary.appendChild(card);
+                });
             } else {
                 damagesSummary.innerHTML = '<p class="summary-empty">Nessun danno selezionato</p>';
             }
@@ -2362,6 +2698,26 @@
 
                         doc.setTextColor(0, 0, 0);
 
+                        const customNote = (damage.note || (pdfWizardData.damageNotes && pdfWizardData.damageNotes[damage.id]) || '').trim();
+                        if (customNote) {
+                            const noteText = `Nota officina: ${customNote}`;
+                            const noteLines = doc.splitTextToSize(noteText, pageWidth - 30);
+
+                            if (yPos > pageHeight - 40) {
+                                doc.addPage();
+                                yPos = 20;
+                            }
+
+                            doc.setFont(undefined, 'italic');
+                            doc.setFontSize(10);
+                            doc.setTextColor(80, 80, 80);
+                            doc.text(noteLines, 20, yPos);
+                            yPos += noteLines.length * 5;
+                            doc.setFont(undefined, 'normal');
+                            doc.setFontSize(10);
+                            doc.setTextColor(0, 0, 0);
+                        }
+
                         // Add photos if available (prefers Drive IDs for private access)
                         const rawPhotoURLs = Array.isArray(damage.photoURLs)
                             ? damage.photoURLs.map(url => (url || '').trim()).filter(url => url)
@@ -2618,7 +2974,7 @@
                         <div class="quick-damage-form" id="quickDamageForm">
                             <h4 style="margin-bottom: 15px;">Aggiungi danno veloce</h4>
                             <div class="form-group">
-                                <label>Categoria</label>
+                                <label>Categoria (puoi modificarla dopo il suggerimento AI)</label>
                                 <select id="quickDamageCategory">
                                     <option value="">Seleziona...</option>
                                     <option value="motore">⚙️ Motore / Meccanica</option>
@@ -2637,6 +2993,10 @@
                                 <label>Descrizione</label>
                                 <textarea id="quickDamageDescription" placeholder="Descrivi il danno..."></textarea>
                             </div>
+                            <div class="ai-helper-row">
+                                <button type="button" id="quickDamageAiButton" class="ai-helper-btn" onclick="analyzeQuickDamageWithAI()">🤖 Suggerimento AI</button>
+                                <span id="quickDamageAiStatus" class="ai-status-message"></span>
+                            </div>
                             <div class="form-group">
                                 <label>Urgenza</label>
                                 <select id="quickDamageUrgency">
@@ -2646,6 +3006,10 @@
                                     <option value="high">🟠 Alta</option>
                                     <option value="critical">🔴 Critica</option>
                                 </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Istruzioni personalizzate (opzionali)</label>
+                                <textarea id="quickDamageNote" placeholder="Es. Il pezzo è già stato ordinato / usare lampadina H7 / coppia serraggio 120 Nm"></textarea>
                             </div>
                             <div class="quick-damage-actions">
                                 <button onclick="toggleQuickDamageForm()" style="background: #6c757d; color: white;">Annulla</button>

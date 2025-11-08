@@ -222,6 +222,9 @@ function doGet(e) {
       case "analyzeMaintenanceIssueJsonp":
         return analyzeMaintenanceIssueJsonp(e.parameter);
         break;
+      case "suggestMaintenanceIssueJsonp":
+        return suggestMaintenanceIssueJsonp(e.parameter);
+        break;
       case "uploadMaintenancePhotoJsonp":
         return uploadMaintenancePhotoJsonp(e.parameter);
         break;
@@ -2408,6 +2411,147 @@ function analyzeMaintenanceIssueJsonp(params) {
     .createTextOutput(jsonpResponse)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
+
+  function suggestMaintenanceIssue(description, vehicleName) {
+    try {
+      const normalizedDescription = (description || '').trim();
+
+      if (!normalizedDescription) {
+        return {
+          success: false,
+          error: 'Description is required'
+        };
+      }
+
+      const scriptProperties = PropertiesService.getScriptProperties();
+      const apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
+
+      if (!apiKey) {
+        return {
+          success: false,
+          error: 'OpenAI API key not configured'
+        };
+      }
+
+      const allowedCategories = ['motore', 'freni', 'pneumatici', 'elettrico', 'carrozzeria', 'interni', 'fluidi', 'climatizzazione', 'luci', 'altro'];
+
+      const systemPrompt = 'Sei un responsabile officina che standardizza le segnalazioni di danni. Rispondi sempre in italiano con un JSON valido contenente esattamente i campi category, standardizedDescription, recommendedNote, urgency. category deve essere uno dei valori: motore, freni, pneumatici, elettrico, carrozzeria, interni, fluidi, climatizzazione, luci, altro. standardizedDescription deve essere una frase breve (max 160 caratteri) e coerente, senza riferimenti a persone o date e senza ripetere il nome del veicolo. recommendedNote contiene istruzioni operative aggiuntive (stringa, può essere vuota). urgency deve essere low, medium, high oppure critical.';
+
+      const userPrompt = `Descrizione danno: ${normalizedDescription}
+Veicolo: ${vehicleName || 'N/D'}
+
+Restituisci il JSON con eventuali dettagli utili su materiali, misure, codici lampadine o note operative da seguire.`;
+
+      const payload = {
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ]
+      };
+
+      const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+        headers: {
+          Authorization: 'Bearer ' + apiKey
+        }
+      });
+
+      if (response.getResponseCode() >= 400) {
+        Logger.log('ERROR suggestMaintenanceIssue HTTP ' + response.getResponseCode() + ': ' + response.getContentText());
+        return {
+          success: false,
+          error: 'AI request failed'
+        };
+      }
+
+      const data = JSON.parse(response.getContentText());
+      const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+
+      if (!content) {
+        return {
+          success: false,
+          error: 'Empty AI response'
+        };
+      }
+
+      let suggestion;
+      try {
+        suggestion = JSON.parse(content);
+      } catch (parseError) {
+        Logger.log('ERROR parsing AI suggestion: ' + parseError);
+        Logger.log('AI raw content: ' + content);
+        return {
+          success: false,
+          error: 'Unable to parse AI response'
+        };
+      }
+
+      if (!suggestion || typeof suggestion !== 'object') {
+        return {
+          success: false,
+          error: 'Invalid AI response'
+        };
+      }
+
+      let category = (suggestion.category || '').toString().toLowerCase().trim();
+      if (allowedCategories.indexOf(category) === -1) {
+        category = 'altro';
+      }
+
+      let standardizedDescription = (suggestion.standardizedDescription || '').toString().trim();
+      if (!standardizedDescription) {
+        standardizedDescription = normalizedDescription;
+      }
+
+      let recommendedNote = (suggestion.recommendedNote || '').toString().trim();
+      if (recommendedNote.length > 250) {
+        recommendedNote = recommendedNote.substring(0, 247) + '...';
+      }
+
+      let urgency = (suggestion.urgency || '').toString().toLowerCase().trim();
+      if (['low', 'medium', 'high', 'critical'].indexOf(urgency) === -1) {
+        urgency = 'medium';
+      }
+
+      return {
+        success: true,
+        suggestion: {
+          category: category,
+          standardizedDescription: standardizedDescription,
+          recommendedNote: recommendedNote,
+          urgency: urgency
+        }
+      };
+
+    } catch (error) {
+      Logger.log('ERROR in suggestMaintenanceIssue: ' + error);
+      return {
+        success: false,
+        error: error.toString()
+      };
+    }
+  }
+
+  function suggestMaintenanceIssueJsonp(params) {
+    const callback = sanitizeJsonpCallback(params.callback || 'callback');
+    const response = suggestMaintenanceIssue(params.description, params.vehicleName);
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
 
 // Upload maintenance photo to Drive using Drive API
 function uploadMaintenancePhoto(fileName, fileData, mimeType) {
