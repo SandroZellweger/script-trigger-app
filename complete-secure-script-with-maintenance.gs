@@ -147,6 +147,9 @@ function doGet(e) {
       case "getMaintenanceDataJsonp":
         return getMaintenanceDataJsonp(e.parameter);
         break;
+      case "getMaintenancePhotoBase64Jsonp":
+        return getMaintenancePhotoBase64Jsonp(e.parameter);
+        break;
       case "getVehicleOverview":
         result = getVehicleOverview(e.parameter);
         break;
