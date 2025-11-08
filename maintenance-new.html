@@ -4592,10 +4592,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         noteInput.value = `${existingNote}\n${trimmedAnswer}`;
                     }
                 }
-
-                setClarifyingMessageForEdit(clarifierBox, 'Dettaglio aggiunto ✅', 'success');
-            } else {
-                setClarifyingMessageForEdit(clarifierBox, 'Dettagli sufficienti ✅', 'success');
             }
 
             if (!window.APP_CONFIG?.scriptUrl || !window.APP_CONFIG?.authToken) {
@@ -4679,23 +4675,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             document.body.appendChild(script);
         }
 
-        function setClarifyingMessageForEdit(element, message, state) {
-            if (!element) {
-                return;
-            }
-
-            if (!message) {
-                element.textContent = '';
-                element.className = 'clarifying-question';
-                element.style.display = 'none';
-                return;
-            }
-
-            element.textContent = message;
-            element.className = state ? `clarifying-question ${state}` : 'clarifying-question';
-            element.style.display = 'block';
-        }
-
         function handleEditIssueSubmit(event) {
             event.preventDefault();
 
@@ -4721,9 +4700,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 category,
                 description,
                 urgency,
-                note,
-                newPhotos: editIssueUploadedPhotos.map(p => p.fileUrl),
-                newPhotoIds: editIssueUploadedPhotos.map(p => p.fileId)
+                notes: note,
+                photoUrls: editIssueUploadedPhotos.map(p => p.fileUrl),
+                photoIds: editIssueUploadedPhotos.map(p => p.fileId)
             };
 
             // Submit update
