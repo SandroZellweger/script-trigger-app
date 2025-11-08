@@ -2265,6 +2265,19 @@
             return null;
         }
 
+        async function getImageDimensions(dataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const width = img.naturalWidth || img.width;
+                    const height = img.naturalHeight || img.height;
+                    resolve({ width, height });
+                };
+                img.onerror = (error) => reject(error);
+                img.src = dataUrl;
+            });
+        }
+
         async function generateMaintenancePDF() {
             // DIAGNOSTIC: Check config before starting
             console.log('🔧 PDF Generation Started');
@@ -2388,20 +2401,40 @@
                                 const imageData = await loadDamagePhoto(currentPhoto.id, currentPhoto.url);
 
                                 if (imageData) {
-                                    const imageHeight = 50;
-                                    if (yPos + imageHeight > pageHeight - 20) {
+                                    const maxWidth = 80;
+                                    const maxHeight = 60;
+                                    let displayWidth = maxWidth;
+                                    let displayHeight = 50;
+
+                                    try {
+                                        const { width: originalWidth, height: originalHeight } = await getImageDimensions(imageData);
+                                        if (originalWidth && originalHeight) {
+                                            const widthRatio = maxWidth / originalWidth;
+                                            const heightRatio = maxHeight / originalHeight;
+                                            const scale = Math.min(widthRatio, heightRatio, 1);
+                                            displayWidth = originalWidth * scale;
+                                            displayHeight = originalHeight * scale;
+                                        }
+                                    } catch (dimensionError) {
+                                        console.warn('⚠️ Impossibile calcolare rapporto immagine, uso dimensioni predefinite', dimensionError);
+                                        displayWidth = maxWidth;
+                                        displayHeight = 50;
+                                    }
+
+                                    if (yPos + displayHeight > pageHeight - 20) {
                                         doc.addPage();
                                         yPos = 20;
                                     }
 
                                     try {
-                                        doc.addImage(imageData, 'JPEG', 20, yPos, 80, 50);
+                                        doc.addImage(imageData, 'JPEG', 20, yPos, displayWidth, displayHeight);
                                         doc.setFontSize(8);
                                         doc.setTextColor(100, 100, 100);
-                                        doc.text(`Foto ${photoIdx + 1}`, 60, yPos + 52, { align: 'center' });
+                                        const captionY = yPos + displayHeight + 4;
+                                        doc.text(`Foto ${photoIdx + 1}`, 20 + (displayWidth / 2), captionY, { align: 'center' });
                                         doc.setFontSize(10);
                                         doc.setTextColor(0, 0, 0);
-                                        yPos += 58;
+                                        yPos += displayHeight + 12;
                                     } catch (error) {
                                         console.error('Errore inserimento foto nel PDF:', error);
                                         doc.setFontSize(8);
