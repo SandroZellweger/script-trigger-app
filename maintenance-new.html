@@ -119,6 +119,57 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
+        textarea.issue-description {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        textarea.issue-note {
+            min-height: 80px;
+            resize: vertical;
+            border-color: #d7dcf5;
+            background: #f8f9fe;
+            font-size: 14px;
+        }
+
+        textarea.issue-note:focus {
+            border-color: #4c6ef5;
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.15);
+            background: #ffffff;
+        }
+
+        .clarifying-question {
+            font-size: 13px;
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fff6d6;
+            border: 1px solid #ffd166;
+            color: #8f6400;
+            display: none;
+        }
+
+        .clarifying-question.success {
+            background: #e6ffec;
+            border-color: #82d49b;
+            color: #276738;
+        }
+
+        .clarifying-question.error {
+            background: #ffe8e6;
+            border-color: #ff8b8b;
+            color: #8c1d18;
+        }
+
+        .issue-note-display {
+            margin-top: 6px;
+            padding: 8px 12px;
+            border-left: 3px solid #4c6ef5;
+            background: #f4f6ff;
+            color: #3949ab;
+            font-size: 13px;
+        }
+
         .issues-container {
             background: #f8f9fa;
             padding: 20px;
@@ -1322,6 +1373,13 @@
                         <textarea class="issue-description" rows="4" placeholder="Descrivi il problema in dettaglio (es: 'Il freno posteriore sinistro fa rumore quando freno', 'Ammaccatura sul parafango anteriore destro', ecc.)" required onblur="updateAIAnalysis('${issueId}')"></textarea>
                     </div>
 
+                    <div class="ai-helper-row">
+                        <button type="button" class="ai-helper-btn" id="issueAiButton-${issueId}" onclick="analyzeIssueWithAI('${issueId}')">🤖 Suggerimento AI</button>
+                        <span class="ai-status-message" id="issueAiStatus-${issueId}"></span>
+                    </div>
+
+                    <div class="clarifying-question" id="clarify-${issueId}"></div>
+
                     <div class="form-group">
                         <label>⚠️ Urgenza Riparazione</label>
                         <select class="issue-urgency" required>
@@ -1331,6 +1389,11 @@
                             <option value="high">🟠 Alta - Urgente, da fare al più presto</option>
                             <option value="critical">🔴 Critica - Non utilizzare il veicolo</option>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🛠️ Istruzioni per il meccanico (opzionali)</label>
+                        <textarea class="issue-note" placeholder="Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm"></textarea>
                     </div>
 
                     <div class="ai-recommendation" id="ai-${issueId}" style="display: none;">
@@ -1358,8 +1421,27 @@
             const issueElement = document.getElementById(issueId);
             const description = issueElement.querySelector('.issue-description').value.trim();
             const category = issueElement.querySelector('.issue-category').value;
+            const clarifierBox = document.getElementById(`clarify-${issueId}`);
+
+            if (!description) {
+                setClarifyingMessage(clarifierBox, '');
+                return;
+            }
+
+            if (description.length < 10) {
+                setClarifyingMessage(clarifierBox, 'Aggiungi qualche dettaglio in più (almeno 10 caratteri).', 'error');
+                return;
+            }
+
+            const clarQuestion = getClarifyingQuestionForDescription(description);
+            if (clarQuestion) {
+                setClarifyingMessage(clarifierBox, `Serve un dettaglio: ${clarQuestion}`, 'error');
+                return;
+            }
+
+            setClarifyingMessage(clarifierBox, 'Dettagli sufficienti ✅', 'success');
             
-            if (!description || !category || description.length < 10) return;
+            if (!category) return;
 
             // Get km to service
             const vehicleSelect = document.getElementById('vehicleSelect');
@@ -1394,6 +1476,174 @@
             
             const script = document.createElement('script');
             script.src = url;
+            document.body.appendChild(script);
+        }
+
+        function analyzeIssueWithAI(issueId) {
+            const issueElement = document.getElementById(issueId);
+            if (!issueElement) {
+                return;
+            }
+
+            const descriptionInput = issueElement.querySelector('.issue-description');
+            const categorySelect = issueElement.querySelector('.issue-category');
+            const urgencySelect = issueElement.querySelector('.issue-urgency');
+            const noteInput = issueElement.querySelector('.issue-note');
+            const aiStatus = document.getElementById(`issueAiStatus-${issueId}`);
+            const aiButton = document.getElementById(`issueAiButton-${issueId}`);
+            const clarifierBox = document.getElementById(`clarify-${issueId}`);
+
+            if (!descriptionInput) {
+                return;
+            }
+
+            let description = (descriptionInput.value || '').trim();
+            let clarifiedDetail = '';
+
+            if (description.length < 10) {
+                if (aiStatus) {
+                    aiStatus.textContent = 'Scrivi qualche dettaglio in più (almeno 10 caratteri).';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                descriptionInput.focus();
+                return;
+            }
+
+            const clarQuestion = getClarifyingQuestionForDescription(description);
+            if (clarQuestion) {
+                setClarifyingMessage(clarifierBox, `Serve un dettaglio: ${clarQuestion}`, 'error');
+                const clarAnswer = prompt(clarQuestion);
+                const trimmedAnswer = clarAnswer ? clarAnswer.trim() : '';
+
+                if (!trimmedAnswer) {
+                    if (aiStatus) {
+                        aiStatus.textContent = `Serve un dettaglio: ${clarQuestion}`;
+                        aiStatus.className = 'ai-status-message error';
+                    }
+                    descriptionInput.focus();
+                    return;
+                }
+
+                clarifiedDetail = trimmedAnswer;
+                const detailLine = `Dettaglio specifico: ${trimmedAnswer}`;
+                const alreadyIncluded = description.toLowerCase().includes(trimmedAnswer.toLowerCase());
+                if (!alreadyIncluded) {
+                    description = description ? `${description}\n${detailLine}` : detailLine;
+                    descriptionInput.value = description;
+                }
+
+                if (noteInput) {
+                    const existingNote = (noteInput.value || '').trim();
+                    if (!existingNote) {
+                        noteInput.value = trimmedAnswer;
+                    } else if (!existingNote.toLowerCase().includes(trimmedAnswer.toLowerCase())) {
+                        noteInput.value = `${existingNote}\n${trimmedAnswer}`;
+                    }
+                }
+
+                setClarifyingMessage(clarifierBox, 'Dettaglio aggiunto ✅', 'success');
+            } else {
+                setClarifyingMessage(clarifierBox, 'Dettagli sufficienti ✅', 'success');
+            }
+
+            if (!window.APP_CONFIG?.scriptUrl || !window.APP_CONFIG?.authToken) {
+                console.error('❌ Configurazione mancante per l\'AI');
+                if (aiStatus) {
+                    aiStatus.textContent = 'Configurazione mancante per contattare l\'AI.';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                return;
+            }
+
+            const resetAiButton = () => {
+                if (aiButton) {
+                    aiButton.disabled = false;
+                    aiButton.textContent = '🤖 Suggerimento AI';
+                    aiButton.classList.remove('loading');
+                }
+            };
+
+            if (aiButton) {
+                aiButton.disabled = true;
+                aiButton.textContent = 'Analisi in corso...';
+                aiButton.classList.add('loading');
+            }
+            if (aiStatus) {
+                aiStatus.textContent = 'Analisi AI in corso...';
+                aiStatus.className = 'ai-status-message';
+            }
+
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            let vehicleName = '';
+            if (vehicleSelect && vehicleSelect.selectedIndex >= 0) {
+                vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].dataset.vehicleName || '';
+            }
+
+            const callback = `issueSuggestAI_${issueId.replace(/-/g, '_')}_${Date.now()}`;
+
+            window[callback] = function(response) {
+                resetAiButton();
+
+                try {
+                    if (response.success && response.suggestion) {
+                        const suggestion = response.suggestion;
+                        if (suggestion.standardizedDescription) {
+                            descriptionInput.value = suggestion.standardizedDescription;
+                        }
+                        if (clarifiedDetail) {
+                            const currentDescription = (descriptionInput.value || '').trim();
+                            if (currentDescription && !currentDescription.toLowerCase().includes(clarifiedDetail.toLowerCase())) {
+                                descriptionInput.value = `${currentDescription}\nDettaglio specifico: ${clarifiedDetail}`;
+                            }
+                        }
+                        if (suggestion.category) {
+                            categorySelect.value = suggestion.category;
+                        }
+                        if (suggestion.urgency) {
+                            urgencySelect.value = suggestion.urgency;
+                        }
+                        if (noteInput && suggestion.recommendedNote !== undefined) {
+                            const existingNote = (noteInput.value || '').trim();
+                            const recommendedRaw = suggestion.recommendedNote;
+                            const recommended = typeof recommendedRaw === 'string' ? recommendedRaw.trim() : '';
+                            if (recommended) {
+                                if (!existingNote) {
+                                    noteInput.value = recommended;
+                                } else if (!existingNote.toLowerCase().includes(recommended.toLowerCase())) {
+                                    noteInput.value = `${existingNote}\n${recommended}`;
+                                }
+                            }
+                        }
+                        if (aiStatus) {
+                            aiStatus.textContent = 'Suggerimento AI applicato ✅';
+                            aiStatus.className = 'ai-status-message success';
+                        }
+                        updateAIAnalysis(issueId);
+                    } else {
+                        const message = response.error || 'Risposta non valida dall\'AI';
+                        if (aiStatus) {
+                            aiStatus.textContent = `Analisi AI non disponibile: ${message}`;
+                            aiStatus.className = 'ai-status-message error';
+                        }
+                    }
+                } finally {
+                    delete window[callback];
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                resetAiButton();
+                if (aiStatus) {
+                    aiStatus.textContent = 'Errore di rete durante l\'analisi AI.';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                delete window[callback];
+            };
+
             document.body.appendChild(script);
         }
 
@@ -1613,12 +1863,14 @@
                 const category = issueElement.querySelector('.issue-category').value;
                 const description = issueElement.querySelector('.issue-description').value;
                 const urgency = issueElement.querySelector('.issue-urgency').value;
+                const mechanicNote = issueElement.querySelector('.issue-note').value.trim();
                 
                 if (category && description && urgency) {
                     issues.push({
                         category,
                         description,
                         urgency,
+                        note: mechanicNote,
                         status: 'reported',
                         completed: false
                     });
@@ -1915,6 +2167,48 @@
             }
         }
 
+        function getClarifyingQuestionForDescription(description) {
+            if (!description) return '';
+            const text = description.toLowerCase();
+
+            const containsDirection = /anteriore|posteriore|sinistr[oa]|destr[oa]|sx|dx|anter|post|lato/;
+
+            if (/ruota|pneumatic|gomma/.test(text) && !containsDirection.test(text)) {
+                return 'Quale ruota è coinvolta? (es. anteriore sinistra, posteriore destra, ecc.)';
+            }
+
+            if (/finestr|vetro alz|alzavet/i.test(text) && !containsDirection.test(text)) {
+                return 'Quale finestrino ha il problema? (es. lato guida, posteriore destro, ecc.)';
+            }
+
+            if (/porta/.test(text) && !containsDirection.test(text)) {
+                return 'Quale porta è interessata? Specifica lato o posizione.';
+            }
+
+            if (/luce|lampadin/.test(text) && !/anteriore|posteriore|stop|frecc|abbagl|anabbagl/.test(text)) {
+                return 'Quale luce o lampadina presenta il problema? (es. stop sinistro, freccia anteriore)';
+            }
+
+            return '';
+        }
+
+        function setClarifyingMessage(element, message, state) {
+            if (!element) {
+                return;
+            }
+
+            if (!message) {
+                element.textContent = '';
+                element.className = 'clarifying-question';
+                element.style.display = 'none';
+                return;
+            }
+
+            element.textContent = message;
+            element.className = state ? `clarifying-question ${state}` : 'clarifying-question';
+            element.style.display = 'block';
+        }
+
         // ===== PDF WIZARD FUNCTIONS =====
 
         const photoBase64Cache = new Map();
@@ -2118,7 +2412,15 @@
             const aiStatus = document.getElementById('quickDamageAiStatus');
             const aiButton = document.getElementById('quickDamageAiButton');
 
-            const description = (descriptionInput.value || '').trim();
+            const resetAiButton = () => {
+                if (aiButton) {
+                    aiButton.disabled = false;
+                    aiButton.textContent = '🤖 Suggerimento AI';
+                    aiButton.classList.remove('loading');
+                }
+            };
+
+            let description = (descriptionInput.value || '').trim();
 
             if (description.length < 10) {
                 if (aiStatus) {
@@ -2127,6 +2429,37 @@
                 }
                 descriptionInput.focus();
                 return;
+            }
+
+            const heuristicsQuestion = getClarifyingQuestionForDescription(description);
+            if (heuristicsQuestion) {
+                const heuristicsAnswer = prompt(heuristicsQuestion);
+                const trimmedAnswer = heuristicsAnswer ? heuristicsAnswer.trim() : '';
+
+                if (!trimmedAnswer) {
+                    if (aiStatus) {
+                        aiStatus.textContent = `Serve un dettaglio: ${heuristicsQuestion}`;
+                        aiStatus.className = 'ai-status-message error';
+                    }
+                    descriptionInput.focus();
+                    return;
+                }
+
+                const detailLine = `Dettaglio specifico: ${trimmedAnswer}`;
+                const alreadyIncluded = description.toLowerCase().includes(trimmedAnswer.toLowerCase());
+                if (!alreadyIncluded) {
+                    description = description ? `${description}\n${detailLine}` : detailLine;
+                    descriptionInput.value = description;
+                }
+
+                if (noteInput && !noteInput.value.trim()) {
+                    noteInput.value = trimmedAnswer;
+                }
+
+                if (aiStatus) {
+                    aiStatus.textContent = 'Dettaglio registrato. Avvio analisi AI...';
+                    aiStatus.className = 'ai-status-message success';
+                }
             }
 
             if (!window.APP_CONFIG?.scriptUrl || !window.APP_CONFIG?.authToken) {
@@ -2147,6 +2480,7 @@
             if (aiButton) {
                 aiButton.disabled = true;
                 aiButton.textContent = 'Analisi in corso...';
+                aiButton.classList.add('loading');
             }
             if (aiStatus) {
                 aiStatus.textContent = 'Analisi AI in corso...';
@@ -2154,10 +2488,7 @@
             }
 
             window[callback] = function(response) {
-                if (aiButton) {
-                    aiButton.disabled = false;
-                    aiButton.textContent = '🤖 Suggerimento AI';
-                }
+                resetAiButton();
 
                 try {
                     if (response.success && response.suggestion) {
@@ -2174,7 +2505,31 @@
                         if (noteInput && suggestion.recommendedNote !== undefined) {
                             noteInput.value = suggestion.recommendedNote;
                         }
-                        if (aiStatus) {
+                        let updatedDescription = descriptionInput.value.trim();
+
+                        const clarQuestion = (suggestion.clarifyingQuestion || '').trim();
+                        if (clarQuestion) {
+                            const clarAnswer = prompt(clarQuestion);
+                            if (clarAnswer && clarAnswer.trim()) {
+                                const detailLine = `Dettaglio specifico: ${clarAnswer.trim()}`;
+                                updatedDescription = `${updatedDescription}\n${detailLine}`;
+                                descriptionInput.value = updatedDescription;
+                                if (noteInput && !noteInput.value.trim()) {
+                                    noteInput.value = clarAnswer.trim();
+                                }
+                                if (aiStatus) {
+                                    aiStatus.textContent = 'Suggerimento AI applicato ✅ Dettaglio aggiunto.';
+                                    aiStatus.className = 'ai-status-message success';
+                                }
+                            } else {
+                                if (aiStatus) {
+                                    aiStatus.textContent = `Serve un dettaglio: ${clarQuestion}`;
+                                    aiStatus.className = 'ai-status-message error';
+                                }
+                                resetAiButton();
+                                return;
+                            }
+                        } else if (aiStatus) {
                             aiStatus.textContent = 'Suggerimento AI applicato ✅';
                             aiStatus.className = 'ai-status-message success';
                         }
@@ -2194,10 +2549,7 @@
             const url = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
             script.src = url;
             script.onerror = () => {
-                if (aiButton) {
-                    aiButton.disabled = false;
-                    aiButton.textContent = '🤖 Suggerimento AI';
-                }
+                resetAiButton();
                 if (aiStatus) {
                     aiStatus.textContent = 'Errore di rete durante l\'analisi AI.';
                     aiStatus.className = 'ai-status-message error';
