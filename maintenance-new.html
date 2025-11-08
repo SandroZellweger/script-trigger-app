@@ -2198,8 +2198,11 @@
         }
 
         async function loadDamagePhoto(photoId, photoUrl) {
+            console.log('🔍 loadDamagePhoto called with photoId:', photoId, 'photoUrl:', photoUrl);
+            
             // ALWAYS prefer backend photo retrieval (avoids CORS)
             if (photoId) {
+                console.log('✅ Using photoId for backend retrieval');
                 const dataFromId = await fetchPhotoBase64ById(photoId);
                 if (dataFromId) {
                     return dataFromId;
@@ -2207,24 +2210,46 @@
             }
 
             // Fallback: if no photoId but have URL, try to extract ID from URL
-            if (!photoId && photoUrl && photoUrl.includes('drive.google.com/file/d/')) {
-                const match = photoUrl.match(/\/d\/([^\/]+)/);
-                if (match && match[1]) {
-                    const extractedId = match[1];
+            if (!photoId && photoUrl && photoUrl.includes('drive.google.com')) {
+                console.log('🔧 No photoId, attempting to extract ID from URL');
+                // Match various Google Drive URL formats:
+                // https://drive.google.com/file/d/FILE_ID/view
+                // https://drive.google.com/file/d/FILE_ID/edit
+                // https://drive.google.com/open?id=FILE_ID
+                // https://drive.google.com/uc?id=FILE_ID
+                let extractedId = null;
+                
+                const match1 = photoUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match1 && match1[1]) {
+                    extractedId = match1[1];
+                }
+                
+                if (!extractedId) {
+                    const match2 = photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                    if (match2 && match2[1]) {
+                        extractedId = match2[1];
+                    }
+                }
+                
+                if (extractedId) {
                     console.log('📸 Extracted Drive ID from URL:', extractedId);
                     const dataFromExtractedId = await fetchPhotoBase64ById(extractedId);
                     if (dataFromExtractedId) {
+                        console.log('✅ Successfully loaded photo via extracted ID');
                         return dataFromExtractedId;
+                    } else {
+                        console.warn('⚠️ Backend failed to load photo with extracted ID');
                     }
                 }
             }
 
-            // Last resort: direct fetch (will likely fail with CORS for Drive)
-            if (photoUrl) {
-                console.warn('⚠️ Attempting direct fetch (may fail for private Drive files):', photoUrl);
+            // Last resort: direct fetch (will likely fail with CORS for private Drive files)
+            if (photoUrl && !photoUrl.includes('drive.google.com')) {
+                console.warn('⚠️ Attempting direct fetch for non-Drive URL:', photoUrl);
                 return await loadImageAsBase64(photoUrl);
             }
 
+            console.error('❌ Could not load photo - no valid ID or non-Drive URL');
             return null;
         }
 
