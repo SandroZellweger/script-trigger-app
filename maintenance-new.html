@@ -3189,11 +3189,11 @@
                 const pageHeight = doc.internal.pageSize.getHeight();
                 let yPos = 20;
 
-                // Header
+                // Header with company info on left, garage on right
                 doc.setFillColor(102, 126, 234);
-                doc.rect(0, 0, pageWidth, 40, 'F');
+                doc.rect(0, 0, pageWidth, 60, 'F');
                 doc.setTextColor(255, 255, 255);
-                doc.setFontSize(20);
+                doc.setFontSize(18);
                 doc.setFont(undefined, 'bold');
                 doc.text('LISTA MANUTENZIONE', pageWidth / 2, 15, { align: 'center' });
                 doc.setFontSize(12);
@@ -3201,14 +3201,47 @@
                 doc.text(pdfWizardData.vehicleName, pageWidth / 2, 25, { align: 'center' });
                 doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, 33, { align: 'center' });
 
-                yPos = 50;
+                // Company info on left
+                doc.setFontSize(10);
+                doc.setTextColor(255, 255, 255);
+                doc.text('Barbone & Zellweger Sagl', 15, 45);
+                doc.text('Via Vincenzo d\'Alberti 17', 15, 50);
+                doc.text('6600 Locarno', 15, 55);
+                doc.text('admin@noleggiosemplice.com', 15, 60);
+                doc.text('091 250 87 87', 15, 65);
+
+                // Garage info on right (if selected)
+                if (pdfWizardData.selectedGarage) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(255, 255, 255);
+                    const garage = pdfWizardData.selectedGarage;
+                    const rightX = pageWidth - 15;
+
+                    doc.text('OFFICINA:', rightX, 45, { align: 'right' });
+                    doc.setFont(undefined, 'bold');
+                    doc.text(garage.name, rightX, 50, { align: 'right' });
+                    doc.setFont(undefined, 'normal');
+
+                    if (garage.phone) {
+                        doc.text(`Tel: ${garage.phone}`, rightX, 55, { align: 'right' });
+                    }
+                    if (garage.address) {
+                        const addressText = `${garage.address}${garage.city ? ', ' + garage.city : ''}`;
+                        doc.text(addressText, rightX, 60, { align: 'right' });
+                    }
+                    if (garage.email && garage.email !== 'http://garagevosti.ch/') {
+                        doc.text(garage.email, rightX, 65, { align: 'right' });
+                    }
+                }
+
+                yPos = 75;
                 doc.setTextColor(0, 0, 0);
 
                 // Vehicle details section
-                doc.setFontSize(14);
+                doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
                 doc.setTextColor(102, 126, 234);
-                doc.text('🚗 DETTAGLI VEICOLO', 15, yPos);
+                doc.text('DETTAGLI VEICOLO', 15, yPos);
                 yPos += 8;
 
                 doc.setFontSize(10);
@@ -3216,12 +3249,12 @@
                 doc.setTextColor(0, 0, 0);
 
                 if (pdfWizardData.vehicleLicencePlate) {
-                    doc.text(`🔖 Targa: ${pdfWizardData.vehicleLicencePlate}`, 15, yPos);
+                    doc.text(`Targa: ${pdfWizardData.vehicleLicencePlate}`, 15, yPos);
                     yPos += 6;
                 }
 
                 if (pdfWizardData.vehicleCurrentKm && pdfWizardData.vehicleCurrentKm > 0) {
-                    doc.text(`📊 KM Attuali: ${pdfWizardData.vehicleCurrentKm.toLocaleString('it-IT')} km`, 15, yPos);
+                    doc.text(`KM Attuali: ${pdfWizardData.vehicleCurrentKm.toLocaleString('it-IT')} km`, 15, yPos);
                     yPos += 6;
                 }
 
@@ -3229,10 +3262,10 @@
                     const kmToService = pdfWizardData.vehicleKmToService;
                     if (kmToService < 0) {
                         doc.setTextColor(255, 0, 0);
-                        doc.text(`⚠️ KM al prossimo tagliando: ${Math.abs(kmToService).toLocaleString('it-IT')} km FUORI SERVIZIO`, 15, yPos);
+                        doc.text(`KM al prossimo tagliando: ${Math.abs(kmToService).toLocaleString('it-IT')} km FUORI SERVIZIO`, 15, yPos);
                         doc.setTextColor(0, 0, 0);
                     } else {
-                        doc.text(`✅ KM al prossimo tagliando: ${kmToService.toLocaleString('it-IT')} km`, 15, yPos);
+                        doc.text(`KM al prossimo tagliando: ${kmToService.toLocaleString('it-IT')} km`, 15, yPos);
                     }
                     yPos += 6;
                 }
@@ -3244,7 +3277,7 @@
                         if (cartaGrigiaBase64) {
                             yPos += 5;
                             doc.setFont(undefined, 'bold');
-                            doc.text('📄 Carta Grigia:', 15, yPos);
+                            doc.text('Carta Grigia:', 15, yPos);
                             yPos += 5;
 
                             const imgWidth = 80;
@@ -3261,17 +3294,19 @@
                     } catch (error) {
                         console.error('Errore caricamento carta grigia:', error);
                         doc.setTextColor(150, 150, 150);
-                        doc.text('⚠️ Carta grigia non disponibile', 15, yPos);
+                        doc.text('Carta grigia non disponibile', 15, yPos);
                         doc.setTextColor(0, 0, 0);
                         yPos += 6;
                     }
                 }
 
-                yPos += 5;
+                yPos += 10;
+
+                // ===== LAVORI DA FARE =====
 
                 // Damages section
                 if (pdfWizardData.selectedDamages.length > 0) {
-                    doc.setFontSize(16);
+                    doc.setFontSize(14);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(102, 126, 234);
                     doc.text('DANNI DA RIPARARE', 15, yPos);
@@ -3283,15 +3318,16 @@
 
                     for (let i = 0; i < pdfWizardData.selectedDamages.length; i++) {
                         const damage = pdfWizardData.selectedDamages[i];
-                        
+
                         // Check if we need a new page
                         if (yPos > 250) {
                             doc.addPage();
                             yPos = 20;
                         }
 
+                        // Checkbox and damage title
                         doc.setFont(undefined, 'bold');
-                        doc.text(`${i + 1}. ${getCategoryLabel(damage.category)}`, 15, yPos);
+                        doc.text(`☐ ${getCategoryLabel(damage.category)}`, 15, yPos);
                         yPos += 6;
 
                         doc.setFont(undefined, 'normal');
@@ -3299,8 +3335,8 @@
                         doc.text(descLines, 20, yPos);
                         yPos += descLines.length * 5;
 
-                        const urgencyLabel = damage.urgency === 'critical' ? 'CRITICA' : 
-                                           damage.urgency === 'high' ? 'ALTA' : 
+                        const urgencyLabel = damage.urgency === 'critical' ? 'CRITICA' :
+                                           damage.urgency === 'high' ? 'ALTA' :
                                            damage.urgency === 'medium' ? 'MEDIA' : 'BASSA';
                         doc.setTextColor(damage.urgency === 'critical' ? 200 : 100, 100, 100);
                         doc.text(`Urgenza: ${urgencyLabel}`, 20, yPos);
@@ -3328,7 +3364,7 @@
                             doc.setTextColor(0, 0, 0);
                         }
 
-                        // Add photos if available (prefers Drive IDs for private access)
+                        // Add photos if available
                         const rawPhotoURLs = Array.isArray(damage.photoURLs)
                             ? damage.photoURLs.map(url => (url || '').trim()).filter(url => url)
                             : [];
@@ -3354,7 +3390,7 @@
                             doc.setFontSize(9);
                             doc.setTextColor(102, 126, 234);
                             doc.setFont(undefined, 'bold');
-                            doc.text(`📸 Foto (${photos.length}):`, 20, yPos);
+                            doc.text(`Foto (${photos.length}):`, 20, yPos);
                             yPos += 7;
                             doc.setFont(undefined, 'normal');
                             doc.setTextColor(0, 0, 0);
@@ -3382,7 +3418,7 @@
                                             displayHeight = originalHeight * scale;
                                         }
                                     } catch (dimensionError) {
-                                        console.warn('⚠️ Impossibile calcolare rapporto immagine, uso dimensioni predefinite', dimensionError);
+                                        console.warn('Impossibile calcolare rapporto immagine, uso dimensioni predefinite', dimensionError);
                                         displayWidth = maxWidth;
                                         displayHeight = 50;
                                     }
@@ -3405,7 +3441,7 @@
                                         console.error('Errore inserimento foto nel PDF:', error);
                                         doc.setFontSize(8);
                                         doc.setTextColor(200, 50, 50);
-                                        doc.text(`⚠️ Foto ${photoIdx + 1}: Formato non supportato`, 20, yPos);
+                                        doc.text(`Foto ${photoIdx + 1}: Formato non supportato`, 20, yPos);
                                         yPos += 5;
                                         doc.setFontSize(10);
                                         doc.setTextColor(0, 0, 0);
@@ -3414,7 +3450,7 @@
                                     // Show message that photo couldn't be loaded
                                     doc.setFontSize(8);
                                     doc.setTextColor(200, 50, 50);
-                                    doc.text(`⚠️ Foto ${photoIdx + 1}: Non disponibile`, 20, yPos);
+                                    doc.text(`Foto ${photoIdx + 1}: Non disponibile`, 20, yPos);
                                     yPos += 5;
                                     doc.setFontSize(10);
                                     doc.setTextColor(0, 0, 0);
@@ -3429,9 +3465,9 @@
                             yPos += 5;
                         }
 
-                        yPos += 5;
+                        yPos += 8; // Extra space between damages
                     }
-                    
+
                     yPos += 5;
                 }
 
@@ -3442,7 +3478,7 @@
                         yPos = 20;
                     }
 
-                    doc.setFontSize(16);
+                    doc.setFontSize(14);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(102, 126, 234);
                     doc.text('LAVORI TAGLIANDO', 15, yPos);
@@ -3471,7 +3507,7 @@
                         yPos = 20;
                     }
 
-                    doc.setFontSize(16);
+                    doc.setFontSize(14);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(102, 126, 234);
                     doc.text('LAVORI EXTRA', 15, yPos);
@@ -3489,75 +3525,6 @@
                         doc.text(`☐ ${work}`, 15, yPos);
                         yPos += 7;
                     });
-                }
-
-                // Garage section
-                if (pdfWizardData.selectedGarage) {
-                    if (yPos > 220) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-
-                    yPos += 5;
-                    doc.setFontSize(16);
-                    doc.setFont(undefined, 'bold');
-                    doc.setTextColor(102, 126, 234);
-                    doc.text('🔧 OFFICINA SELEZIONATA', 15, yPos);
-                    yPos += 10;
-
-                    doc.setFontSize(11);
-                    doc.setFont(undefined, 'bold');
-                    doc.setTextColor(0, 0, 0);
-                    doc.text(pdfWizardData.selectedGarage.name, 15, yPos);
-                    yPos += 7;
-
-                    doc.setFontSize(10);
-                    doc.setFont(undefined, 'normal');
-
-                    if (pdfWizardData.selectedGarage.address) {
-                        doc.text(`📍 Indirizzo: ${pdfWizardData.selectedGarage.address}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.city && pdfWizardData.selectedGarage.zip) {
-                        doc.text(`   ${pdfWizardData.selectedGarage.zip} ${pdfWizardData.selectedGarage.city}`, 15, yPos);
-                        yPos += 6;
-                    } else if (pdfWizardData.selectedGarage.city) {
-                        doc.text(`   ${pdfWizardData.selectedGarage.city}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.phone) {
-                        doc.text(`📞 Telefono: ${pdfWizardData.selectedGarage.phone}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.mobile) {
-                        doc.text(`📱 Cellulare: ${pdfWizardData.selectedGarage.mobile}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.email) {
-                        doc.text(`📧 Email: ${pdfWizardData.selectedGarage.email}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.website) {
-                        doc.text(`🌐 Sito Web: ${pdfWizardData.selectedGarage.website}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.responsabile) {
-                        doc.text(`👤 Responsabile: ${pdfWizardData.selectedGarage.responsabile}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    if (pdfWizardData.selectedGarage.specialization) {
-                        doc.text(`🔧 Specializzazione: ${pdfWizardData.selectedGarage.specialization}`, 15, yPos);
-                        yPos += 6;
-                    }
-
-                    yPos += 3;
                 }
 
                 // Footer
