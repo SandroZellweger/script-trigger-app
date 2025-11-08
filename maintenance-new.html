@@ -230,66 +230,6 @@
             margin: 0;
         }
 
-        .photo-upload {
-            border: 2px dashed #667eea;
-            padding: 40px;
-            text-align: center;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8f9ff;
-        }
-
-        .photo-upload:hover {
-            background: #f0f4ff;
-            border-color: #764ba2;
-        }
-
-        .photo-upload p {
-            margin: 0;
-            color: #667eea;
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .photo-preview {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .drive-auth {
-            margin-top: 15px;
-            background: #fce4ec;
-            border: 1px solid #f48fb1;
-            border-radius: 10px;
-            padding: 15px;
-            color: #880e4f;
-        }
-
-        .drive-auth button {
-            background: linear-gradient(135deg, #ec407a 0%, #d81b60 100%);
-            border: none;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 8px;
-        }
-
-        .drive-auth button:hover {
-            opacity: 0.9;
-        }
-
-        .photo-preview-item {
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
         .photo-preview img {
             width: 100%;
             height: 120px;
@@ -1857,6 +1797,8 @@
 
         // ===== PDF WIZARD FUNCTIONS =====
 
+        const photoBase64Cache = new Map();
+
         let pdfWizardData = {
             step: 1,
             vehicleId: null,
@@ -1892,6 +1834,8 @@
                 serviceWorks: [],
                 extraWorks: []
             };
+
+            photoBase64Cache.clear();
 
             // Show modal
             document.getElementById('pdfWizardOverlay').classList.add('active');
@@ -2015,7 +1959,8 @@
                             <input type="checkbox" id="damage-${damageId}" value="${damageId}" 
                                    data-report="${report.reportId}" data-issue-idx="${idx}"
                                    data-category="${issue.category}" data-description="${issue.description.replace(/"/g, '&quot;')}"
-                                   data-urgency="${issue.urgency}" data-photos='${JSON.stringify(issue.photoURLs || [])}'>
+                                   data-urgency="${issue.urgency}" data-photos='${JSON.stringify(issue.photoURLs || [])}'
+                                   data-photo-ids='${JSON.stringify(issue.photoIds || [])}'>
                             <div class="damage-item-content">
                                 <div class="damage-item-title">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
                                 <div class="damage-item-desc">${issue.description}</div>
@@ -2057,6 +2002,7 @@
                 description: description,
                 urgency: urgency,
                 photoURLs: [],
+                photoIds: [],
                 isQuick: true
             };
 
@@ -2076,7 +2022,7 @@
                 <div class="damage-item" style="border-color: #28a745; background: #f0f8f4;">
                     <input type="checkbox" id="damage-${newDamage.id}" value="${newDamage.id}" checked
                            data-category="${category}" data-description="${description.replace(/"/g, '&quot;')}"
-                           data-urgency="${urgency}" data-photos='[]' data-isquick="true">
+                           data-urgency="${urgency}" data-photos='[]' data-photo-ids='[]' data-isquick="true">
                     <div class="damage-item-content">
                         <div class="damage-item-title">${getCategoryIcon(category)} ${getCategoryLabel(category)} <span style="color: #28a745; font-size: 12px;">(Appena aggiunto)</span></div>
                         <div class="damage-item-desc">${description}</div>
@@ -2119,6 +2065,7 @@
                     description: cb.dataset.description,
                     urgency: cb.dataset.urgency,
                     photoURLs: JSON.parse(cb.dataset.photos || '[]'),
+                    photoIds: JSON.parse(cb.dataset.photoIds || '[]'),
                     isQuick: cb.dataset.isquick === 'true'
                 });
             });
@@ -2160,20 +2107,37 @@
 
         // Helper function to load image from URL and convert to base64
         async function loadImageAsBase64(url) {
+            if (!url) {
+                return null;
+            }
+
+            if (photoBase64Cache.has(url)) {
+                return photoBase64Cache.get(url);
+            }
+
             try {
-                // Convert Google Drive view link to direct download link
                 let imageUrl = url;
+
                 if (url.includes('drive.google.com/file/d/')) {
-                    const fileId = url.match(/\/d\/([^\/]+)/)[1];
-                    imageUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                    const match = url.match(/\/d\/([^\/]+)/);
+                    if (match && match[1]) {
+                        imageUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                    }
                 }
 
-                const response = await fetch(imageUrl);
+                const response = await fetch(imageUrl, { credentials: 'omit' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const blob = await response.blob();
                 
-                return new Promise((resolve, reject) => {
+                return await new Promise((resolve, reject) => {
                     const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
+                    reader.onloadend = () => {
+                        photoBase64Cache.set(url, reader.result);
+                        resolve(reader.result);
+                    };
                     reader.onerror = reject;
                     reader.readAsDataURL(blob);
                 });
@@ -2181,6 +2145,71 @@
                 console.error('Error loading image:', error);
                 return null;
             }
+        }
+
+        function fetchPhotoBase64ById(fileId) {
+            const cacheKey = `id:${fileId}`;
+
+            if (!fileId) {
+                return Promise.resolve(null);
+            }
+
+            if (photoBase64Cache.has(cacheKey)) {
+                return Promise.resolve(photoBase64Cache.get(cacheKey));
+            }
+
+            const scriptUrl = window.APP_CONFIG?.scriptUrl;
+            const authToken = window.APP_CONFIG?.authToken;
+
+            if (!scriptUrl || !authToken) {
+                console.error('Config not loaded for photo retrieval');
+                return Promise.resolve(null);
+            }
+
+            return new Promise(resolve => {
+                const callback = `photoCb_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                const script = document.createElement('script');
+
+                window[callback] = function(response) {
+                    if (response && response.success && response.dataUrl) {
+                        photoBase64Cache.set(cacheKey, response.dataUrl);
+                        resolve(response.dataUrl);
+                    } else {
+                        resolve(null);
+                    }
+
+                    delete window[callback];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+
+                script.onerror = function() {
+                    resolve(null);
+                    delete window[callback];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                };
+
+                script.src = `${scriptUrl}?function=getMaintenancePhotoBase64Jsonp&authToken=${encodeURIComponent(authToken)}&fileId=${encodeURIComponent(fileId)}&callback=${callback}&_=${Date.now()}`;
+                document.body.appendChild(script);
+            });
+        }
+
+        async function loadDamagePhoto(photoId, photoUrl) {
+            if (photoId) {
+                const dataFromId = await fetchPhotoBase64ById(photoId);
+                if (dataFromId) {
+                    return dataFromId;
+                }
+            }
+
+            if (photoUrl) {
+                return await loadImageAsBase64(photoUrl);
+            }
+
+            return null;
         }
 
         async function generateMaintenancePDF() {
@@ -2257,50 +2286,64 @@
 
                         doc.setTextColor(0, 0, 0);
 
-                        // Add photos if available
-                        if (damage.photoURLs && damage.photoURLs.length > 0) {
+                        // Add photos if available (prefers Drive IDs for private access)
+                        const rawPhotoURLs = Array.isArray(damage.photoURLs)
+                            ? damage.photoURLs.map(url => (url || '').trim()).filter(url => url)
+                            : [];
+                        const rawPhotoIds = Array.isArray(damage.photoIds)
+                            ? damage.photoIds.map(id => (id || '').trim()).filter(id => id)
+                            : [];
+                        const photos = [];
+
+                        if (rawPhotoIds.length > 0) {
+                            rawPhotoIds.forEach((photoId, index) => {
+                                photos.push({
+                                    id: photoId || null,
+                                    url: rawPhotoURLs[index] || null
+                                });
+                            });
+                        } else if (rawPhotoURLs.length > 0) {
+                            rawPhotoURLs.forEach(photoUrl => {
+                                photos.push({ id: null, url: photoUrl });
+                            });
+                        }
+
+                        if (photos.length > 0) {
                             doc.setFontSize(9);
                             doc.setTextColor(102, 126, 234);
                             doc.setFont(undefined, 'bold');
-                            doc.text(`📸 Foto (${damage.photoURLs.length}):`, 20, yPos);
+                            doc.text(`📸 Foto (${photos.length}):`, 20, yPos);
                             yPos += 7;
                             doc.setFont(undefined, 'normal');
                             doc.setTextColor(0, 0, 0);
 
-                            // Load and add images
-                            for (let photoIdx = 0; photoIdx < damage.photoURLs.length; photoIdx++) {
-                                const photoUrl = damage.photoURLs[photoIdx];
-                                
-                                // Update loading message
-                                generateBtn.textContent = `⏳ Caricamento foto ${photoIdx + 1}/${damage.photoURLs.length} del danno ${i + 1}...`;
-                                
-                                const imageData = await loadImageAsBase64(photoUrl);
-                                
+                            for (let photoIdx = 0; photoIdx < photos.length; photoIdx++) {
+                                const currentPhoto = photos[photoIdx];
+
+                                generateBtn.textContent = `⏳ Caricamento foto ${photoIdx + 1}/${photos.length} del danno ${i + 1}...`;
+
+                                const imageData = await loadDamagePhoto(currentPhoto.id, currentPhoto.url);
+
                                 if (imageData) {
-                                    // Check if we need a new page for the image
-                                    const imageHeight = 50; // Fixed height for images
+                                    const imageHeight = 50;
                                     if (yPos + imageHeight > pageHeight - 20) {
                                         doc.addPage();
                                         yPos = 20;
                                     }
 
                                     try {
-                                        // Add image to PDF (width: 80mm, height: 50mm)
                                         doc.addImage(imageData, 'JPEG', 20, yPos, 80, 50);
-                                        
-                                        // Add photo label below image
                                         doc.setFontSize(8);
                                         doc.setTextColor(100, 100, 100);
                                         doc.text(`Foto ${photoIdx + 1}`, 60, yPos + 52, { align: 'center' });
                                         doc.setFontSize(10);
                                         doc.setTextColor(0, 0, 0);
-                                        
-                                        yPos += 58; // Image height + label + spacing
-                                    } catch (imgError) {
-                                        console.error('Error adding image to PDF:', imgError);
+                                        yPos += 58;
+                                    } catch (error) {
+                                        console.error('Errore inserimento foto nel PDF:', error);
                                         doc.setFontSize(8);
                                         doc.setTextColor(200, 50, 50);
-                                        doc.text(`⚠️ Foto ${photoIdx + 1}: Errore caricamento`, 20, yPos);
+                                        doc.text(`⚠️ Foto ${photoIdx + 1}: Formato non supportato`, 20, yPos);
                                         yPos += 5;
                                         doc.setFontSize(10);
                                         doc.setTextColor(0, 0, 0);
@@ -2312,6 +2355,11 @@
                                     yPos += 5;
                                     doc.setFontSize(10);
                                     doc.setTextColor(0, 0, 0);
+                                }
+
+                                if (yPos > pageHeight - 30) {
+                                    doc.addPage();
+                                    yPos = 20;
                                 }
                             }
 

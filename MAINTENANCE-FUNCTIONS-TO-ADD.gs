@@ -244,6 +244,68 @@ function uploadMaintenancePhotoJsonp(params) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
+// Get maintenance photo as base64 (for PDF embedding)
+function getMaintenancePhotoBase64(fileId) {
+  try {
+    if (!fileId) {
+      return {
+        success: false,
+        error: 'Missing fileId'
+      };
+    }
+
+    const file = DriveApp.getFileById(fileId);
+    const maintenanceFolderId = '1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p';
+
+    // Security: ensure the file belongs to the maintenance photos folder
+    let isInMaintenanceFolder = false;
+    const parents = file.getParents();
+    while (parents.hasNext()) {
+      const parent = parents.next();
+      if (parent.getId() === maintenanceFolderId) {
+        isInMaintenanceFolder = true;
+        break;
+      }
+    }
+
+    if (!isInMaintenanceFolder) {
+      return {
+        success: false,
+        error: 'File not in maintenance photos folder'
+      };
+    }
+
+    const blob = file.getBlob();
+    const mimeType = blob.getContentType() || 'image/jpeg';
+    const base64Data = Utilities.base64Encode(blob.getBytes());
+
+    return {
+      success: true,
+      dataUrl: 'data:' + mimeType + ';base64,' + base64Data,
+      mimeType: mimeType,
+      fileName: file.getName(),
+      fileId: fileId,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getMaintenancePhotoBase64Jsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getMaintenancePhotoBase64(params.fileId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
 // Save maintenance report to Google Sheets
 function saveMaintenanceReport(reportData) {
   try {
@@ -258,7 +320,6 @@ function saveMaintenanceReport(reportData) {
     }
     
     const ss = SpreadsheetApp.openById(sheetId);
-    let sheet = ss.getSheetByName('Difetti e Riparazioni');
     
     // Create sheet if it doesn't exist
     if (!sheet) {
@@ -449,6 +510,38 @@ function getActiveMaintenanceReports() {
           };
         }
         
+        // Extract photo URLs from HYPERLINK formulas
+        let photoURLs = [];
+        const photoCell = sheet.getRange(i + 1, 16);
+        const formula = photoCell.getFormula();
+        
+        if (formula) {
+          // Extract URLs from HYPERLINK formulas
+          // Format: =HYPERLINK("url1"; "Foto 1") & " | " & HYPERLINK("url2"; "Foto 2")
+          const urlMatches = formula.match(/HYPERLINK\("([^"]+)"/g);
+          if (urlMatches) {
+            photoURLs = urlMatches.map(match => {
+              const urlMatch = match.match(/HYPERLINK\("([^"]+)"/);
+              return urlMatch ? urlMatch[1] : null;
+            }).filter(url => url !== null);
+          }
+        } else if (row[15]) {
+          // Fallback: if no formula, try to split the cell value
+          photoURLs = row[15]
+            .toString()
+            .split('\n')
+            .map(url => url.trim())
+            .filter(url => url && url.startsWith('http'));
+        }
+
+        const photoIds = row[16]
+          ? row[16]
+              .toString()
+              .split('\n')
+              .map(id => id.trim())
+              .filter(id => id)
+          : [];
+
         reportsMap[reportId].issues.push({
           issueNumber: row[17],
           category: row[5],
@@ -456,8 +549,8 @@ function getActiveMaintenanceReports() {
           urgency: row[7],
           status: row[8],
           completed: row[9],
-          photoURLs: row[15] ? row[15].split(', ') : [],
-          photoIds: row[16] ? row[16].split(', ') : []
+          photoURLs: photoURLs,
+          photoIds: photoIds
         });
       }
     }
@@ -538,6 +631,37 @@ function getMaintenanceHistory() {
         reportsMap[reportId].allCompleted = false;
       }
       
+      // Extract photo URLs from HYPERLINK formulas
+      let photoURLs = [];
+      const photoCell = sheet.getRange(i + 1, 16);
+      const formula = photoCell.getFormula();
+      
+      if (formula) {
+        // Extract URLs from HYPERLINK formulas
+        const urlMatches = formula.match(/HYPERLINK\("([^"]+)"/g);
+        if (urlMatches) {
+          photoURLs = urlMatches.map(match => {
+            const urlMatch = match.match(/HYPERLINK\("([^"]+)"/);
+            return urlMatch ? urlMatch[1] : null;
+          }).filter(url => url !== null);
+        }
+      } else if (row[15]) {
+        // Fallback: if no formula, try to split the cell value
+        photoURLs = row[15]
+          .toString()
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url && url.startsWith('http'));
+      }
+
+      const photoIds = row[16]
+        ? row[16]
+            .toString()
+            .split('\n')
+            .map(id => id.trim())
+            .filter(id => id)
+        : [];
+
       reportsMap[reportId].issues.push({
         issueNumber: row[17],
         category: row[5],
@@ -550,8 +674,8 @@ function getMaintenanceHistory() {
         cost: row[12],
         garage: row[13],
         invoiceNumber: row[14],
-        photoURLs: row[15] ? row[15].split(', ') : [],
-        photoIds: row[16] ? row[16].split(', ') : []
+        photoURLs: photoURLs,
+        photoIds: photoIds
       });
     }
     
