@@ -1203,6 +1203,14 @@
                                 <input type="email" id="newGarageEmail">
                             </div>
                             <div class="form-group" style="margin: 0;">
+                                <label>Sito Web</label>
+                                <input type="url" id="newGarageWebsite" placeholder="https://www.esempio.ch">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Responsabile</label>
+                                <input type="text" id="newGarageResponsabile" placeholder="Nome e Cognome">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
                                 <label>Specializzazione</label>
                                 <input type="text" id="newGarageSpecialization" placeholder="Es: Carrozzeria, Meccanica...">
                             </div>
@@ -1377,6 +1385,9 @@
                             option.dataset.vehicleName = vehicle.name || vehicle.vehicleType || 'Veicolo';
                             option.dataset.calendarId = vehicle.calendarId || vehicle.id || '';
                             option.dataset.kmToService = vehicle.kmToService || 0;
+                            option.dataset.licencePlate = vehicle.licencePlate || '';
+                            option.dataset.currentKm = vehicle.currentKm || 0;
+                            option.dataset.cartaGrigiaPhoto = vehicle.cartaGrigiaPhoto || '';
                             
                             select.appendChild(option);
                         });
@@ -2443,7 +2454,11 @@
                 }
                 const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
                 pdfWizardData.vehicleId = vehicleSelect.value;
-                pdfWizardData.vehicleName = selectedOption.text;
+                pdfWizardData.vehicleName = selectedOption.dataset.vehicleName || selectedOption.text;
+                pdfWizardData.vehicleLicencePlate = selectedOption.dataset.licencePlate || '';
+                pdfWizardData.vehicleCurrentKm = parseInt(selectedOption.dataset.currentKm) || 0;
+                pdfWizardData.vehicleCartaGrigia = selectedOption.dataset.cartaGrigiaPhoto || '';
+                pdfWizardData.vehicleKmToService = parseInt(selectedOption.dataset.kmToService) || 0;
             }
 
             if (pdfWizardData.step === 5) {
@@ -2462,7 +2477,10 @@
                     zip: selectedOption.dataset.zip,
                     phone: selectedOption.dataset.phone,
                     mobile: selectedOption.dataset.mobile,
-                    email: selectedOption.dataset.email
+                    email: selectedOption.dataset.email,
+                    website: selectedOption.dataset.website,
+                    responsabile: selectedOption.dataset.responsabile,
+                    specialization: selectedOption.dataset.specialization
                 };
             }
 
@@ -2479,6 +2497,11 @@
                 const option = document.createElement('option');
                 option.value = vehicle.id;
                 option.textContent = vehicle.name;
+                option.dataset.vehicleName = vehicle.name;
+                option.dataset.licencePlate = vehicle.licencePlate || '';
+                option.dataset.currentKm = vehicle.currentKm || 0;
+                option.dataset.cartaGrigiaPhoto = vehicle.cartaGrigiaPhoto || '';
+                option.dataset.kmToService = vehicle.kmToService || 0;
                 vehicleSelect.appendChild(option);
             });
         }
@@ -2828,9 +2851,23 @@
             collectExtraWorks();
 
             // Display summary
+            const vehicleSummary = document.getElementById('summaryVehicle');
             const damagesSummary = document.getElementById('summaryDamages');
             const servicesSummary = document.getElementById('summaryServices');
             const extrasSummary = document.getElementById('summaryExtras');
+
+            // Vehicle details
+            if (pdfWizardData.vehicleName) {
+                vehicleSummary.innerHTML = `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea;">
+                        <h4 style="margin: 0 0 10px 0; color: #667eea;">${escapeHtml(pdfWizardData.vehicleName)}</h4>
+                        ${pdfWizardData.vehicleLicencePlate ? `<p style="margin: 5px 0;"><strong>🔖 Targa:</strong> ${escapeHtml(pdfWizardData.vehicleLicencePlate)}</p>` : ''}
+                        ${pdfWizardData.vehicleCurrentKm > 0 ? `<p style="margin: 5px 0;"><strong>📊 KM Attuali:</strong> ${pdfWizardData.vehicleCurrentKm.toLocaleString('it-IT')} km</p>` : ''}
+                        ${pdfWizardData.vehicleKmToService ? `<p style="margin: 5px 0;"><strong>${pdfWizardData.vehicleKmToService < 0 ? '⚠️' : '✅'} KM al prossimo tagliando:</strong> ${Math.abs(pdfWizardData.vehicleKmToService).toLocaleString('it-IT')} km${pdfWizardData.vehicleKmToService < 0 ? ' <span style="color: #ff6b6b; font-weight: bold;">FUORI SERVIZIO</span>' : ''}</p>` : ''}
+                        ${pdfWizardData.vehicleCartaGrigia ? `<p style="margin: 5px 0;"><strong>📄</strong> Carta grigia disponibile</p>` : ''}
+                    </div>
+                `;
+            }
 
             // Damages
             if (pdfWizardData.selectedDamages.length > 0) {
@@ -2939,6 +2976,9 @@
                         ${garage.phone ? `<p style="margin: 5px 0;"><strong>📞</strong> ${escapeHtml(garage.phone)}</p>` : ''}
                         ${garage.mobile ? `<p style="margin: 5px 0;"><strong>📱</strong> ${escapeHtml(garage.mobile)}</p>` : ''}
                         ${garage.email ? `<p style="margin: 5px 0;"><strong>✉️</strong> ${escapeHtml(garage.email)}</p>` : ''}
+                        ${garage.website ? `<p style="margin: 5px 0;"><strong>🌐</strong> <a href="${escapeHtml(garage.website)}" target="_blank">${escapeHtml(garage.website)}</a></p>` : ''}
+                        ${garage.responsabile ? `<p style="margin: 5px 0;"><strong>👤</strong> ${escapeHtml(garage.responsabile)}</p>` : ''}
+                        ${garage.specialization ? `<p style="margin: 5px 0;"><strong>🔧</strong> ${escapeHtml(garage.specialization)}</p>` : ''}
                     </div>
                 `;
             } else {
@@ -3163,6 +3203,71 @@
 
                 yPos = 50;
                 doc.setTextColor(0, 0, 0);
+
+                // Vehicle details section
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(102, 126, 234);
+                doc.text('🚗 DETTAGLI VEICOLO', 15, yPos);
+                yPos += 8;
+
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0, 0, 0);
+
+                if (pdfWizardData.vehicleLicencePlate) {
+                    doc.text(`🔖 Targa: ${pdfWizardData.vehicleLicencePlate}`, 15, yPos);
+                    yPos += 6;
+                }
+
+                if (pdfWizardData.vehicleCurrentKm && pdfWizardData.vehicleCurrentKm > 0) {
+                    doc.text(`📊 KM Attuali: ${pdfWizardData.vehicleCurrentKm.toLocaleString('it-IT')} km`, 15, yPos);
+                    yPos += 6;
+                }
+
+                if (pdfWizardData.vehicleKmToService) {
+                    const kmToService = pdfWizardData.vehicleKmToService;
+                    if (kmToService < 0) {
+                        doc.setTextColor(255, 0, 0);
+                        doc.text(`⚠️ KM al prossimo tagliando: ${Math.abs(kmToService).toLocaleString('it-IT')} km FUORI SERVIZIO`, 15, yPos);
+                        doc.setTextColor(0, 0, 0);
+                    } else {
+                        doc.text(`✅ KM al prossimo tagliando: ${kmToService.toLocaleString('it-IT')} km`, 15, yPos);
+                    }
+                    yPos += 6;
+                }
+
+                // Carta Grigia photo
+                if (pdfWizardData.vehicleCartaGrigia) {
+                    try {
+                        const cartaGrigiaBase64 = await loadImageAsBase64(pdfWizardData.vehicleCartaGrigia);
+                        if (cartaGrigiaBase64) {
+                            yPos += 5;
+                            doc.setFont(undefined, 'bold');
+                            doc.text('📄 Carta Grigia:', 15, yPos);
+                            yPos += 5;
+
+                            const imgWidth = 80;
+                            const imgHeight = 60;
+
+                            if (yPos + imgHeight > 270) {
+                                doc.addPage();
+                                yPos = 20;
+                            }
+
+                            doc.addImage(cartaGrigiaBase64, 'JPEG', 15, yPos, imgWidth, imgHeight);
+                            yPos += imgHeight + 5;
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento carta grigia:', error);
+                        doc.setTextColor(150, 150, 150);
+                        doc.text('⚠️ Carta grigia non disponibile', 15, yPos);
+                        doc.setTextColor(0, 0, 0);
+                        yPos += 6;
+                    }
+                }
+
+                yPos += 5;
 
                 // Damages section
                 if (pdfWizardData.selectedDamages.length > 0) {
@@ -3434,6 +3539,21 @@
 
                     if (pdfWizardData.selectedGarage.email) {
                         doc.text(`📧 Email: ${pdfWizardData.selectedGarage.email}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.website) {
+                        doc.text(`🌐 Sito Web: ${pdfWizardData.selectedGarage.website}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.responsabile) {
+                        doc.text(`👤 Responsabile: ${pdfWizardData.selectedGarage.responsabile}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.specialization) {
+                        doc.text(`🔧 Specializzazione: ${pdfWizardData.selectedGarage.specialization}`, 15, yPos);
                         yPos += 6;
                     }
 
@@ -3715,6 +3835,26 @@
                                 <label>Cellulare</label>
                                 <input type="text" id="wizardGarageMobile">
                             </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Email</label>
+                                <input type="email" id="wizardGarageEmail">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Sito Web</label>
+                                <input type="url" id="wizardGarageWebsite">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Responsabile</label>
+                                <input type="text" id="wizardGarageResponsabile">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Specializzazione</label>
+                                <input type="text" id="wizardGarageSpecialization">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Note</label>
+                                <input type="text" id="wizardGarageNotes">
+                            </div>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
                             <button onclick="saveWizardGarage()" class="submit-btn" style="width: auto; margin: 0;">
@@ -3737,7 +3877,12 @@
                     <p style="color: #666; margin-bottom: 20px;">Controlla che tutto sia corretto prima di generare il PDF.</p>
                     
                     <div class="summary-section">
-                        <h3>🔧 Danni selezionati</h3>
+                        <h3>� Dettagli veicolo</h3>
+                        <div id="summaryVehicle"></div>
+                    </div>
+
+                    <div class="summary-section">
+                        <h3>�🔧 Danni selezionati</h3>
                         <div id="summaryDamages"></div>
                     </div>
 
@@ -3792,6 +3937,8 @@
             document.getElementById('newGaragePhone').value = '';
             document.getElementById('newGarageMobile').value = '';
             document.getElementById('newGarageEmail').value = '';
+            document.getElementById('newGarageWebsite').value = '';
+            document.getElementById('newGarageResponsabile').value = '';
             document.getElementById('newGarageSpecialization').value = '';
             document.getElementById('newGarageNotes').value = '';
         }
@@ -3833,6 +3980,9 @@
                         ${garage.phone ? `<p style="margin: 8px 0;"><strong>📞</strong> <a href="tel:${escapeHtml(garage.phone)}">${escapeHtml(garage.phone)}</a></p>` : ''}
                         ${garage.mobile ? `<p style="margin: 8px 0;"><strong>📱</strong> <a href="tel:${escapeHtml(garage.mobile)}">${escapeHtml(garage.mobile)}</a></p>` : ''}
                         ${garage.email ? `<p style="margin: 8px 0;"><strong>✉️</strong> <a href="mailto:${escapeHtml(garage.email)}">${escapeHtml(garage.email)}</a></p>` : ''}
+                        ${garage.website ? `<p style="margin: 8px 0;"><strong>🌐</strong> <a href="${escapeHtml(garage.website)}" target="_blank">${escapeHtml(garage.website)}</a></p>` : ''}
+                        ${garage.responsabile ? `<p style="margin: 8px 0;"><strong>👤</strong> ${escapeHtml(garage.responsabile)}</p>` : ''}
+                        ${garage.specialization ? `<p style="margin: 8px 0;"><strong>🔧</strong> ${escapeHtml(garage.specialization)}</p>` : ''}
                         ${garage.notes ? `<p style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #555;"><em>${escapeHtml(garage.notes)}</em></p>` : ''}
                     `;
                     container.appendChild(garageCard);
@@ -3867,6 +4017,8 @@
                 phone: document.getElementById('newGaragePhone').value.trim(),
                 mobile: document.getElementById('newGarageMobile').value.trim(),
                 email: document.getElementById('newGarageEmail').value.trim(),
+                website: document.getElementById('newGarageWebsite').value.trim(),
+                responsabile: document.getElementById('newGarageResponsabile').value.trim(),
                 specialization: document.getElementById('newGarageSpecialization').value.trim(),
                 notes: document.getElementById('newGarageNotes').value.trim()
             };
@@ -4063,6 +4215,9 @@
                     option.dataset.phone = garage.phone || '';
                     option.dataset.mobile = garage.mobile || '';
                     option.dataset.email = garage.email || '';
+                    option.dataset.website = garage.website || '';
+                    option.dataset.responsabile = garage.responsabile || '';
+                    option.dataset.specialization = garage.specialization || '';
                     select.appendChild(option);
                 });
 
@@ -4078,6 +4233,9 @@
                             ${option.dataset.address ? `<p style="margin: 5px 0; font-size: 14px;">📍 ${escapeHtml(option.dataset.address)}${option.dataset.city ? ', ' + escapeHtml(option.dataset.city) : ''}</p>` : ''}
                             ${option.dataset.phone ? `<p style="margin: 5px 0; font-size: 14px;">📞 ${escapeHtml(option.dataset.phone)}</p>` : ''}
                             ${option.dataset.mobile ? `<p style="margin: 5px 0; font-size: 14px;">📱 ${escapeHtml(option.dataset.mobile)}</p>` : ''}
+                            ${option.dataset.email ? `<p style="margin: 5px 0; font-size: 14px;">📧 ${escapeHtml(option.dataset.email)}</p>` : ''}
+                            ${option.dataset.website ? `<p style="margin: 5px 0; font-size: 14px;">🌐 ${escapeHtml(option.dataset.website)}</p>` : ''}
+                            ${option.dataset.responsabile ? `<p style="margin: 5px 0; font-size: 14px;">👤 ${escapeHtml(option.dataset.responsabile)}</p>` : ''}
                         `;
                     } else {
                         preview.style.display = 'none';
@@ -4113,6 +4271,11 @@
             document.getElementById('wizardGarageZip').value = '';
             document.getElementById('wizardGaragePhone').value = '';
             document.getElementById('wizardGarageMobile').value = '';
+            document.getElementById('wizardGarageEmail').value = '';
+            document.getElementById('wizardGarageWebsite').value = '';
+            document.getElementById('wizardGarageResponsabile').value = '';
+            document.getElementById('wizardGarageSpecialization').value = '';
+            document.getElementById('wizardGarageNotes').value = '';
         }
 
         function saveWizardGarage() {
@@ -4131,9 +4294,11 @@
                 zip: document.getElementById('wizardGarageZip').value.trim(),
                 phone: document.getElementById('wizardGaragePhone').value.trim(),
                 mobile: document.getElementById('wizardGarageMobile').value.trim(),
-                email: '',
-                specialization: '',
-                notes: 'Aggiunto dal wizard PDF'
+                email: document.getElementById('wizardGarageEmail').value.trim(),
+                website: document.getElementById('wizardGarageWebsite').value.trim(),
+                responsabile: document.getElementById('wizardGarageResponsabile').value.trim(),
+                specialization: document.getElementById('wizardGarageSpecialization').value.trim(),
+                notes: document.getElementById('wizardGarageNotes').value.trim() || 'Aggiunto dal wizard PDF'
             };
 
             const callback = 'wizardAddGarageCallback_' + Date.now();

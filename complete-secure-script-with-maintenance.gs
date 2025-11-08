@@ -2282,6 +2282,15 @@ function getVehicleListWithKm() {
     let kmIndex = headers.indexOf('KmNextService');
     if (kmIndex === -1) kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
 
+    let licencePlateIndex = headers.indexOf('LicencePlate');
+    if (licencePlateIndex === -1) licencePlateIndex = headers.indexOf('Targa');
+
+    let currentKmIndex = headers.indexOf('CurrentKm');
+    if (currentKmIndex === -1) currentKmIndex = headers.indexOf('Km Attuali');
+
+    let cartaGrigiaIndex = headers.indexOf('CartaGrigiaPhoto');
+    if (cartaGrigiaIndex === -1) cartaGrigiaIndex = headers.indexOf('Foto Carta Grigia');
+
     const vehicles = [];
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
@@ -2294,7 +2303,10 @@ function getVehicleListWithKm() {
           name: row[nameIndex],
           calendarId: row[idIndex],
           id: row[idIndex],
-          kmToService: parseInt(row[kmIndex]) || 0
+          kmToService: parseInt(row[kmIndex]) || 0,
+          licencePlate: row[licencePlateIndex] || '',
+          currentKm: parseInt(row[currentKmIndex]) || 0,
+          cartaGrigiaPhoto: row[cartaGrigiaIndex] || ''
         });
       }
     }
@@ -3203,7 +3215,7 @@ function getOrCreateGaragesSheet() {
       sheet = ss.insertSheet('Officine');
       
       // Add headers
-      const headerRow = sheet.getRange(1, 1, 1, 9);
+      const headerRow = sheet.getRange(1, 1, 1, 11);
       headerRow.setValues([[
         'Nome Officina',
         'Indirizzo',
@@ -3212,6 +3224,8 @@ function getOrCreateGaragesSheet() {
         'Telefono',
         'Cellulare',
         'Email',
+        'Sito Web',
+        'Responsabile',
         'Specializzazione',
         'Note'
       ]]);
@@ -3223,10 +3237,18 @@ function getOrCreateGaragesSheet() {
       headerRow.setHorizontalAlignment('center');
       sheet.setFrozenRows(1);
       
-      // Add some default garages for Ticino
-      sheet.appendRow(['Garage Rossi', 'Via Roma 123', 'Lugano', '6900', '+41 91 123 4567', '+41 79 123 4567', 'info@rossi.ch', 'Carrozzeria', 'Specializzati in Citroen']);
-      sheet.appendRow(['Officina Bianchi', 'Via Milano 45', 'Bellinzona', '6500', '+41 91 234 5678', '+41 79 234 5678', 'bianchi@officina.ch', 'Meccanica generale', 'Prezzi competitivi']);
-      sheet.appendRow(['AutoService Verdi', 'Via Zurigo 78', 'Locarno', '6600', '+41 91 345 6789', '+41 79 345 6789', 'verdi@auto.ch', 'Elettronica auto', 'Certificati BMW']);
+      // Set column widths
+      sheet.setColumnWidth(1, 150); // Nome
+      sheet.setColumnWidth(2, 180); // Indirizzo
+      sheet.setColumnWidth(3, 120); // Città
+      sheet.setColumnWidth(4, 60);  // CAP
+      sheet.setColumnWidth(5, 120); // Telefono
+      sheet.setColumnWidth(6, 120); // Cellulare
+      sheet.setColumnWidth(7, 160); // Email
+      sheet.setColumnWidth(8, 160); // Sito Web
+      sheet.setColumnWidth(9, 130); // Responsabile
+      sheet.setColumnWidth(10, 150); // Specializzazione
+      sheet.setColumnWidth(11, 200); // Note
     }
 
     return {
@@ -3264,8 +3286,10 @@ function getGaragesList() {
           phone: row[4],
           mobile: row[5],
           email: row[6],
-          specialization: row[7],
-          notes: row[8]
+          website: row[7],
+          responsabile: row[8],
+          specialization: row[9],
+          notes: row[10]
         });
       }
     }
@@ -3312,6 +3336,8 @@ function addGarage(garageData) {
       garageData.phone || '',
       garageData.mobile || '',
       garageData.email || '',
+      garageData.website || '',
+      garageData.responsabile || '',
       garageData.specialization || '',
       garageData.notes || ''
     ]);
