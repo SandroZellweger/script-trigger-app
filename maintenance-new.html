@@ -2151,10 +2151,12 @@
             const cacheKey = `id:${fileId}`;
 
             if (!fileId) {
+                console.error('❌ fetchPhotoBase64ById: No fileId provided');
                 return Promise.resolve(null);
             }
 
             if (photoBase64Cache.has(cacheKey)) {
+                console.log('✅ Photo found in cache:', fileId);
                 return Promise.resolve(photoBase64Cache.get(cacheKey));
             }
 
@@ -2162,19 +2164,27 @@
             const authToken = window.APP_CONFIG?.authToken;
 
             if (!scriptUrl || !authToken) {
-                console.error('Config not loaded for photo retrieval');
+                console.error('❌ Config not loaded for photo retrieval. scriptUrl:', scriptUrl, 'authToken:', authToken ? '***' : 'missing');
                 return Promise.resolve(null);
             }
+
+            console.log('🌐 Calling backend for photo:', fileId);
+            const requestUrl = `${scriptUrl}?function=getMaintenancePhotoBase64Jsonp&authToken=${encodeURIComponent(authToken)}&fileId=${encodeURIComponent(fileId)}&callback=CALLBACK&_=${Date.now()}`;
+            console.log('🔗 Request URL (without callback):', requestUrl);
 
             return new Promise(resolve => {
                 const callback = `photoCb_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
                 const script = document.createElement('script');
 
                 window[callback] = function(response) {
+                    console.log('📦 Backend response received:', response);
+                    
                     if (response && response.success && response.dataUrl) {
+                        console.log('✅ Photo loaded successfully:', fileId);
                         photoBase64Cache.set(cacheKey, response.dataUrl);
                         resolve(response.dataUrl);
                     } else {
+                        console.error('❌ Backend returned error:', response?.error || 'Unknown error');
                         resolve(null);
                     }
 
@@ -2184,7 +2194,9 @@
                     }
                 };
 
-                script.onerror = function() {
+                script.onerror = function(error) {
+                    console.error('❌ Script loading error:', error);
+                    console.error('❌ Failed URL:', script.src);
                     resolve(null);
                     delete window[callback];
                     if (script.parentNode) {
@@ -2254,6 +2266,16 @@
         }
 
         async function generateMaintenancePDF() {
+            // DIAGNOSTIC: Check config before starting
+            console.log('🔧 PDF Generation Started');
+            console.log('🔍 Config check:', {
+                hasAppConfig: !!window.APP_CONFIG,
+                hasScriptUrl: !!window.APP_CONFIG?.scriptUrl,
+                hasAuthToken: !!window.APP_CONFIG?.authToken,
+                scriptUrl: window.APP_CONFIG?.scriptUrl,
+                authToken: window.APP_CONFIG?.authToken ? '***' + window.APP_CONFIG.authToken.slice(-4) : 'missing'
+            });
+
             const { jsPDF } = window.jspdf;
             
             if (!jsPDF) {
