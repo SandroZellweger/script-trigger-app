@@ -2333,7 +2333,8 @@
             selectedDamages: [],
             serviceWorks: [],
             extraWorks: [],
-            damageNotes: {}
+            damageNotes: {},
+            selectedGarage: null
         };
 
         let allActiveReports = [];
@@ -2408,7 +2409,7 @@
 
             prevBtn.style.display = stepNumber > 1 ? 'block' : 'none';
             
-            if (stepNumber < 5) {
+            if (stepNumber < 6) {
                 nextBtn.style.display = 'block';
                 generateBtn.style.display = 'none';
             } else {
@@ -2420,6 +2421,8 @@
             if (stepNumber === 2) {
                 loadWizardDamages();
             } else if (stepNumber === 5) {
+                loadWizardGaragesList();
+            } else if (stepNumber === 6) {
                 showWizardSummary();
             }
         }
@@ -2443,7 +2446,27 @@
                 pdfWizardData.vehicleName = selectedOption.text;
             }
 
-            if (pdfWizardData.step < 5) {
+            if (pdfWizardData.step === 5) {
+                // Validate garage selection
+                const garageSelect = document.getElementById('wizardGarageSelect');
+                if (!garageSelect.value) {
+                    alert('Seleziona un\'officina prima di continuare');
+                    return;
+                }
+                // Store selected garage data
+                const selectedOption = garageSelect.options[garageSelect.selectedIndex];
+                pdfWizardData.selectedGarage = {
+                    name: selectedOption.dataset.name,
+                    address: selectedOption.dataset.address,
+                    city: selectedOption.dataset.city,
+                    zip: selectedOption.dataset.zip,
+                    phone: selectedOption.dataset.phone,
+                    mobile: selectedOption.dataset.mobile,
+                    email: selectedOption.dataset.email
+                };
+            }
+
+            if (pdfWizardData.step < 6) {
                 showWizardStep(pdfWizardData.step + 1);
             }
         }
@@ -2904,6 +2927,23 @@
             } else {
                 extrasSummary.innerHTML = '<p class="summary-empty">Nessun lavoro extra selezionato</p>';
             }
+
+            // Garage
+            const garageSummary = document.getElementById('summaryGarage');
+            if (pdfWizardData.selectedGarage) {
+                const garage = pdfWizardData.selectedGarage;
+                garageSummary.innerHTML = `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea;">
+                        <h4 style="margin: 0 0 10px 0; color: #667eea;">${escapeHtml(garage.name)}</h4>
+                        ${garage.address ? `<p style="margin: 5px 0;"><strong>📍</strong> ${escapeHtml(garage.address)}${garage.city ? ', ' + escapeHtml(garage.city) : ''}${garage.zip ? ' ' + escapeHtml(garage.zip) : ''}</p>` : ''}
+                        ${garage.phone ? `<p style="margin: 5px 0;"><strong>📞</strong> ${escapeHtml(garage.phone)}</p>` : ''}
+                        ${garage.mobile ? `<p style="margin: 5px 0;"><strong>📱</strong> ${escapeHtml(garage.mobile)}</p>` : ''}
+                        ${garage.email ? `<p style="margin: 5px 0;"><strong>✉️</strong> ${escapeHtml(garage.email)}</p>` : ''}
+                    </div>
+                `;
+            } else {
+                garageSummary.innerHTML = '<p class="summary-empty">Nessuna officina selezionata</p>';
+            }
         }
 
         // Helper function to load image from URL and convert to base64
@@ -3346,6 +3386,60 @@
                     });
                 }
 
+                // Garage section
+                if (pdfWizardData.selectedGarage) {
+                    if (yPos > 220) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    yPos += 5;
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(102, 126, 234);
+                    doc.text('🔧 OFFICINA SELEZIONATA', 15, yPos);
+                    yPos += 10;
+
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(pdfWizardData.selectedGarage.name, 15, yPos);
+                    yPos += 7;
+
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+
+                    if (pdfWizardData.selectedGarage.address) {
+                        doc.text(`📍 Indirizzo: ${pdfWizardData.selectedGarage.address}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.city && pdfWizardData.selectedGarage.zip) {
+                        doc.text(`   ${pdfWizardData.selectedGarage.zip} ${pdfWizardData.selectedGarage.city}`, 15, yPos);
+                        yPos += 6;
+                    } else if (pdfWizardData.selectedGarage.city) {
+                        doc.text(`   ${pdfWizardData.selectedGarage.city}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.phone) {
+                        doc.text(`📞 Telefono: ${pdfWizardData.selectedGarage.phone}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.mobile) {
+                        doc.text(`📱 Cellulare: ${pdfWizardData.selectedGarage.mobile}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    if (pdfWizardData.selectedGarage.email) {
+                        doc.text(`📧 Email: ${pdfWizardData.selectedGarage.email}`, 15, yPos);
+                        yPos += 6;
+                    }
+
+                    yPos += 3;
+                }
+
                 // Footer
                 const totalPages = doc.internal.pages.length - 1;
                 for (let i = 1; i <= totalPages; i++) {
@@ -3572,8 +3666,73 @@
                     </div>
                 </div>
 
-                <!-- Step 5: Summary -->
+                <!-- Step 5: Garage Selection -->
                 <div class="wizard-section" id="wizardStep5">
+                    <h3 style="margin-bottom: 20px;">🔧 Seleziona Officina</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Scegli l'officina dove portare il veicolo per la manutenzione.</p>
+                    
+                    <div class="form-group">
+                        <label>Officina</label>
+                        <select id="wizardGarageSelect" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                            <option value="">Caricamento officine...</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button onclick="showWizardAddGarage()" class="add-issue-btn" style="width: auto; margin: 0;">
+                            + Aggiungi Nuova Officina
+                        </button>
+                        <button onclick="refreshWizardGaragesList()" class="add-issue-btn" style="width: auto; margin: 0; background: #4caf50;">
+                            🔄 Ricarica Lista
+                        </button>
+                    </div>
+
+                    <!-- Inline Add Garage Form -->
+                    <div id="wizardAddGarageForm" style="display: none; background: #f0f4ff; padding: 20px; border-radius: 12px; margin-top: 20px;">
+                        <h4 style="margin-bottom: 15px;">Nuova Officina</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Nome Officina *</label>
+                                <input type="text" id="wizardGarageName">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Indirizzo</label>
+                                <input type="text" id="wizardGarageAddress">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Città</label>
+                                <input type="text" id="wizardGarageCity">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>CAP</label>
+                                <input type="text" id="wizardGarageZip">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Telefono</label>
+                                <input type="text" id="wizardGaragePhone">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Cellulare</label>
+                                <input type="text" id="wizardGarageMobile">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="saveWizardGarage()" class="submit-btn" style="width: auto; margin: 0;">
+                                💾 Salva e Seleziona
+                            </button>
+                            <button onclick="hideWizardAddGarage()" class="submit-btn" style="width: auto; margin: 0; background: #666;">
+                                ❌ Annulla
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="wizardSelectedGaragePreview" style="display: none; margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px; border-left: 4px solid #4caf50;">
+                        <!-- Preview will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Step 6: Summary -->
+                <div class="wizard-section" id="wizardStep6">
                     <h3 style="margin-bottom: 20px;">📋 Riepilogo lista manutenzione</h3>
                     <p style="color: #666; margin-bottom: 20px;">Controlla che tutto sia corretto prima di generare il PDF.</p>
                     
@@ -3590,6 +3749,11 @@
                     <div class="summary-section">
                         <h3>✨ Lavori extra</h3>
                         <div id="summaryExtras"></div>
+                    </div>
+
+                    <div class="summary-section">
+                        <h3>🏢 Officina selezionata</h3>
+                        <div id="summaryGarage"></div>
                     </div>
                 </div>
 
@@ -3856,6 +4020,146 @@
 
             const script = document.createElement('script');
             script.src = `${window.APP_CONFIG.scriptUrl}?function=getGarageDetailsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&placeId=${encodeURIComponent(placeId)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // ===== WIZARD GARAGE FUNCTIONS =====
+
+        function loadWizardGaragesList() {
+            const select = document.getElementById('wizardGarageSelect');
+            select.innerHTML = '<option value="">Caricamento officine...</option>';
+
+            const callback = 'wizardGaragesCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (!response.success) {
+                    select.innerHTML = '<option value="">❌ Errore caricamento</option>';
+                    delete window[callback];
+                    return;
+                }
+
+                const garages = response.garages || [];
+
+                if (garages.length === 0) {
+                    select.innerHTML = '<option value="">Nessuna officina - Aggiungine una</option>';
+                    delete window[callback];
+                    return;
+                }
+
+                select.innerHTML = '<option value="">-- Seleziona officina --</option>';
+                
+                garages.forEach((garage, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${garage.name}${garage.city ? ' - ' + garage.city : ''}`;
+                    option.dataset.name = garage.name;
+                    option.dataset.address = garage.address || '';
+                    option.dataset.city = garage.city || '';
+                    option.dataset.zip = garage.zip || '';
+                    option.dataset.phone = garage.phone || '';
+                    option.dataset.mobile = garage.mobile || '';
+                    option.dataset.email = garage.email || '';
+                    select.appendChild(option);
+                });
+
+                // Add change listener to show preview
+                select.onchange = function() {
+                    const preview = document.getElementById('wizardSelectedGaragePreview');
+                    if (this.value) {
+                        const option = this.options[this.selectedIndex];
+                        preview.style.display = 'block';
+                        preview.innerHTML = `
+                            <h4 style="margin: 0 0 10px 0; color: #4caf50;">✅ Officina Selezionata</h4>
+                            <p style="margin: 5px 0;"><strong>${escapeHtml(option.dataset.name)}</strong></p>
+                            ${option.dataset.address ? `<p style="margin: 5px 0; font-size: 14px;">📍 ${escapeHtml(option.dataset.address)}${option.dataset.city ? ', ' + escapeHtml(option.dataset.city) : ''}</p>` : ''}
+                            ${option.dataset.phone ? `<p style="margin: 5px 0; font-size: 14px;">📞 ${escapeHtml(option.dataset.phone)}</p>` : ''}
+                            ${option.dataset.mobile ? `<p style="margin: 5px 0; font-size: 14px;">📱 ${escapeHtml(option.dataset.mobile)}</p>` : ''}
+                        `;
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                };
+
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getGaragesListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                select.innerHTML = '<option value="">❌ Errore connessione</option>';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        function refreshWizardGaragesList() {
+            loadWizardGaragesList();
+        }
+
+        function showWizardAddGarage() {
+            document.getElementById('wizardAddGarageForm').style.display = 'block';
+            document.getElementById('wizardGarageName').focus();
+        }
+
+        function hideWizardAddGarage() {
+            document.getElementById('wizardAddGarageForm').style.display = 'none';
+            document.getElementById('wizardGarageName').value = '';
+            document.getElementById('wizardGarageAddress').value = '';
+            document.getElementById('wizardGarageCity').value = '';
+            document.getElementById('wizardGarageZip').value = '';
+            document.getElementById('wizardGaragePhone').value = '';
+            document.getElementById('wizardGarageMobile').value = '';
+        }
+
+        function saveWizardGarage() {
+            const name = document.getElementById('wizardGarageName').value.trim();
+            
+            if (!name) {
+                alert('Il nome dell\'officina è obbligatorio');
+                document.getElementById('wizardGarageName').focus();
+                return;
+            }
+
+            const garageData = {
+                name: name,
+                address: document.getElementById('wizardGarageAddress').value.trim(),
+                city: document.getElementById('wizardGarageCity').value.trim(),
+                zip: document.getElementById('wizardGarageZip').value.trim(),
+                phone: document.getElementById('wizardGaragePhone').value.trim(),
+                mobile: document.getElementById('wizardGarageMobile').value.trim(),
+                email: '',
+                specialization: '',
+                notes: 'Aggiunto dal wizard PDF'
+            };
+
+            const callback = 'wizardAddGarageCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert('✅ Officina aggiunta con successo!');
+                    hideWizardAddGarage();
+                    loadWizardGaragesList();
+                    
+                    // Auto-select the newly added garage after a short delay
+                    setTimeout(() => {
+                        const select = document.getElementById('wizardGarageSelect');
+                        if (select.options.length > 1) {
+                            select.selectedIndex = select.options.length - 1;
+                            select.onchange();
+                        }
+                    }, 500);
+                } else {
+                    alert('❌ Errore nel salvataggio: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=addGarageJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(garageData))}&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 alert('❌ Errore di connessione');
                 delete window[callback];
