@@ -372,6 +372,28 @@
             background: #f0f4ff;
         }
 
+        .edit-issue-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .edit-issue-btn:hover {
+            background: #218838;
+            transform: scale(1.1);
+        }
+
         .issue-checkbox {
             width: 24px;
             height: 24px;
@@ -1088,6 +1110,241 @@
         }
 
         /* End of PDF Wizard Modal */
+
+        /* Edit Issue Modal Styles */
+        .edit-issue-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .edit-issue-btn:hover {
+            background: #0056b3;
+        }
+
+        .edit-issue-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .edit-issue-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-issue-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .edit-issue-modal h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .edit-issue-modal .form-group {
+            margin-bottom: 20px;
+        }
+
+        .edit-issue-modal label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .edit-issue-modal select,
+        .edit-issue-modal textarea,
+        .edit-issue-modal input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .edit-issue-modal textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .edit-issue-modal .photo-upload {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8f9ff;
+            transition: background 0.2s ease;
+        }
+
+        .edit-issue-modal .photo-upload:hover {
+            background: #e8f0ff;
+        }
+
+        .edit-issue-modal .photo-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .edit-issue-modal .photo-preview-item {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+            position: relative;
+        }
+
+        .edit-issue-modal .photo-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .edit-issue-modal .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .edit-issue-modal .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+
+        .edit-issue-modal .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .edit-issue-modal .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+
+        .edit-issue-modal .btn-primary:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+
+        .edit-issue-modal .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .edit-issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .edit-issue-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-issue-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .edit-issue-content {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .edit-issue-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .edit-issue-btn-cancel {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+
+        .edit-issue-btn-cancel:hover {
+            background: #545b62;
+        }
+
+        .edit-issue-btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+
+        .edit-issue-btn-save:hover:not(:disabled) {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+
+        .edit-issue-btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -2255,6 +2512,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                     <div class="issue-description">${issue.description}</div>
                                     <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 11px; padding: 4px 10px;">${urgencyLabels[issue.urgency] || issue.urgency}</span>
                                 </div>
+                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.id}', ${index}, ${JSON.stringify(issue).replace(/"/g, '&quot;')})" title="Modifica danno">
+                                    ✏️
+                                </button>
                             </li>
                         `).join('')}
                     </ul>
@@ -4100,7 +4360,470 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             // Scroll to form
             document.getElementById('addGarageForm').scrollIntoView({ behavior: 'smooth' });
         }
+
+        // ===== EDIT ISSUE MODAL FUNCTIONS =====
+
+        let currentEditReportId = null;
+        let currentEditIssueIndex = null;
+        let editIssueUploadedPhotos = [];
+
+        function openEditIssueModal(reportId, issueIndex, issueData) {
+            currentEditReportId = reportId;
+            currentEditIssueIndex = issueIndex;
+            editIssueUploadedPhotos = [];
+
+            // Parse issue data
+            const issue = typeof issueData === 'string' ? JSON.parse(issueData) : issueData;
+
+            // Populate form
+            document.getElementById('editIssueCategory').value = issue.category || '';
+            document.getElementById('editIssueDescription').value = issue.description || '';
+            document.getElementById('editIssueUrgency').value = issue.urgency || '';
+            document.getElementById('editIssueNote').value = issue.note || '';
+
+            // Clear previous photos
+            document.getElementById('editIssuePhotoPreview').innerHTML = '';
+
+            // Show existing photos if any
+            if (issue.photoURLs && issue.photoURLs.length > 0) {
+                issue.photoURLs.forEach(url => {
+                    const div = document.createElement('div');
+                    div.className = 'photo-preview-item';
+                    const img = document.createElement('img');
+                    img.src = url;
+                    div.appendChild(img);
+                    document.getElementById('editIssuePhotoPreview').appendChild(div);
+                });
+            }
+
+            // Update Drive auth UI
+            updateEditIssueDriveAuthUI();
+
+            // Show modal
+            document.getElementById('editIssueModal').classList.add('active');
+
+            // Setup form submission
+            document.getElementById('editIssueForm').onsubmit = handleEditIssueSubmit;
+        }
+
+        function closeEditIssueModal() {
+            document.getElementById('editIssueModal').classList.remove('active');
+            currentEditReportId = null;
+            currentEditIssueIndex = null;
+            editIssueUploadedPhotos = [];
+            
+            // Reset form
+            document.getElementById('editIssueForm').reset();
+            document.getElementById('editIssuePhotoPreview').innerHTML = '';
+            document.getElementById('editIssueAiStatus').textContent = '';
+            document.getElementById('editIssueAiStatus').className = 'ai-status-message';
+        }
+
+        function updateEditIssueDriveAuthUI() {
+            const prompt = document.getElementById('editIssueDriveAuthPrompt');
+            if (!prompt) return;
+            prompt.style.display = driveAuthorized ? 'none' : 'block';
+        }
+
+        async function handleEditIssuePhotoUpload(event) {
+            const files = Array.from(event.target.files);
+            const preview = document.getElementById('editIssuePhotoPreview');
+            
+            if (files.length === 0) return;
+            
+            if (!driveAuthorized) {
+                alert('Devi prima autorizzare l\'accesso a Google Drive. Clicca sul pulsante "Autorizza accesso Google Drive" e riprova.');
+                event.target.value = '';
+                return;
+            }
+            
+            // Refresh token if necessario
+            if (!driveAccessToken) {
+                try {
+                    await ensureDriveToken();
+                } catch (error) {
+                    console.error('❌ Errore aggiornamento token Drive:', error);
+                    alert('Errore nel recupero del token Google Drive. Riprova l\'autorizzazione.');
+                    event.target.value = '';
+                    return;
+                }
+            }
+            
+            // Process each file
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.className = 'photo-preview-item';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    div.appendChild(img);
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+
+                // Upload to Drive
+                uploadEditIssuePhotoToDrive(file);
+            });
+        }
+
+        async function uploadEditIssuePhotoToDrive(file) {
+            console.log('🔄 Uploading edit issue photo:', file.name, 'Size:', file.size, 'bytes');
+            
+            try {
+                // Get folder ID from config
+                const driveFolderId = '1W0Amc2G8azGS4wyAkpXAorWKyTRr0U6p';
+                
+                // Prepare metadata
+                const metadata = {
+                    name: file.name,
+                    parents: [driveFolderId]
+                };
+                
+                // Create multipart form data
+                const formData = new FormData();
+                formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                formData.append('file', file);
+                
+                // Upload to Drive
+                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${driveAccessToken}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Drive API error: ${response.status} - ${error}`);
+                }
+                
+                const result = await response.json();
+                
+                // Build shareable URL
+                const fileUrl = `https://drive.google.com/file/d/${result.id}/view`;
+                
+                editIssueUploadedPhotos.push({
+                    fileId: result.id,
+                    fileName: result.name,
+                    fileUrl: fileUrl
+                });
+                
+                console.log('✅ Edit issue photo uploaded:', result.name);
+                console.log('File ID:', result.id);
+                console.log('Total edit issue photos:', editIssueUploadedPhotos.length);
+                
+                // Update preview with success indicator
+                const previews = document.querySelectorAll('#editIssuePhotoPreview .photo-preview-item');
+                if (previews.length > 0) {
+                    const lastPreview = previews[previews.length - 1];
+                    lastPreview.style.border = '3px solid #4caf50';
+                    lastPreview.title = 'Caricato su Drive';
+                }
+                
+            } catch (error) {
+                console.error('❌ Errore upload edit issue photo:', error);
+                alert('Errore nel caricamento della foto: ' + error.message);
+                
+                // Mark preview with error
+                const previews = document.querySelectorAll('#editIssuePhotoPreview .photo-preview-item');
+                if (previews.length > 0) {
+                    const lastPreview = previews[previews.length - 1];
+                    lastPreview.style.border = '3px solid #f44336';
+                    lastPreview.title = 'Errore caricamento';
+                }
+            }
+        }
+
+        function analyzeEditIssueWithAI() {
+            const descriptionInput = document.getElementById('editIssueDescription');
+            const categorySelect = document.getElementById('editIssueCategory');
+            const urgencySelect = document.getElementById('editIssueUrgency');
+            const noteInput = document.getElementById('editIssueNote');
+            const aiStatus = document.getElementById('editIssueAiStatus');
+            const aiButton = document.getElementById('editIssueAiButton');
+
+            const resetAiButton = () => {
+                if (aiButton) {
+                    aiButton.disabled = false;
+                    aiButton.textContent = '🤖 Suggerimento AI';
+                    aiButton.classList.remove('loading');
+                }
+            };
+
+            let description = (descriptionInput.value || '').trim();
+
+            if (description.length < 10) {
+                if (aiStatus) {
+                    aiStatus.textContent = 'Scrivi qualche dettaglio in più (almeno 10 caratteri).';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                descriptionInput.focus();
+                return;
+            }
+
+            const clarQuestion = getClarifyingQuestionForDescription(description);
+            if (clarQuestion) {
+                const clarAnswer = prompt(clarQuestion);
+                const trimmedAnswer = clarAnswer ? clarAnswer.trim() : '';
+
+                if (!trimmedAnswer) {
+                    if (aiStatus) {
+                        aiStatus.textContent = `Serve un dettaglio: ${clarQuestion}`;
+                        aiStatus.className = 'ai-status-message error';
+                    }
+                    descriptionInput.focus();
+                    return;
+                }
+
+                const detailLine = `Dettaglio specifico: ${trimmedAnswer}`;
+                const alreadyIncluded = description.toLowerCase().includes(trimmedAnswer.toLowerCase());
+                if (!alreadyIncluded) {
+                    description = description ? `${description}\n${detailLine}` : detailLine;
+                    descriptionInput.value = description;
+                }
+
+                if (noteInput) {
+                    const existingNote = (noteInput.value || '').trim();
+                    if (!existingNote) {
+                        noteInput.value = trimmedAnswer;
+                    } else if (!existingNote.toLowerCase().includes(trimmedAnswer.toLowerCase())) {
+                        noteInput.value = `${existingNote}\n${trimmedAnswer}`;
+                    }
+                }
+
+                setClarifyingMessageForEdit(clarifierBox, 'Dettaglio aggiunto ✅', 'success');
+            } else {
+                setClarifyingMessageForEdit(clarifierBox, 'Dettagli sufficienti ✅', 'success');
+            }
+
+            if (!window.APP_CONFIG?.scriptUrl || !window.APP_CONFIG?.authToken) {
+                console.error('❌ Configurazione mancante per l\'AI');
+                if (aiStatus) {
+                    aiStatus.textContent = 'Configurazione mancante per contattare l\'AI.';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                return;
+            }
+
+            if (aiButton) {
+                aiButton.disabled = true;
+                aiButton.textContent = 'Analisi in corso...';
+                aiButton.classList.add('loading');
+            }
+            if (aiStatus) {
+                aiStatus.textContent = 'Analisi AI in corso...';
+                aiStatus.className = 'ai-status-message';
+            }
+
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+
+            const callback = `editIssueSuggestAI_${Date.now()}`;
+
+            window[callback] = function(response) {
+                resetAiButton();
+
+                try {
+                    if (response.success && response.suggestion) {
+                        const suggestion = response.suggestion;
+                        if (suggestion.standardizedDescription) {
+                            descriptionInput.value = suggestion.standardizedDescription;
+                        }
+                        if (suggestion.category) {
+                            categorySelect.value = suggestion.category;
+                        }
+                        if (suggestion.urgency) {
+                            urgencySelect.value = suggestion.urgency;
+                        }
+                        if (noteInput && suggestion.recommendedNote !== undefined) {
+                            const existingNote = (noteInput.value || '').trim();
+                            const recommendedRaw = suggestion.recommendedNote;
+                            const recommended = typeof recommendedRaw === 'string' ? recommendedRaw.trim() : '';
+                            if (recommended) {
+                                if (!existingNote) {
+                                    noteInput.value = recommended;
+                                } else if (!existingNote.toLowerCase().includes(recommended.toLowerCase())) {
+                                    noteInput.value = `${existingNote}\n${recommended}`;
+                                }
+                            }
+                        }
+                        if (aiStatus) {
+                            aiStatus.textContent = 'Suggerimento AI applicato ✅';
+                            aiStatus.className = 'ai-status-message success';
+                        }
+                    } else {
+                        const message = response.error || 'Risposta non valida dall\'AI';
+                        if (aiStatus) {
+                            aiStatus.textContent = `Analisi AI non disponibile: ${message}`;
+                            aiStatus.className = 'ai-status-message error';
+                        }
+                    }
+                } finally {
+                    delete window[callback];
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                resetAiButton();
+                if (aiStatus) {
+                    aiStatus.textContent = 'Errore di rete durante l\'analisi AI.';
+                    aiStatus.className = 'ai-status-message error';
+                }
+                delete window[callback];
+            };
+
+            document.body.appendChild(script);
+        }
+
+        function setClarifyingMessageForEdit(element, message, state) {
+            if (!element) {
+                return;
+            }
+
+            if (!message) {
+                element.textContent = '';
+                element.className = 'clarifying-question';
+                element.style.display = 'none';
+                return;
+            }
+
+            element.textContent = message;
+            element.className = state ? `clarifying-question ${state}` : 'clarifying-question';
+            element.style.display = 'block';
+        }
+
+        function handleEditIssueSubmit(event) {
+            event.preventDefault();
+
+            const category = document.getElementById('editIssueCategory').value;
+            const description = document.getElementById('editIssueDescription').value.trim();
+            const urgency = document.getElementById('editIssueUrgency').value;
+            const note = document.getElementById('editIssueNote').value.trim();
+
+            if (!category || !description || !urgency) {
+                alert('Compila tutti i campi obbligatori');
+                return;
+            }
+
+            // Disable save button
+            const saveBtn = document.querySelector('.edit-issue-btn-save');
+            saveBtn.disabled = true;
+            saveBtn.textContent = '⏳ Salvataggio...';
+
+            // Prepare update data
+            const updateData = {
+                reportId: currentEditReportId,
+                issueIndex: currentEditIssueIndex,
+                category,
+                description,
+                urgency,
+                note,
+                newPhotos: editIssueUploadedPhotos.map(p => p.fileUrl),
+                newPhotoIds: editIssueUploadedPhotos.map(p => p.fileId)
+            };
+
+            // Submit update
+            const callback = 'handleIssueUpdated';
+            window[callback] = function(response) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Salva Modifiche';
+
+                if (response.success) {
+                    alert('✅ Danno modificato con successo!');
+                    closeEditIssueModal();
+                    loadActiveReports(); // Refresh the list
+                } else {
+                    alert('❌ Errore nella modifica: ' + response.error);
+                }
+            };
+
+            const url = `${window.APP_CONFIG.scriptUrl}?function=updateIssueDetailsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(updateData))}&callback=${callback}&_=${Date.now()}`;
+            
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
     </script>
+
+    <!-- Edit Issue Modal -->
+    <div id="editIssueModal" class="edit-issue-overlay">
+        <div class="edit-issue-modal">
+            <div class="edit-issue-header">
+                <button class="edit-issue-close" onclick="closeEditIssueModal()">×</button>
+                <h2>✏️ Modifica Danno</h2>
+                <p>Modifica i dettagli del danno segnalato</p>
+            </div>
+
+            <div class="edit-issue-content">
+                <form id="editIssueForm">
+                    <div class="form-group">
+                        <label>🔧 Categoria Problema</label>
+                        <select id="editIssueCategory" required>
+                            <option value="">Seleziona categoria...</option>
+                            <option value="motore">⚙️ Motore / Meccanica</option>
+                            <option value="freni">🛑 Freni</option>
+                            <option value="pneumatici">🛞 Pneumatici</option>
+                            <option value="elettrico">⚡ Sistema Elettrico</option>
+                            <option value="carrozzeria">🚗 Carrozzeria / Esterno</option>
+                            <option value="interni">🪑 Interni</option>
+                            <option value="fluidi">💧 Fluidi / Manutenzione</option>
+                            <option value="climatizzazione">❄️ Climatizzazione</option>
+                            <option value="luci">💡 Luci / Fari</option>
+                            <option value="altro">🔧 Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📝 Descrizione Dettagliata del Problema</label>
+                        <textarea id="editIssueDescription" rows="4" placeholder="Descrivi il problema in dettaglio..." required></textarea>
+                    </div>
+
+                    <div class="ai-helper-row">
+                        <button type="button" class="ai-helper-btn" id="editIssueAiButton" onclick="analyzeEditIssueWithAI()">🤖 Suggerimento AI</button>
+                        <span class="ai-status-message" id="editIssueAiStatus"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>⚠️ Urgenza Riparazione</label>
+                        <select id="editIssueUrgency" required>
+                            <option value="">Seleziona urgenza...</option>
+                            <option value="low">🟢 Bassa - Può attendere servizio programmato</option>
+                            <option value="medium">🟡 Media - Da fare entro 1-2 settimane</option>
+                            <option value="high">🟠 Alta - Urgente, da fare al più presto</option>
+                            <option value="critical">🔴 Critica - Non utilizzare il veicolo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🛠️ Istruzioni per il meccanico (opzionali)</label>
+                        <textarea id="editIssueNote" rows="3" placeholder="Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📸 Foto aggiuntive (opzionali)</label>
+                        <div class="photo-upload" onclick="document.getElementById('editIssuePhotoInput').click()">
+                            <p>📷 Clicca per aggiungere foto</p>
+                            <input type="file" id="editIssuePhotoInput" accept="image/*" multiple style="display: none;" onchange="handleEditIssuePhotoUpload(event)">
+                        </div>
+                        <div id="editIssueDriveAuthPrompt" class="drive-auth" style="display: none;">
+                            <button type="button" onclick="requestDriveAuthorization()">🔐 Autorizza accesso Google Drive</button>
+                            <p>Richiediamo questa autorizzazione una sola volta per salvare le foto nella cartella aziendale su Google Drive.</p>
+                        </div>
+                        <div class="photo-preview" id="editIssuePhotoPreview"></div>
+                    </div>
+
+                    <div class="edit-issue-actions">
+                        <button type="button" onclick="closeEditIssueModal()" class="edit-issue-btn edit-issue-btn-cancel">❌ Annulla</button>
+                        <button type="submit" class="edit-issue-btn edit-issue-btn-save">💾 Salva Modifiche</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- PDF Wizard Modal -->
     <div id="pdfWizardOverlay" class="pdf-wizard-overlay">

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Import Legacy Data</title>
+    <script>
+        const legacyData = [
+  {
+    "furgone": "01",
+    "dataDifetto": "01/01/2025",
+    "urgenza": "media",
+    "descrizione": "montare 90gradi per GPS",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "01",
+    "dataDifetto": "10/07/2025",
+    "urgenza": "media",
+    "descrizione": "Specchietto di sinistra interno balla ma funziona",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "01",
+    "dataDifetto": "03/08/2025",
+    "urgenza": "media",
+    "descrizione": "macchia all interno dell azona di carico",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "01",
+    "dataDifetto": "16/10/2025",
+    "urgenza": "media",
+    "descrizione": "ogni tanto si sente un tac quando si tira il freno a mano",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "freni"
+  },
+  {
+    "furgone": "03",
+    "dataDifetto": "01/08/2025",
+    "urgenza": "media",
+    "descrizione": "Freno a mano contro la portiera conducente, non possibile tirare il freno a mano, smontare tasca della porta",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "freni"
+  },
+  {
+    "furgone": "03",
+    "dataDifetto": "03/08/2025",
+    "urgenza": "media",
+    "descrizione": "Marca olio da rabboccare",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "motore"
+  },
+  {
+    "furgone": "03",
+    "dataDifetto": "24/10/2025",
+    "urgenza": "media",
+    "descrizione": "cambiare tergi avanti (spazzola destra crepata)",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "01/01/2025",
+    "urgenza": "media",
+    "descrizione": "Interruttore lato conducente finestrino da dei problemi",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "30/07/2025",
+    "urgenza": "media",
+    "descrizione": "Rabbocco Olio segna",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "motore"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "02/11/2025",
+    "urgenza": "media",
+    "descrizione": "tergi cristallo destro rotto",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "ramo caduto 02/11/2025",
+    "gestitoDa": "",
+    "daChi": "ramo caduto 02/11/2025",
+    "annuncioFattoDa": "ramo caduto 02/11/2025",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "02/11/2025",
+    "urgenza": "media",
+    "descrizione": "plastica tra parabrezza e cofano rovinata",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "ramo caduto",
+    "gestitoDa": "",
+    "daChi": "ramo caduto",
+    "annuncioFattoDa": "ramo caduto",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "02/11/2025",
+    "urgenza": "media",
+    "descrizione": "gomme avanti da cambiare",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "08/11/2025 18.00.40",
+    "urgenza": "media",
+    "descrizione": "specchietto destro rotto da ramo",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "ramo caduto",
+    "gestitoDa": "",
+    "daChi": "ramo caduto",
+    "annuncioFattoDa": "ramo caduto",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "06",
+    "dataDifetto": "02/11/2025",
+    "urgenza": "media",
+    "descrizione": "cambiare batterie case",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "elettrico"
+  },
+  {
+    "furgone": "07",
+    "dataDifetto": "08/11/2025 18.00.42",
+    "urgenza": "alta",
+    "descrizione": "Danno fianco sinistro da chiedere preventivo",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Leonardo Adami",
+    "gestitoDa": "",
+    "daChi": "Leonardo Adami",
+    "annuncioFattoDa": "Leonardo Adami",
+    "categoria": "carrozzeria"
+  },
+  {
+    "furgone": "07",
+    "dataDifetto": "06/09/2025",
+    "urgenza": "media",
+    "descrizione": "Segnalano che non funzionano le 4 frecce ma le frecce per svoltare si",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "07",
+    "dataDifetto": "08/11/2025 18.00.44",
+    "urgenza": "media",
+    "descrizione": "Indicatore carburante non marca il pieno",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "07",
+    "dataDifetto": "27/09/2025",
+    "urgenza": "media",
+    "descrizione": "guarnizione porta laterale",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "07",
+    "dataDifetto": "31/10/2025",
+    "urgenza": "media",
+    "descrizione": "luce posteriore rotta (dovrebbe essere la destra)",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "elettrico"
+  },
+  {
+    "furgone": "08",
+    "dataDifetto": "07/07/2025",
+    "urgenza": "media",
+    "descrizione": "Kevin ordinato nuovo tasto",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "",
+    "gestitoDa": "",
+    "daChi": "",
+    "annuncioFattoDa": "",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "08",
+    "dataDifetto": "13/08/2025",
+    "urgenza": "media",
+    "descrizione": "dicono che si fa fatica a fare il pieno ... da verificare )",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "",
+    "gestitoDa": "",
+    "daChi": "",
+    "annuncioFattoDa": "",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "08",
+    "dataDifetto": "17/08/2025",
+    "urgenza": "media",
+    "descrizione": "Bottoni della chiave, danneggiata",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "carrozzeria"
+  },
+  {
+    "furgone": "08",
+    "dataDifetto": "21/09/2025",
+    "urgenza": "media",
+    "descrizione": "Non marca correttamente il pieno",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "09",
+    "dataDifetto": "08/11/2025 18.00.49",
+    "urgenza": "media",
+    "descrizione": "mancano copri sedili",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "",
+    "gestitoDa": "",
+    "daChi": "",
+    "annuncioFattoDa": "",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "09",
+    "dataDifetto": "04/08/2025",
+    "urgenza": "media",
+    "descrizione": "Chiave auto, pulsante apriporte elettrocnico rotto",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "09",
+    "dataDifetto": "05/08/2025",
+    "urgenza": "media",
+    "descrizione": "Radio furi posto",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "09",
+    "dataDifetto": "01/08/2025",
+    "urgenza": "media",
+    "descrizione": "Sembra che a freddo la frizione slitta (FA FATICA)",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "09",
+    "dataDifetto": "19/10/2025",
+    "urgenza": "media",
+    "descrizione": "fatica a cambiare marce",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "10",
+    "dataDifetto": "15/07/2025",
+    "urgenza": "media",
+    "descrizione": "Aggiunto antigelo, verificare se non perde",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Sandro",
+    "gestitoDa": "",
+    "daChi": "Sandro",
+    "annuncioFattoDa": "Sandro",
+    "categoria": "fluidi"
+  },
+  {
+    "furgone": "11",
+    "dataDifetto": "08/11/2025 18.00.54",
+    "urgenza": "alta",
+    "descrizione": "Fare precetto specchietto Tina",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Tina",
+    "gestitoDa": "",
+    "daChi": "Tina",
+    "annuncioFattoDa": "Tina",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "12",
+    "dataDifetto": "08/11/2025 18.00.55",
+    "urgenza": "media",
+    "descrizione": "Montare copri sedili (ordinare)",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "",
+    "gestitoDa": "",
+    "daChi": "",
+    "annuncioFattoDa": "",
+    "categoria": "altro"
+  },
+  {
+    "furgone": "12",
+    "dataDifetto": "27/10/2025",
+    "urgenza": "media",
+    "descrizione": "problemi con la chiusura delle porte passeggeri e portellone posteriore marca aperto",
+    "stato": "Aperto",
+    "risoltoInCheModo": "",
+    "datiCliente": "Alessandro",
+    "gestitoDa": "",
+    "daChi": "Alessandro",
+    "annuncioFattoDa": "Alessandro",
+    "categoria": "altro"
+  }
+];
+
+        function testImport() {
+            const url = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+            const legacyData = `ID Report	Data Segnalazione	Nome Veicolo	ID Veicolo	Segnalato Da	Categoria	Descrizione Problema	Urgenza	Stato	Completato	Data Completamento	Tipo Riparazione	Costo (CHF)	Garage/Officina	N. Fattura	Link Foto	ID Foto Drive	N. Problema	Totale Problemi
+RPT-1762598522724	08/11/2025 11.42.03	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	Sandro	interni	"Pulsante alzavetro conducente rotto al fine di utilizzare il finestrino.
+Dettaglio specifico: sinistro"	🟡 Media	Aperto	FALSE						Foto 1	1toDVLLsHt8Eh_E1wbV2lRykCN-vxYN6G	1	1
+IMPORT_1762621230849_0	01/01/2025	N01 - Opel Vivaro (Losone)	N1	Alessandro	altro	montare 90gradi per GPS	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621232345_1	10/07/2025	N01 - Opel Vivaro (Losone)	N1	Alessandro	altro	Specchietto di sinistra interno balla ma funziona	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621233488_2	03/08/2025	N01 - Opel Vivaro (Losone)	N1	Sandro	altro	macchia all interno dell azona di carico	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621234135_3	16/10/2025	N01 - Opel Vivaro (Losone)	N1	Alessandro	freni	ogni tanto si sente un tac quando si tira il freno a mano	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621234730_4	01/08/2025	N03 - Peugeot Boxer (Bellinzona)	N3	Sandro	freni	Freno a mano contro la portiera conducente, non possibile tirare il freno a mano, smontare tasca della porta	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621235311_5	03/08/2025	N03 - Peugeot Boxer (Bellinzona)	N3	Sandro	motore	Marca olio da rabboccare	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621235921_6	24/10/2025	N03 - Peugeot Boxer (Bellinzona)	N3	Alessandro	altro	cambiare tergi avanti (spazzola destra crepata)	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621236514_7	01/01/2025	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	Alessandro	altro	Interruttore lato conducente finestrino da dei problemi	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621237107_8	30/07/2025	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	Sandro	motore	Rabbocco Olio segna	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621237700_9	02/11/2025	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	ramo caduto 02/11/2025	altro	tergi cristallo destro rotto	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621238430_10	02/11/2025	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	ramo caduto	altro	plastica tra parabrezza e cofano rovinata	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621238999_11	02/11/2025	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	Alessandro	altro	gomme avanti da cambiare	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621240604_13	08/11/2025 18.00.40	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	ramo caduto 	altro	specchietto destro rotto da ramo	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621241227_14	02/11/2025	N06 - Citroen Jumper (Minusio)	ed507b44-bc58-4ff7-940d-3769f360f004	Alessandro	elettrico	cambiare batterie case	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621241858_15	08/11/2025 18.00.42	N07 - Renault Trafic (Bellinzona)	N7	Leonardo Adami	carrozzeria	Danno fianco sinistro da chiedere preventivo	🟠 Alta	Aperto	FALSE								1	1
+IMPORT_1762621242486_16	06/09/2025	N07 - Renault Trafic (Bellinzona)	N7	Alessandro	altro	Segnalano che non funzionano le 4 frecce ma le frecce per svoltare si 	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621244369_17	08/11/2025 18.00.44	N07 - Renault Trafic (Bellinzona)	N7	Alessandro	altro	Indicatore carburante non marca il pieno	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621244934_18	27/09/2025	N07 - Renault Trafic (Bellinzona)	N7	Sandro	altro	guarnizione porta laterale 	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621245519_19	31/10/2025	N07 - Renault Trafic (Bellinzona)	N7	Alessandro	elettrico	luce posteriore rotta (dovrebbe essere la destra)	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621246209_20	07/07/2025	N08 - Renault Trafic (Lugano)	N8		altro	Kevin ordinato nuovo tasto	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621246780_21	13/08/2025	N08 - Renault Trafic (Lugano)	N8		altro	dicono che si fa fatica a fare il pieno ... da verificare )	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621247394_22	17/08/2025	N08 - Renault Trafic (Lugano)	N8	Sandro	carrozzeria	Bottoni della chiave, danneggiata	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621248196_23	21/09/2025	N08 - Renault Trafic (Lugano)	N8	Alessandro	altro	Non marca correttamente il pieno	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621248774_24	08/11/2025 18.00.49	N09 - Renault Trafic (Caslano)	N9		altro	 mancano copri sedili 	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621249327_25	04/08/2025	N09 - Renault Trafic (Caslano)	N9	Sandro	altro	Chiave auto, pulsante apriporte elettrocnico rotto	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621251181_26	05/08/2025	N09 - Renault Trafic (Caslano)	N9	Sandro	altro	Radio furi posto	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621251807_27	01/08/2025	N09 - Renault Trafic (Caslano)	N9	Alessandro	altro	Sembra che a freddo la frizione slitta (FA FATICA) 	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621252943_28	19/10/2025	N09 - Renault Trafic (Caslano)	N9	Alessandro	altro	fatica a cambiare marce	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621253535_29	15/07/2025	N10 - Citroen Jumper (Losone)	N10	Sandro	fluidi	Aggiunto antigelo, verificare se non perde 	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621254105_30	08/11/2025 18.00.54	N11 - Citroen Jumper L1H1 (Losone)	N11	Tina	altro	Fare precetto specchietto Tina	🟠 Alta	Aperto	FALSE								1	1
+IMPORT_1762621254694_31	08/11/2025 18.00.55	N12 - Citroen Jumper (Lugano)	N12		altro	Montare copri sedili (ordinare)	🟡 Media	Aperto	FALSE								1	1
+IMPORT_1762621255272_32	27/10/2025	N12 - Citroen Jumper (Lugano)	N12	Alessandro	altro	problemi con la chiusura delle porte passeggeri e portellone posteriore marca aperto	🟡 Media	Aperto	FALSE								1	1`;
+
+            const params = {
+                function: 'importLegacyMaintenanceDataDirectJsonp',
+                authToken: 'mySecureVanApp_2025',
+                data: legacyData,
+                callback: 'handleResponse'
+            };
+
+            const queryString = Object.keys(params)
+                .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+                .join('&');
+
+            const script = document.createElement('script');
+            script.src = url + '?' + queryString;
+            document.head.appendChild(script);
+        }
+
+        function handleResponse(response) {
+            console.log('Import response:', response);
+            alert('Import completed! Check console for details.');
+        }
+    </script>
+</head>
+<body>
+    <h1>Test Import Legacy Maintenance Data (Direct)</h1>
+    <p>Records to import: 32</p>
+    <button onclick="testImport()">Import Data</button>
+    <div id="result"></div>
+</body>
+</html>

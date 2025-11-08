@@ -240,6 +240,9 @@ function doGet(e) {
       case "updateIssueStatusJsonp":
         return updateIssueStatusJsonp(e.parameter);
         break;
+      case "updateIssueDetailsJsonp":
+        return updateIssueDetailsJsonp(e.parameter);
+        break;
       case "getGaragesListJsonp":
         return getGaragesListJsonp(e.parameter);
         break;
@@ -3188,6 +3191,144 @@ function updateIssueStatus(reportId, issueIndex, completed) {
 function updateIssueStatusJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = updateIssueStatus(params.reportId, parseInt(params.issueIndex), params.completed === 'true');
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function updateIssueDetails(reportId, issueIndex, issueData) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!sheet) {
+      return {
+        success: false,
+        error: 'Sheet not found'
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    // Find the row for this reportId and issueIndex
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0] === reportId && row[17] === issueIndex) {
+        // Update issue details
+        const rowIndex = i + 1;
+
+        // Update category (column F = 6)
+        if (issueData.category) {
+          sheet.getRange(rowIndex, 6).setValue(issueData.category);
+        }
+
+        // Update description (column G = 7)
+        if (issueData.description) {
+          sheet.getRange(rowIndex, 7).setValue(issueData.description);
+        }
+
+        // Update urgency (column H = 8) and format cell
+        if (issueData.urgency) {
+          const urgencyCell = sheet.getRange(rowIndex, 8);
+          switch(issueData.urgency) {
+            case 'low':
+              urgencyCell.setValue('🟢 Bassa');
+              urgencyCell.setBackground('#c8e6c9');
+              break;
+            case 'medium':
+              urgencyCell.setValue('🟡 Media');
+              urgencyCell.setBackground('#fff9c4');
+              break;
+            case 'high':
+              urgencyCell.setValue('🟠 Alta');
+              urgencyCell.setBackground('#ffccbc');
+              break;
+            case 'critical':
+              urgencyCell.setValue('🔴 Critica');
+              urgencyCell.setBackground('#ffcdd2');
+              urgencyCell.setFontWeight('bold');
+              break;
+            default:
+              urgencyCell.setValue(issueData.urgency);
+          }
+        }
+
+        // Update notes (if there's a notes field, we could add it to description or create a new column)
+        // For now, append notes to description if provided
+        if (issueData.notes) {
+          const currentDescription = sheet.getRange(rowIndex, 7).getValue() || '';
+          const updatedDescription = currentDescription + (currentDescription ? '\n\nNote: ' : 'Note: ') + issueData.notes;
+          sheet.getRange(rowIndex, 7).setValue(updatedDescription);
+        }
+
+        // Handle photo uploads if provided
+        if (issueData.photoIds && issueData.photoIds.length > 0) {
+          // Get current photo IDs and URLs
+          const currentPhotoIds = (sheet.getRange(rowIndex, 17).getValue() || '').split('\n').filter(id => id.trim());
+          const currentPhotoUrls = (sheet.getRange(rowIndex, 16).getValue() || '').split('\n').filter(url => url.trim());
+
+          // Add new photo IDs and URLs
+          const updatedPhotoIds = [...currentPhotoIds, ...issueData.photoIds];
+          const updatedPhotoUrls = [...currentPhotoUrls, ...(issueData.photoUrls || [])];
+
+          // Update photo columns
+          sheet.getRange(rowIndex, 17).setValue(updatedPhotoIds.join('\n'));
+          sheet.getRange(rowIndex, 16).setValue(updatedPhotoUrls.join('\n'));
+        }
+
+        return {
+          success: true,
+          updated: true,
+          message: 'Issue details updated successfully',
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Issue not found'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function updateIssueDetailsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+
+  // Parse issue data from params
+  const issueData = {};
+  if (params.category) issueData.category = params.category;
+  if (params.description) issueData.description = params.description;
+  if (params.urgency) issueData.urgency = params.urgency;
+  if (params.notes) issueData.notes = params.notes;
+
+  // Handle photo data
+  if (params.photoIds) {
+    issueData.photoIds = Array.isArray(params.photoIds) ? params.photoIds : [params.photoIds];
+  }
+  if (params.photoUrls) {
+    issueData.photoUrls = Array.isArray(params.photoUrls) ? params.photoUrls : [params.photoUrls];
+  }
+
+  const response = updateIssueDetails(params.reportId, parseInt(params.issueIndex), issueData);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
