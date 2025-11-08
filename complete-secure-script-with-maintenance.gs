@@ -252,6 +252,9 @@ function doGet(e) {
       case "getGarageDetailsJsonp":
         return getGarageDetailsJsonp(e.parameter);
         break;
+      case "importLegacyMaintenanceDataJsonp":
+        return importLegacyMaintenanceDataJsonp(e.parameter);
+        break;
       default:
         result = { error: `Unknown function: ${functionName}` };
     }
@@ -3523,6 +3526,245 @@ function getGarageDetails(placeId) {
 function getGarageDetailsJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = getGarageDetails(params.placeId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+/*************************************************************
+ * LEGACY MAINTENANCE DATA IMPORT SYSTEM
+ * Imports old maintenance records from external systems
+ *************************************************************/
+
+// Import legacy maintenance data from external system
+function importLegacyMaintenanceData(legacyData) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured. Please set MAINTENANCE_SHEET_ID in Script Properties.'
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Difetti e Riparazioni');
+      // Add headers
+      const headerRow = sheet.getRange(1, 1, 1, 19);
+      headerRow.setValues([[
+        'ID Report', 'Data Segnalazione', 'Nome Veicolo', 'ID Veicolo', 'Segnalato Da',
+        'Categoria', 'Descrizione Problema', 'Urgenza', 'Stato', 'Completato',
+        'Data Completamento', 'Tipo Riparazione', 'Costo (CHF)', 'Garage/Officina', 'N. Fattura',
+        'Link Foto', 'ID Foto Drive', 'N. Problema', 'Totale Problemi'
+      ]]);
+      // Format headers
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+
+    let importedCount = 0;
+    const errors = [];
+
+    legacyData.forEach((item, index) => {
+      try {
+        // Generate unique report ID
+        const reportId = 'IMPORT_' + new Date().getTime() + '_' + index;
+
+        // Map vehicle number to our format (add N prefix if needed)
+        const vehicleNumber = (item.furgone || '').toString().trim();
+        const vehicleName = vehicleNumber ? (vehicleNumber.startsWith('N') ? vehicleNumber : 'N' + vehicleNumber) : '';
+
+        // Parse date - handle various formats
+        let reportDate = new Date();
+        if (item.dataDifetto) {
+          const dateStr = item.dataDifetto.toString().trim();
+          if (dateStr.includes('/')) {
+            // Format DD/MM/YYYY
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+              const day = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1; // JS months are 0-based
+              const year = parseInt(parts[2]);
+              reportDate = new Date(year, month, day);
+            }
+          } else if (dateStr.length === 4 && /^\d{4}$/.test(dateStr)) {
+            // Just year
+            reportDate = new Date(parseInt(dateStr), 0, 1);
+          } else if (dateStr.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            // Already YYYY-MM-DD format
+            reportDate = new Date(dateStr);
+          }
+        }
+
+        // Map urgency based on keywords
+        let urgency = 'medium'; // default
+        const urgStr = (item.urgenza || '').toString().toLowerCase();
+        if (urgStr.includes('dan') || urgStr.includes('precet') || urgStr.includes('critic')) {
+          urgency = 'high';
+        } else if (urgStr.includes('bass') || urgStr.includes('low')) {
+          urgency = 'low';
+        } else if (urgStr.includes('alt') || urgStr.includes('high')) {
+          urgency = 'high';
+        }
+
+        // Map status - check for completion keywords
+        const stato = (item.stato || '').toString().toLowerCase();
+        const risolto = (item.risoltoInCheModo || '').toString().toLowerCase();
+        const isCompleted = stato.includes('risolto') || stato.includes('complet') ||
+                           risolto.includes('fatto') || risolto.includes('riparat') ||
+                           risolto.length > 5; // If there's repair info, likely completed
+
+        // Completion date
+        let completionDate = '';
+        if (isCompleted && item.data) {
+          const compDateStr = item.data.toString().trim();
+          if (compDateStr.includes('/')) {
+            const parts = compDateStr.split('/');
+            if (parts.length === 3) {
+              completionDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            }
+          }
+        }
+
+        // Map category based on description keywords
+        let category = 'altro'; // default
+        const desc = (item.descrizione || '').toString().toLowerCase();
+        if (desc.includes('fren') || desc.includes('pastigl')) {
+          category = 'freni';
+        } else if (desc.includes('pneumat') || desc.includes('gomma') || desc.includes('ruota')) {
+          category = 'pneumatici';
+        } else if (desc.includes('motore') || desc.includes('meccanic') || desc.includes('olio')) {
+          category = 'motore';
+        } else if (desc.includes('elettric') || desc.includes('batteri') || desc.includes('luce') || desc.includes('faro')) {
+          category = 'elettrico';
+        } else if (desc.includes('carrozz') || desc.includes('vernice') || desc.includes('dann')) {
+          category = 'carrozzeria';
+        } else if (desc.includes('climatizz') || desc.includes('aria')) {
+          category = 'climatizzazione';
+        } else if (desc.includes('fluid') || desc.includes('antigelo') || desc.includes('acqua')) {
+          category = 'fluidi';
+        }
+
+        // Create issue object
+        const issue = {
+          category: category,
+          description: item.descrizione || '',
+          urgency: urgency,
+          status: isCompleted ? 'Completato' : 'Aperto',
+          completed: isCompleted,
+          completionDate: completionDate,
+          repairType: item.risoltoInCheModo || '',
+          cost: '',
+          garage: item.gestitoDa || item.daChi || '',
+          invoiceNumber: '',
+          photoURLs: [],
+          photoIds: []
+        };
+
+        // Add row to sheet
+        const rowData = [
+          reportId,
+          reportDate,
+          vehicleName,
+          vehicleName, // vehicleId same as name for now
+          item.datiCliente || item.annuncioFattoDa || '',
+          issue.category,
+          issue.description,
+          issue.urgency,
+          issue.status,
+          issue.completed,
+          issue.completionDate,
+          issue.repairType,
+          issue.cost,
+          issue.garage,
+          issue.invoiceNumber,
+          issue.photoURLs.join('\n'),
+          issue.photoIds.join('\n'),
+          1, // issue number
+          1  // total issues
+        ];
+
+        sheet.appendRow(rowData);
+
+        // Format the new row
+        const lastRow = sheet.getLastRow();
+
+        // Format urgency column with colors
+        const urgencyCell = sheet.getRange(lastRow, 8);
+        switch(issue.urgency) {
+          case 'low':
+            urgencyCell.setValue('🟢 Bassa');
+            urgencyCell.setBackground('#c8e6c9');
+            break;
+          case 'medium':
+            urgencyCell.setValue('🟡 Media');
+            urgencyCell.setBackground('#fff9c4');
+            break;
+          case 'high':
+            urgencyCell.setValue('🟠 Alta');
+            urgencyCell.setBackground('#ffccbc');
+            break;
+          case 'critical':
+            urgencyCell.setValue('🔴 Critica');
+            urgencyCell.setBackground('#ffcdd2');
+            urgencyCell.setFontWeight('bold');
+            break;
+        }
+
+        // Format status column
+        const statusCell = sheet.getRange(lastRow, 9);
+        if (isCompleted) {
+          statusCell.setBackground('#c8e6c9');
+        } else {
+          statusCell.setBackground('#e3f2fd');
+        }
+
+        // Add checkbox to completed column
+        const completedCell = sheet.getRange(lastRow, 10);
+        completedCell.insertCheckboxes();
+
+        importedCount++;
+
+      } catch (rowError) {
+        errors.push(`Row ${index + 1}: ${rowError.toString()}`);
+        Logger.log('Error importing row ' + index + ': ' + rowError.toString());
+      }
+    });
+
+    return {
+      success: true,
+      importedCount: importedCount,
+      errors: errors,
+      message: `Successfully imported ${importedCount} maintenance records. ${errors.length} errors occurred.`,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in importLegacyMaintenanceData: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrapper for legacy data import
+function importLegacyMaintenanceDataJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const legacyData = JSON.parse(params.data);
+  const response = importLegacyMaintenanceData(legacyData);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 

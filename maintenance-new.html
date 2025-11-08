@@ -1038,6 +1038,56 @@
             font-weight: bold;
             cursor: pointer;
         }
+
+        /* Import Legacy Data Styles */
+        #legacyDataInput {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        #importResults, #importError, #importProgress {
+            display: none;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        #importResults {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+
+        #importError {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+
+        #importProgress {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+
+        .progress-bar-container {
+            background: #e0e0e0;
+            height: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        /* End of PDF Wizard Modal */
     </style>
 </head>
 <body>
@@ -1054,6 +1104,7 @@
             <button class="tab" onclick="switchTab('active-reports')">🔨 Report Attivi</button>
             <button class="tab" onclick="switchTab('history')">📊 Storico Completo</button>
             <button class="tab" onclick="switchTab('garages')">🔧 Gestione Officine</button>
+            <button class="tab" onclick="switchTab('import-legacy')">📥 Importa Dati Legacy</button>
         </div>
 
         <!-- NEW REPORT TAB -->
@@ -1236,6 +1287,57 @@
                             <p>Caricamento officine...</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IMPORT LEGACY DATA TAB -->
+        <div id="import-legacy" class="tab-content">
+            <div class="content-card">
+                <h2 style="margin-bottom: 20px;">📥 Importa Dati Legacy</h2>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">🔄 Importazione Dati Manutenzione</h3>
+                    <p style="margin-bottom: 15px; color: #666;">
+                        Incolla i dati di manutenzione dal sistema esterno nel formato CSV. Il sistema mapperà automaticamente i campi e importerà i dati nel foglio "Difetti e Riparazioni".
+                    </p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">📋 Dati da Importare (formato CSV):</label>
+                        <textarea id="legacyDataInput" rows="15" placeholder="Incolla qui i dati CSV dal sistema esterno...
+Esempio formato:
+N123,2024-01-15,Alta,Guasto motore,Il motore non parte
+N456,2024-01-20,Media,Problema freni,Freni anteriori usurati
+N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-family: monospace; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="importLegacyData()" class="submit-btn" style="width: auto; margin: 0; padding: 12px 24px;">
+                            📥 Importa Dati
+                        </button>
+                        <button onclick="clearImportForm()" class="submit-btn" 
+                                style="width: auto; margin: 0; background: #666; padding: 12px 24px;">
+                            🗑️ Cancella
+                        </button>
+                    </div>
+                </div>
+
+                <div id="importResults" style="display: none; background: #e8f5e8; padding: 20px; border-radius: 12px; border-left: 4px solid #4caf50;">
+                    <h3 style="margin-bottom: 15px; color: #2e7d32;">✅ Importazione Completata</h3>
+                    <div id="importSummary"></div>
+                </div>
+
+                <div id="importError" style="display: none; background: #ffebee; padding: 20px; border-radius: 12px; border-left: 4px solid #f44336;">
+                    <h3 style="margin-bottom: 15px; color: #c62828;">❌ Errore nell'Importazione</h3>
+                    <div id="importErrorMessage"></div>
+                </div>
+
+                <div id="importProgress" style="display: none; background: #fff3e0; padding: 20px; border-radius: 12px; border-left: 4px solid #ff9800;">
+                    <h3 style="margin-bottom: 15px; color: #e65100;">⏳ Importazione in Corso...</h3>
+                    <div class="progress-bar-container" style="margin: 15px 0;">
+                        <div id="importProgressBar" class="progress-bar" style="width: 0%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p id="importStatusText">Preparazione dati...</p>
                 </div>
             </div>
         </div>
@@ -2031,7 +2133,7 @@
 
                 if (response.success) {
                     alert('✅ Report manutenzione salvato con successo!');
-                    
+
                     // Reset form
                     document.getElementById('maintenanceForm').reset();
                     document.getElementById('issuesList').innerHTML = '';
@@ -2039,10 +2141,10 @@
                     document.getElementById('kmInfo').style.display = 'none';
                     uploadedPhotos = [];
                     issueCounter = 0;
-                    
+
                     // Add first issue
                     addIssue();
-                    
+
                     // Switch to active reports tab
                     document.querySelector('.tab:nth-child(2)').click();
                 } else {
@@ -2542,7 +2644,7 @@
                             <div class="damage-item-content">
                                 <div class="damage-item-title">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
                                 <div class="damage-item-desc">${displayDescription}</div>
-                                <span class="damage-item-urgency" style="background: ${urgencyClass};">${urgencyLabel}</span>
+                                <span class="damage-item-urgency" style="font-size: 12px; font-weight: bold; margin-top: 8px;">${urgencyLabel}</span>
                             </div>
                         </div>
                     `;
@@ -3568,333 +3670,7 @@
                 alert('Errore durante la generazione del PDF: ' + error.message);
             }
         }
-    </script>
 
-    <!-- PDF Wizard Modal -->
-    <div id="pdfWizardOverlay" class="pdf-wizard-overlay">
-        <div class="pdf-wizard-modal">
-            <div class="pdf-wizard-header">
-                <button class="wizard-close" onclick="closeMaintenancePdfWizard()">×</button>
-                <h2>📄 Crea Lista Manutenzione per Meccanico</h2>
-                <p>Segui i passaggi per generare un PDF completo</p>
-            </div>
-
-            <div class="wizard-progress">
-                <div class="wizard-steps">
-                    <div class="wizard-step active">
-                        <div class="wizard-step-circle">1</div>
-                        <div class="wizard-step-label">Veicolo</div>
-                    </div>
-                    <div class="wizard-step">
-                        <div class="wizard-step-circle">2</div>
-                        <div class="wizard-step-label">Danni</div>
-                    </div>
-                    <div class="wizard-step">
-                        <div class="wizard-step-circle">3</div>
-                        <div class="wizard-step-label">Tagliando</div>
-                    </div>
-                    <div class="wizard-step">
-                        <div class="wizard-step-circle">4</div>
-                        <div class="wizard-step-label">Extra</div>
-                    </div>
-                    <div class="wizard-step">
-                        <div class="wizard-step-circle">5</div>
-                        <div class="wizard-step-label">Riepilogo</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pdf-wizard-content">
-                <!-- Step 1: Vehicle Selection -->
-                <div class="wizard-section active" id="wizardStep1">
-                    <h3 style="margin-bottom: 20px;">🚐 Seleziona il veicolo per la manutenzione</h3>
-                    <div class="form-group">
-                        <label>Veicolo</label>
-                        <select id="wizardVehicleSelect" style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px;">
-                            <option value="">Seleziona veicolo...</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Step 2: Damage Selection -->
-                <div class="wizard-section" id="wizardStep2">
-                    <h3 style="margin-bottom: 20px;">🔧 Seleziona i danni da includere nel PDF</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Questi sono i danni aperti per il veicolo selezionato. Spunta quelli da includere nella lista per il meccanico.</p>
-                    <div class="damage-list" id="wizardDamagesList"></div>
-                    
-                    <div id="addDamageSection" style="display: none;">
-                        <button class="add-damage-btn" onclick="toggleQuickDamageForm()">+ Aggiungi nuovo danno</button>
-                        
-                        <div class="quick-damage-form" id="quickDamageForm">
-                            <h4 style="margin-bottom: 15px;">Aggiungi danno veloce</h4>
-                            <div class="form-group">
-                                <label>Categoria (puoi modificarla dopo il suggerimento AI)</label>
-                                <select id="quickDamageCategory">
-                                    <option value="">Seleziona...</option>
-                                    <option value="motore">⚙️ Motore / Meccanica</option>
-                                    <option value="freni">🛑 Freni</option>
-                                    <option value="pneumatici">🛞 Pneumatici</option>
-                                    <option value="elettrico">⚡ Sistema Elettrico</option>
-                                    <option value="carrozzeria">🚗 Carrozzeria / Esterno</option>
-                                    <option value="interni">🪑 Interni</option>
-                                    <option value="fluidi">💧 Fluidi / Manutenzione</option>
-                                    <option value="climatizzazione">❄️ Climatizzazione</option>
-                                    <option value="luci">💡 Luci / Fari</option>
-                                    <option value="altro">🔧 Altro</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Descrizione</label>
-                                <textarea id="quickDamageDescription" placeholder="Descrivi il danno..."></textarea>
-                            </div>
-                            <div class="ai-helper-row">
-                                <button type="button" id="quickDamageAiButton" class="ai-helper-btn" onclick="analyzeQuickDamageWithAI()">🤖 Suggerimento AI</button>
-                                <span id="quickDamageAiStatus" class="ai-status-message"></span>
-                            </div>
-                            <div class="form-group">
-                                <label>Urgenza</label>
-                                <select id="quickDamageUrgency">
-                                    <option value="">Seleziona...</option>
-                                    <option value="low">🟢 Bassa</option>
-                                    <option value="medium">🟡 Media</option>
-                                    <option value="high">🟠 Alta</option>
-                                    <option value="critical">🔴 Critica</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Istruzioni personalizzate (opzionali)</label>
-                                <textarea id="quickDamageNote" placeholder="Es. Il pezzo è già stato ordinato / usare lampadina H7 / coppia serraggio 120 Nm"></textarea>
-                            </div>
-                            <div class="quick-damage-actions">
-                                <button onclick="toggleQuickDamageForm()" style="background: #6c757d; color: white;">Annulla</button>
-                                <button onclick="saveQuickDamage()" style="background: #28a745; color: white;">Aggiungi</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: Service Works -->
-                <div class="wizard-section" id="wizardStep3">
-                    <h3 style="margin-bottom: 20px;">🔧 Lavori di tagliando standard</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Seleziona i lavori di manutenzione programmata da eseguire.</p>
-                    <div class="service-checklist" id="wizardServiceWorks">
-                        <div class="service-item">
-                            <input type="checkbox" id="service1" value="Cambio olio motore">
-                            <label for="service1">Cambio olio motore</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service2" value="Sostituzione filtro olio">
-                            <label for="service2">Sostituzione filtro olio</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service3" value="Sostituzione filtro aria">
-                            <label for="service3">Sostituzione filtro aria</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service4" value="Sostituzione filtro abitacolo">
-                            <label for="service4">Sostituzione filtro abitacolo</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service5" value="Controllo freni e pastiglie">
-                            <label for="service5">Controllo freni e pastiglie</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service6" value="Controllo pneumatici e pressione">
-                            <label for="service6">Controllo pneumatici e pressione</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service7" value="Controllo luci e lampadine">
-                            <label for="service7">Controllo luci e lampadine</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service8" value="Controllo batteria">
-                            <label for="service8">Controllo batteria</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service9" value="Rotazione pneumatici">
-                            <label for="service9">Rotazione pneumatici</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="service10" value="Allineamento ruote">
-                            <label for="service10">Allineamento ruote</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 4: Extra Works -->
-                <div class="wizard-section" id="wizardStep4">
-                    <h3 style="margin-bottom: 20px;">✨ Lavori extra e pulizie</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Seleziona eventuali lavori aggiuntivi da eseguire.</p>
-                    <div class="service-checklist" id="wizardExtraWorks">
-                        <div class="service-item">
-                            <input type="checkbox" id="extra1" value="Reimpimento antigelo">
-                            <label for="extra1">Reimpimento antigelo</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra2" value="Reimpimento liquido lavavetri">
-                            <label for="extra2">Reimpimento liquido lavavetri</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra3" value="Pulizia esterna completa">
-                            <label for="extra3">Pulizia esterna completa</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra4" value="Pulizia interna completa">
-                            <label for="extra4">Pulizia interna completa</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra5" value="Lucidatura carrozzeria">
-                            <label for="extra5">Lucidatura carrozzeria</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra6" value="Sanificazione abitacolo">
-                            <label for="extra6">Sanificazione abitacolo</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra7" value="Controllo climatizzatore">
-                            <label for="extra7">Controllo climatizzatore</label>
-                        </div>
-                        <div class="service-item">
-                            <input type="checkbox" id="extra8" value="Rabbocco AdBlue">
-                            <label for="extra8">Rabbocco AdBlue</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 5: Garage Selection -->
-                <div class="wizard-section" id="wizardStep5">
-                    <h3 style="margin-bottom: 20px;">🔧 Seleziona Officina</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Scegli l'officina dove portare il veicolo per la manutenzione.</p>
-                    
-                    <div class="form-group">
-                        <label>Officina</label>
-                        <select id="wizardGarageSelect" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
-                            <option value="">Caricamento officine...</option>
-                        </select>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button onclick="showWizardAddGarage()" class="add-issue-btn" style="width: auto; margin: 0;">
-                            + Aggiungi Nuova Officina
-                        </button>
-                        <button onclick="refreshWizardGaragesList()" class="add-issue-btn" style="width: auto; margin: 0; background: #4caf50;">
-                            🔄 Ricarica Lista
-                        </button>
-                    </div>
-
-                    <!-- Inline Add Garage Form -->
-                    <div id="wizardAddGarageForm" style="display: none; background: #f0f4ff; padding: 20px; border-radius: 12px; margin-top: 20px;">
-                        <h4 style="margin-bottom: 15px;">Nuova Officina</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                            <div class="form-group" style="margin: 0;">
-                                <label>Nome Officina *</label>
-                                <input type="text" id="wizardGarageName">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Indirizzo</label>
-                                <input type="text" id="wizardGarageAddress">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Città</label>
-                                <input type="text" id="wizardGarageCity">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>CAP</label>
-                                <input type="text" id="wizardGarageZip">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Telefono</label>
-                                <input type="text" id="wizardGaragePhone">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Cellulare</label>
-                                <input type="text" id="wizardGarageMobile">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Email</label>
-                                <input type="email" id="wizardGarageEmail">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Sito Web</label>
-                                <input type="url" id="wizardGarageWebsite">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Responsabile</label>
-                                <input type="text" id="wizardGarageResponsabile">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Specializzazione</label>
-                                <input type="text" id="wizardGarageSpecialization">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Note</label>
-                                <input type="text" id="wizardGarageNotes">
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button onclick="saveWizardGarage()" class="submit-btn" style="width: auto; margin: 0;">
-                                💾 Salva e Seleziona
-                            </button>
-                            <button onclick="hideWizardAddGarage()" class="submit-btn" style="width: auto; margin: 0; background: #666;">
-                                ❌ Annulla
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="wizardSelectedGaragePreview" style="display: none; margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px; border-left: 4px solid #4caf50;">
-                        <!-- Preview will be inserted here -->
-                    </div>
-                </div>
-
-                <!-- Step 6: Summary -->
-                <div class="wizard-section" id="wizardStep6">
-                    <h3 style="margin-bottom: 20px;">📋 Riepilogo lista manutenzione</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Controlla che tutto sia corretto prima di generare il PDF.</p>
-                    
-                    <div class="summary-section">
-                        <h3>� Dettagli veicolo</h3>
-                        <div id="summaryVehicle"></div>
-                    </div>
-
-                    <div class="summary-section">
-                        <h3>�🔧 Danni selezionati</h3>
-                        <div id="summaryDamages"></div>
-                    </div>
-
-                    <div class="summary-section">
-                        <h3>⚙️ Lavori tagliando</h3>
-                        <div id="summaryServices"></div>
-                    </div>
-
-                    <div class="summary-section">
-                        <h3>✨ Lavori extra</h3>
-                        <div id="summaryExtras"></div>
-                    </div>
-
-                    <div class="summary-section">
-                        <h3>🏢 Officina selezionata</h3>
-                        <div id="summaryGarage"></div>
-                    </div>
-                </div>
-
-                <!-- Navigation Buttons -->
-                <div class="wizard-buttons">
-                    <button id="wizardPrevBtn" class="wizard-btn wizard-btn-prev" onclick="wizardPrevStep()" style="display: none;">
-                        ← Indietro
-                    </button>
-                    <div style="flex: 1;"></div>
-                    <button id="wizardNextBtn" class="wizard-btn wizard-btn-next" onclick="wizardNextStep()">
-                        Avanti →
-                    </button>
-                    <button id="wizardGenerateBtn" class="wizard-btn wizard-btn-generate" onclick="generateMaintenancePDF()" style="display: none;">
-                        📄 Genera PDF
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
         // ===== GARAGE MANAGEMENT FUNCTIONS =====
 
         function showAddGarageForm() {
@@ -3934,7 +3710,7 @@
                 const garages = response.garages || [];
 
                 if (garages.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #666;">Nessuna officina salvata. Cerca online o aggiungi manualmente.</p>';
+                    container.innerHTML = '<p style="text-align: center; color: #666;">Nessun officina salvata. Cerca online o aggiungi manualmente.</p>';
                     delete window[callback];
                     return;
                 }
@@ -3957,7 +3733,6 @@
                         ${garage.email ? `<p style="margin: 8px 0;"><strong>✉️</strong> <a href="mailto:${escapeHtml(garage.email)}">${escapeHtml(garage.email)}</a></p>` : ''}
                         ${garage.website ? `<p style="margin: 8px 0;"><strong>🌐</strong> <a href="${escapeHtml(garage.website)}" target="_blank">${escapeHtml(garage.website)}</a></p>` : ''}
                         ${garage.responsabile ? `<p style="margin: 8px 0;"><strong>👤</strong> ${escapeHtml(garage.responsabile)}</p>` : ''}
-                        ${garage.specialization ? `<p style="margin: 8px 0;"><strong>🔧</strong> ${escapeHtml(garage.specialization)}</p>` : ''}
                         ${garage.notes ? `<p style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #555;"><em>${escapeHtml(garage.notes)}</em></p>` : ''}
                     `;
                     container.appendChild(garageCard);
