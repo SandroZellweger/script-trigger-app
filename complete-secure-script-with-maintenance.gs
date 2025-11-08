@@ -3203,13 +3203,14 @@ function getOrCreateGaragesSheet() {
       sheet = ss.insertSheet('Officine');
       
       // Add headers
-      const headerRow = sheet.getRange(1, 1, 1, 8);
+      const headerRow = sheet.getRange(1, 1, 1, 9);
       headerRow.setValues([[
         'Nome Officina',
         'Indirizzo',
         'Città',
         'CAP',
         'Telefono',
+        'Cellulare',
         'Email',
         'Specializzazione',
         'Note'
@@ -3223,9 +3224,9 @@ function getOrCreateGaragesSheet() {
       sheet.setFrozenRows(1);
       
       // Add some default garages for Ticino
-      sheet.appendRow(['Garage Rossi', 'Via Roma 123', 'Lugano', '6900', '+41 91 123 4567', 'info@rossi.ch', 'Carrozzeria', 'Specializzati in Citroen']);
-      sheet.appendRow(['Officina Bianchi', 'Via Milano 45', 'Bellinzona', '6500', '+41 91 234 5678', 'bianchi@officina.ch', 'Meccanica generale', 'Prezzi competitivi']);
-      sheet.appendRow(['AutoService Verdi', 'Via Zurigo 78', 'Locarno', '6600', '+41 91 345 6789', 'verdi@auto.ch', 'Elettronica auto', 'Certificati BMW']);
+      sheet.appendRow(['Garage Rossi', 'Via Roma 123', 'Lugano', '6900', '+41 91 123 4567', '+41 79 123 4567', 'info@rossi.ch', 'Carrozzeria', 'Specializzati in Citroen']);
+      sheet.appendRow(['Officina Bianchi', 'Via Milano 45', 'Bellinzona', '6500', '+41 91 234 5678', '+41 79 234 5678', 'bianchi@officina.ch', 'Meccanica generale', 'Prezzi competitivi']);
+      sheet.appendRow(['AutoService Verdi', 'Via Zurigo 78', 'Locarno', '6600', '+41 91 345 6789', '+41 79 345 6789', 'verdi@auto.ch', 'Elettronica auto', 'Certificati BMW']);
     }
 
     return {
@@ -3261,9 +3262,10 @@ function getGaragesList() {
           city: row[2],
           zip: row[3],
           phone: row[4],
-          email: row[5],
-          specialization: row[6],
-          notes: row[7]
+          mobile: row[5],
+          email: row[6],
+          specialization: row[7],
+          notes: row[8]
         });
       }
     }
@@ -3308,6 +3310,7 @@ function addGarage(garageData) {
       garageData.city || '',
       garageData.zip || '',
       garageData.phone || '',
+      garageData.mobile || '',
       garageData.email || '',
       garageData.specialization || '',
       garageData.notes || ''
@@ -3424,7 +3427,7 @@ function getGarageDetails(placeId) {
 
     const url = 'https://maps.googleapis.com/maps/api/place/details/json?' +
       'place_id=' + encodeURIComponent(placeId) +
-      '&fields=name,formatted_address,formatted_phone_number,website,opening_hours,rating,reviews' +
+      '&fields=name,formatted_address,address_components,formatted_phone_number,website,opening_hours,rating,reviews' +
       '&language=it' +
       '&key=' + apiKey;
 
@@ -3440,11 +3443,37 @@ function getGarageDetails(placeId) {
 
     const place = data.result;
     
+    // Parse address components to extract city, zip, street
+    let streetAddress = '';
+    let city = '';
+    let zip = '';
+    
+    if (place.address_components) {
+      place.address_components.forEach(component => {
+        const types = component.types;
+        if (types.includes('route')) {
+          streetAddress = component.long_name;
+        }
+        if (types.includes('street_number')) {
+          streetAddress = component.long_name + (streetAddress ? ' ' + streetAddress : '');
+        }
+        if (types.includes('locality') || types.includes('administrative_area_level_3')) {
+          city = component.long_name;
+        }
+        if (types.includes('postal_code')) {
+          zip = component.long_name;
+        }
+      });
+    }
+    
     return {
       success: true,
       garage: {
         name: place.name,
         address: place.formatted_address,
+        streetAddress: streetAddress,
+        city: city,
+        zip: zip,
         phone: place.formatted_phone_number || '',
         website: place.website || '',
         rating: place.rating || 'N/A',

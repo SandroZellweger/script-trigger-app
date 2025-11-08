@@ -1192,7 +1192,11 @@
                             </div>
                             <div class="form-group" style="margin: 0;">
                                 <label>Telefono</label>
-                                <input type="text" id="newGaragePhone">
+                                <input type="text" id="newGaragePhone" placeholder="+41 91 123 4567">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Cellulare</label>
+                                <input type="text" id="newGarageMobile" placeholder="+41 79 123 4567">
                             </div>
                             <div class="form-group" style="margin: 0;">
                                 <label>Email</label>
@@ -3622,6 +3626,7 @@
             document.getElementById('newGarageCity').value = '';
             document.getElementById('newGarageZip').value = '';
             document.getElementById('newGaragePhone').value = '';
+            document.getElementById('newGarageMobile').value = '';
             document.getElementById('newGarageEmail').value = '';
             document.getElementById('newGarageSpecialization').value = '';
             document.getElementById('newGarageNotes').value = '';
@@ -3662,6 +3667,7 @@
                         </div>
                         ${garage.address ? `<p style="margin: 8px 0;"><strong>📍</strong> ${escapeHtml(garage.address)}${garage.city ? ', ' + escapeHtml(garage.city) : ''}${garage.zip ? ' ' + escapeHtml(garage.zip) : ''}</p>` : ''}
                         ${garage.phone ? `<p style="margin: 8px 0;"><strong>📞</strong> <a href="tel:${escapeHtml(garage.phone)}">${escapeHtml(garage.phone)}</a></p>` : ''}
+                        ${garage.mobile ? `<p style="margin: 8px 0;"><strong>📱</strong> <a href="tel:${escapeHtml(garage.mobile)}">${escapeHtml(garage.mobile)}</a></p>` : ''}
                         ${garage.email ? `<p style="margin: 8px 0;"><strong>✉️</strong> <a href="mailto:${escapeHtml(garage.email)}">${escapeHtml(garage.email)}</a></p>` : ''}
                         ${garage.notes ? `<p style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #555;"><em>${escapeHtml(garage.notes)}</em></p>` : ''}
                     `;
@@ -3695,6 +3701,7 @@
                 city: document.getElementById('newGarageCity').value.trim(),
                 zip: document.getElementById('newGarageZip').value.trim(),
                 phone: document.getElementById('newGaragePhone').value.trim(),
+                mobile: document.getElementById('newGarageMobile').value.trim(),
                 email: document.getElementById('newGarageEmail').value.trim(),
                 specialization: document.getElementById('newGarageSpecialization').value.trim(),
                 notes: document.getElementById('newGarageNotes').value.trim()
@@ -3832,7 +3839,7 @@
                             ` : ''}
                             
                             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                                <button onclick="addGarageFromOnline('${escapeHtml(garage.name)}', '${escapeHtml(garage.address)}', '${escapeHtml(garage.phone)}')" class="submit-btn" style="width: auto; flex: 1; margin: 0;">
+                                <button onclick="addGarageFromOnline('${escapeHtml(garage.name)}', '${escapeHtml(garage.address)}', '${escapeHtml(garage.phone)}', '${escapeHtml(garage.streetAddress || '')}', '${escapeHtml(garage.city || '')}', '${escapeHtml(garage.zip || '')}', '${escapeHtml(garage.website || '')}')" class="submit-btn" style="width: auto; flex: 1; margin: 0;">
                                     💾 Salva Officina
                                 </button>
                                 <button onclick="this.closest('div[style*=fixed]').remove()" class="submit-btn" style="width: auto; flex: 1; margin: 0; background: #666;">
@@ -3856,22 +3863,14 @@
             document.body.appendChild(script);
         }
 
-        function addGarageFromOnline(name, address, phone) {
-            // Pre-fill form with online data
-            document.getElementById('newGarageName').value = name;
-            document.getElementById('newGarageAddress').value = address;
-            document.getElementById('newGaragePhone').value = phone;
-            
-            // Parse city and zip from address if possible
-            const addressParts = address.split(',');
-            if (addressParts.length >= 2) {
-                const cityZipPart = addressParts[addressParts.length - 1].trim();
-                const zipMatch = cityZipPart.match(/(\d{4,5})\s+(.+)/);
-                if (zipMatch) {
-                    document.getElementById('newGarageZip').value = zipMatch[1];
-                    document.getElementById('newGarageCity').value = zipMatch[2];
-                }
-            }
+        function addGarageFromOnline(name, address, phone, streetAddress, city, zip, website) {
+            // Pre-fill form with structured data from Google Places API
+            document.getElementById('newGarageName').value = name || '';
+            document.getElementById('newGarageAddress').value = streetAddress || address || '';
+            document.getElementById('newGarageCity').value = city || '';
+            document.getElementById('newGarageZip').value = zip || '';
+            document.getElementById('newGaragePhone').value = phone || '';
+            document.getElementById('newGarageEmail').value = website || '';
             
             // Show form
             showAddGarageForm();
