@@ -2705,6 +2705,7 @@ function saveMaintenanceReport(reportData) {
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Difetti e Riparazioni');
 
     // Create sheet if it doesn't exist
     if (!sheet) {

@@ -1450,32 +1450,53 @@
 
             // Show loading
             const recDiv = issueElement.querySelector(`#ai-${issueId}`);
+            if (!recDiv) {
+                console.warn('AI recommendation container not found for', issueId);
+                return;
+            }
             const recText = recDiv.querySelector('.ai-text');
-            recText.textContent = 'Analisi in corso...';
+            if (recText) {
+                recText.textContent = 'Analisi in corso...';
+            }
             recDiv.style.display = 'block';
 
             // Call AI
-            const callback = `handleAI_${issueId.replace('-', '_')}`;
+            const callback = `handleAI_${issueId.replace(/-/g, '_')}_${Date.now()}`;
             window[callback] = function(response) {
-                if (response.success && response.analysis) {
-                    const analysis = response.analysis;
-                    recText.textContent = analysis.recommendation || 'Analisi completata';
+                try {
+                    if (response.success && response.analysis) {
+                        const analysis = response.analysis;
+                        if (recText) {
+                            recText.textContent = analysis.recommendation || 'Analisi completata';
+                        }
 
-                    // Auto-suggest urgency if not set
-                    const urgencySelect = issueElement.querySelector('.issue-urgency');
-                    if (!urgencySelect.value && analysis.urgency) {
-                        urgencySelect.value = analysis.urgency;
+                        // Auto-suggest urgency if not set
+                        const urgencySelect = issueElement.querySelector('.issue-urgency');
+                        if (urgencySelect && !urgencySelect.value && analysis.urgency) {
+                            urgencySelect.value = analysis.urgency;
+                        }
+                    } else if (recText) {
+                        recText.textContent = 'Errore nell\'analisi AI: ' + (response.error || 'Errore sconosciuto');
                     }
-                } else {
-                    recText.textContent = 'Errore nell\'analisi AI: ' + (response.error || 'Errore sconosciuto');
+                } finally {
+                    delete window[callback];
                 }
-                delete window[callback];
             };
 
             const url = `${window.APP_CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;
             
             const script = document.createElement('script');
             script.src = url;
+            script.onerror = () => {
+                if (recText) {
+                    recText.textContent = 'Errore di rete durante l\'analisi AI.';
+                }
+                delete window[callback];
+                script.remove();
+            };
+            script.onload = () => {
+                setTimeout(() => script.remove(), 1000);
+            };
             document.body.appendChild(script);
         }
 
