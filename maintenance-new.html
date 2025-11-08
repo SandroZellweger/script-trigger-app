@@ -2198,6 +2198,7 @@
         }
 
         async function loadDamagePhoto(photoId, photoUrl) {
+            // ALWAYS prefer backend photo retrieval (avoids CORS)
             if (photoId) {
                 const dataFromId = await fetchPhotoBase64ById(photoId);
                 if (dataFromId) {
@@ -2205,7 +2206,22 @@
                 }
             }
 
+            // Fallback: if no photoId but have URL, try to extract ID from URL
+            if (!photoId && photoUrl && photoUrl.includes('drive.google.com/file/d/')) {
+                const match = photoUrl.match(/\/d\/([^\/]+)/);
+                if (match && match[1]) {
+                    const extractedId = match[1];
+                    console.log('📸 Extracted Drive ID from URL:', extractedId);
+                    const dataFromExtractedId = await fetchPhotoBase64ById(extractedId);
+                    if (dataFromExtractedId) {
+                        return dataFromExtractedId;
+                    }
+                }
+            }
+
+            // Last resort: direct fetch (will likely fail with CORS for Drive)
             if (photoUrl) {
+                console.warn('⚠️ Attempting direct fetch (may fail for private Drive files):', photoUrl);
                 return await loadImageAsBase64(photoUrl);
             }
 
