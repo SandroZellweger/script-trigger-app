@@ -2506,13 +2506,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             <li class="issue-list-item">
                                 <input type="checkbox" class="issue-checkbox" 
                                     ${issue.completed ? 'checked' : ''} 
-                                    onchange="toggleIssueStatus('${report.id}', ${index}, this.checked)">
+                                    onchange="toggleIssueStatus('${report.id}', ${issue.issueNumber}, this.checked)">
                                 <div class="issue-content">
                                     <div class="issue-category">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
                                     <div class="issue-description">${issue.description}</div>
                                     <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 11px; padding: 4px 10px;">${urgencyLabels[issue.urgency] || issue.urgency}</span>
                                 </div>
-                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.id}', ${index}, ${JSON.stringify(issue).replace(/"/g, '&quot;')})" title="Modifica danno">
+                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.id}', ${issue.issueNumber}, ${JSON.stringify(issue).replace(/"/g, '&quot;')})" title="Modifica danno">
                                     ✏️
                                 </button>
                             </li>
