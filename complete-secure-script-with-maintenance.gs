@@ -240,6 +240,18 @@ function doGet(e) {
       case "updateIssueStatusJsonp":
         return updateIssueStatusJsonp(e.parameter);
         break;
+      case "getGaragesListJsonp":
+        return getGaragesListJsonp(e.parameter);
+        break;
+      case "addGarageJsonp":
+        return addGarageJsonp(e.parameter);
+        break;
+      case "searchGaragesOnlineJsonp":
+        return searchGaragesOnlineJsonp(e.parameter);
+        break;
+      case "getGarageDetailsJsonp":
+        return getGarageDetailsJsonp(e.parameter);
+        break;
       default:
         result = { error: `Unknown function: ${functionName}` };
     }
@@ -3160,11 +3172,302 @@ function updateIssueStatus(reportId, issueIndex, completed) {
 
 function updateIssueStatusJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
-  const response = updateIssueStatus(
-    params.reportId,
-    parseInt(params.issueIndex),
-    params.completed === 'true'
-  );
+  const response = updateIssueStatus(params.reportId, parseInt(params.issueIndex), params.completed === 'true');
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// ===== GARAGE MANAGEMENT FUNCTIONS =====
+
+// Create or get Garages sheet
+function getOrCreateGaragesSheet() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Officine');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('Officine');
+      
+      // Add headers
+      const headerRow = sheet.getRange(1, 1, 1, 8);
+      headerRow.setValues([[
+        'Nome Officina',
+        'Indirizzo',
+        'Città',
+        'CAP',
+        'Telefono',
+        'Email',
+        'Specializzazione',
+        'Note'
+      ]]);
+      
+      // Format headers
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+      
+      // Add some default garages for Ticino
+      sheet.appendRow(['Garage Rossi', 'Via Roma 123', 'Lugano', '6900', '+41 91 123 4567', 'info@rossi.ch', 'Carrozzeria', 'Specializzati in Citroen']);
+      sheet.appendRow(['Officina Bianchi', 'Via Milano 45', 'Bellinzona', '6500', '+41 91 234 5678', 'bianchi@officina.ch', 'Meccanica generale', 'Prezzi competitivi']);
+      sheet.appendRow(['AutoService Verdi', 'Via Zurigo 78', 'Locarno', '6600', '+41 91 345 6789', 'verdi@auto.ch', 'Elettronica auto', 'Certificati BMW']);
+    }
+
+    return {
+      success: true,
+      sheet: sheet
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Get list of garages
+function getGaragesList() {
+  try {
+    const result = getOrCreateGaragesSheet();
+    if (!result.success) {
+      return result;
+    }
+
+    const sheet = result.sheet;
+    const data = sheet.getDataRange().getValues();
+    const garages = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0]) { // If name exists
+        garages.push({
+          name: row[0],
+          address: row[1],
+          city: row[2],
+          zip: row[3],
+          phone: row[4],
+          email: row[5],
+          specialization: row[6],
+          notes: row[7]
+        });
+      }
+    }
+
+    return {
+      success: true,
+      garages: garages,
+      total: garages.length
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getGaragesListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getGaragesList();
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Add new garage
+function addGarage(garageData) {
+  try {
+    const result = getOrCreateGaragesSheet();
+    if (!result.success) {
+      return result;
+    }
+
+    const sheet = result.sheet;
+    
+    sheet.appendRow([
+      garageData.name || '',
+      garageData.address || '',
+      garageData.city || '',
+      garageData.zip || '',
+      garageData.phone || '',
+      garageData.email || '',
+      garageData.specialization || '',
+      garageData.notes || ''
+    ]);
+
+    return {
+      success: true,
+      message: 'Garage added successfully',
+      garage: garageData
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function addGarageJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const garageData = JSON.parse(params.data);
+  const response = addGarage(garageData);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Search garages online using Google Places API
+function searchGaragesOnline(query, location) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('GOOGLE_PLACES_API_KEY');
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'Google Places API key not configured. Add GOOGLE_PLACES_API_KEY in Script Properties.'
+      };
+    }
+
+    // Default to Lugano area if no location provided
+    const searchLocation = location || '46.0037,8.9511'; // Lugano coordinates
+    
+    const url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?' + 
+      'location=' + encodeURIComponent(searchLocation) +
+      '&radius=50000' + // 50km radius
+      '&keyword=' + encodeURIComponent(query + ' officina meccanico carrozzeria auto') +
+      '&type=car_repair' +
+      '&language=it' +
+      '&key=' + apiKey;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      return {
+        success: false,
+        error: 'Places API error: ' + data.status + (data.error_message ? ' - ' + data.error_message : '')
+      };
+    }
+
+    const garages = (data.results || []).slice(0, 10).map(place => ({
+      name: place.name,
+      address: place.vicinity,
+      rating: place.rating || 'N/A',
+      totalRatings: place.user_ratings_total || 0,
+      isOpen: place.opening_hours ? place.opening_hours.open_now : null,
+      placeId: place.place_id,
+      location: {
+        lat: place.geometry.location.lat,
+        lng: place.geometry.location.lng
+      }
+    }));
+
+    return {
+      success: true,
+      garages: garages,
+      total: garages.length
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function searchGaragesOnlineJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = searchGaragesOnline(params.query, params.location);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Get detailed info about a specific place
+function getGarageDetails(placeId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('GOOGLE_PLACES_API_KEY');
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'Google Places API key not configured'
+      };
+    }
+
+    const url = 'https://maps.googleapis.com/maps/api/place/details/json?' +
+      'place_id=' + encodeURIComponent(placeId) +
+      '&fields=name,formatted_address,formatted_phone_number,website,opening_hours,rating,reviews' +
+      '&language=it' +
+      '&key=' + apiKey;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    if (data.status !== 'OK') {
+      return {
+        success: false,
+        error: 'Places API error: ' + data.status
+      };
+    }
+
+    const place = data.result;
+    
+    return {
+      success: true,
+      garage: {
+        name: place.name,
+        address: place.formatted_address,
+        phone: place.formatted_phone_number || '',
+        website: place.website || '',
+        rating: place.rating || 'N/A',
+        openingHours: place.opening_hours ? place.opening_hours.weekday_text : [],
+        reviews: (place.reviews || []).slice(0, 3).map(review => ({
+          author: review.author_name,
+          rating: review.rating,
+          text: review.text,
+          time: review.relative_time_description
+        }))
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getGarageDetailsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getGarageDetails(params.placeId);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 

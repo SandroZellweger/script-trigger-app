@@ -1053,6 +1053,7 @@
             <button class="tab active" onclick="switchTab('new-report')">📝 Nuovo Report</button>
             <button class="tab" onclick="switchTab('active-reports')">🔨 Report Attivi</button>
             <button class="tab" onclick="switchTab('history')">📊 Storico Completo</button>
+            <button class="tab" onclick="switchTab('garages')">🔧 Gestione Officine</button>
         </div>
 
         <!-- NEW REPORT TAB -->
@@ -1137,6 +1138,91 @@
                     <div class="loading">
                         <div class="spinner"></div>
                         <p>Caricamento storico...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GARAGES TAB -->
+        <div id="garages" class="tab-content">
+            <div class="content-card">
+                <h2 style="margin-bottom: 20px;">🔧 Gestione Officine</h2>
+                
+                <!-- Search Online Section -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">🔍 Cerca Officine Online</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <input type="text" id="garageSearchQuery" placeholder="Es: carrozzeria, meccanico, gomme..." 
+                               style="flex: 1; min-width: 250px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                        <button onclick="searchGaragesOnline()" class="submit-btn" style="width: auto; margin: 0; padding: 12px 24px;">
+                            🔍 Cerca Online
+                        </button>
+                    </div>
+                    <div id="onlineSearchResults" style="display: none; margin-top: 20px;"></div>
+                </div>
+
+                <!-- Saved Garages Section -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📋 Officine Salvate</h3>
+                        <button onclick="showAddGarageForm()" class="add-issue-btn" style="width: auto; margin: 0;">
+                            + Aggiungi Officina Manualmente
+                        </button>
+                    </div>
+                    
+                    <!-- Add Garage Form (initially hidden) -->
+                    <div id="addGarageForm" style="display: none; background: #f0f4ff; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">Nuova Officina</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Nome Officina *</label>
+                                <input type="text" id="newGarageName" required>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Indirizzo</label>
+                                <input type="text" id="newGarageAddress">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Città</label>
+                                <input type="text" id="newGarageCity">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>CAP</label>
+                                <input type="text" id="newGarageZip">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Telefono</label>
+                                <input type="text" id="newGaragePhone">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Email</label>
+                                <input type="email" id="newGarageEmail">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Specializzazione</label>
+                                <input type="text" id="newGarageSpecialization" placeholder="Es: Carrozzeria, Meccanica...">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Note</label>
+                                <input type="text" id="newGarageNotes" placeholder="Es: Prezzi competitivi">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="saveNewGarage()" class="submit-btn" style="width: auto; margin: 0;">
+                                💾 Salva Officina
+                            </button>
+                            <button onclick="hideAddGarageForm()" class="submit-btn" 
+                                    style="width: auto; margin: 0; background: #666;">
+                                ❌ Annulla
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="savedGaragesList" class="reports-grid">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Caricamento officine...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1244,6 +1330,8 @@
                 loadActiveReports();
             } else if (tabName === 'history') {
                 loadHistory();
+            } else if (tabName === 'garages') {
+                loadSavedGarages();
             }
         }
 
@@ -3517,5 +3605,283 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // ===== GARAGE MANAGEMENT FUNCTIONS =====
+
+        function showAddGarageForm() {
+            document.getElementById('addGarageForm').style.display = 'block';
+            document.getElementById('newGarageName').focus();
+        }
+
+        function hideAddGarageForm() {
+            document.getElementById('addGarageForm').style.display = 'none';
+            // Clear form
+            document.getElementById('newGarageName').value = '';
+            document.getElementById('newGarageAddress').value = '';
+            document.getElementById('newGarageCity').value = '';
+            document.getElementById('newGarageZip').value = '';
+            document.getElementById('newGaragePhone').value = '';
+            document.getElementById('newGarageEmail').value = '';
+            document.getElementById('newGarageSpecialization').value = '';
+            document.getElementById('newGarageNotes').value = '';
+        }
+
+        function loadSavedGarages() {
+            const container = document.getElementById('savedGaragesList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Caricamento officine...</p></div>';
+
+            const callback = 'garagesCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (!response.success) {
+                    container.innerHTML = `<div class="error-message">Errore: ${response.error}</div>`;
+                    delete window[callback];
+                    return;
+                }
+
+                const garages = response.garages || [];
+
+                if (garages.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">Nessuna officina salvata. Cerca online o aggiungi manualmente.</p>';
+                    delete window[callback];
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                garages.forEach((garage, index) => {
+                    const garageCard = document.createElement('div');
+                    garageCard.className = 'report-card';
+                    garageCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <h3 style="color: #667eea; margin: 0;">${escapeHtml(garage.name)}</h3>
+                            <span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                ${escapeHtml(garage.specialization || 'Generale')}
+                            </span>
+                        </div>
+                        ${garage.address ? `<p style="margin: 8px 0;"><strong>📍</strong> ${escapeHtml(garage.address)}${garage.city ? ', ' + escapeHtml(garage.city) : ''}${garage.zip ? ' ' + escapeHtml(garage.zip) : ''}</p>` : ''}
+                        ${garage.phone ? `<p style="margin: 8px 0;"><strong>📞</strong> <a href="tel:${escapeHtml(garage.phone)}">${escapeHtml(garage.phone)}</a></p>` : ''}
+                        ${garage.email ? `<p style="margin: 8px 0;"><strong>✉️</strong> <a href="mailto:${escapeHtml(garage.email)}">${escapeHtml(garage.email)}</a></p>` : ''}
+                        ${garage.notes ? `<p style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #555;"><em>${escapeHtml(garage.notes)}</em></p>` : ''}
+                    `;
+                    container.appendChild(garageCard);
+                });
+
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getGaragesListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                container.innerHTML = '<div class="error-message">Errore di connessione</div>';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        function saveNewGarage() {
+            const name = document.getElementById('newGarageName').value.trim();
+            
+            if (!name) {
+                alert('Il nome dell\'officina è obbligatorio');
+                document.getElementById('newGarageName').focus();
+                return;
+            }
+
+            const garageData = {
+                name: name,
+                address: document.getElementById('newGarageAddress').value.trim(),
+                city: document.getElementById('newGarageCity').value.trim(),
+                zip: document.getElementById('newGarageZip').value.trim(),
+                phone: document.getElementById('newGaragePhone').value.trim(),
+                email: document.getElementById('newGarageEmail').value.trim(),
+                specialization: document.getElementById('newGarageSpecialization').value.trim(),
+                notes: document.getElementById('newGarageNotes').value.trim()
+            };
+
+            const callback = 'addGarageCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert('✅ Officina aggiunta con successo!');
+                    hideAddGarageForm();
+                    loadSavedGarages();
+                } else {
+                    alert('❌ Errore nel salvataggio: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=addGarageJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(garageData))}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        function searchGaragesOnline() {
+            const query = document.getElementById('garageSearchQuery').value.trim();
+            
+            if (!query) {
+                alert('Inserisci un termine di ricerca (es: carrozzeria, meccanico, gomme)');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('onlineSearchResults');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>Ricerca in corso...</p></div>';
+
+            const callback = 'searchGaragesCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (!response.success) {
+                    resultsContainer.innerHTML = `<div class="error-message">❌ ${response.error}</div>`;
+                    delete window[callback];
+                    return;
+                }
+
+                const garages = response.garages || [];
+
+                if (garages.length === 0) {
+                    resultsContainer.innerHTML = '<p style="text-align: center; color: #666;">Nessun risultato trovato. Prova con altri termini di ricerca.</p>';
+                    delete window[callback];
+                    return;
+                }
+
+                resultsContainer.innerHTML = '<h4 style="margin-bottom: 15px;">Risultati trovati:</h4>';
+
+                garages.forEach(garage => {
+                    const garageCard = document.createElement('div');
+                    garageCard.style.cssText = 'background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 2px solid #e0e0e0;';
+                    
+                    garageCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0; color: #333;">${escapeHtml(garage.name)}</h4>
+                                <p style="margin: 0; color: #666; font-size: 14px;">📍 ${escapeHtml(garage.address)}</p>
+                                ${garage.rating !== 'N/A' ? `<p style="margin: 5px 0 0 0; font-size: 13px;">⭐ ${garage.rating}/5 (${garage.totalRatings} recensioni)</p>` : ''}
+                                ${garage.isOpen !== null ? `<p style="margin: 5px 0 0 0; font-size: 13px;">${garage.isOpen ? '🟢 Aperto ora' : '🔴 Chiuso'}</p>` : ''}
+                            </div>
+                            <button onclick="viewGarageDetails('${garage.placeId}')" class="submit-btn" style="width: auto; margin: 0; padding: 8px 16px; font-size: 14px;">
+                                👁️ Dettagli
+                            </button>
+                        </div>
+                    `;
+                    
+                    resultsContainer.appendChild(garageCard);
+                });
+
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=searchGaragesOnlineJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&query=${encodeURIComponent(query)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                resultsContainer.innerHTML = '<div class="error-message">❌ Errore di connessione</div>';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        function viewGarageDetails(placeId) {
+            const callback = 'garageDetailsCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (!response.success) {
+                    alert('❌ Errore nel recupero dettagli: ' + response.error);
+                    delete window[callback];
+                    return;
+                }
+
+                const garage = response.garage;
+                
+                // Create modal-like display
+                const detailsHtml = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="this.remove()">
+                        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 600px; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+                            <h2 style="margin-top: 0; color: #667eea;">${escapeHtml(garage.name)}</h2>
+                            
+                            ${garage.address ? `<p style="margin: 10px 0;"><strong>📍 Indirizzo:</strong><br>${escapeHtml(garage.address)}</p>` : ''}
+                            ${garage.phone ? `<p style="margin: 10px 0;"><strong>📞 Telefono:</strong> <a href="tel:${escapeHtml(garage.phone)}">${escapeHtml(garage.phone)}</a></p>` : ''}
+                            ${garage.website ? `<p style="margin: 10px 0;"><strong>🌐 Sito web:</strong> <a href="${escapeHtml(garage.website)}" target="_blank">${escapeHtml(garage.website)}</a></p>` : ''}
+                            ${garage.rating !== 'N/A' ? `<p style="margin: 10px 0;"><strong>⭐ Valutazione:</strong> ${garage.rating}/5</p>` : ''}
+                            
+                            ${garage.openingHours && garage.openingHours.length > 0 ? `
+                                <div style="margin: 20px 0;">
+                                    <strong>🕒 Orari:</strong>
+                                    <ul style="margin: 10px 0; padding-left: 20px;">
+                                        ${garage.openingHours.map(hour => `<li>${escapeHtml(hour)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            
+                            ${garage.reviews && garage.reviews.length > 0 ? `
+                                <div style="margin: 20px 0;">
+                                    <strong>💬 Recensioni recenti:</strong>
+                                    ${garage.reviews.map(review => `
+                                        <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                                            <p style="margin: 0; font-weight: bold;">${escapeHtml(review.author)} - ⭐ ${review.rating}/5</p>
+                                            <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">${escapeHtml(review.text)}</p>
+                                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">${escapeHtml(review.time)}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button onclick="addGarageFromOnline('${escapeHtml(garage.name)}', '${escapeHtml(garage.address)}', '${escapeHtml(garage.phone)}')" class="submit-btn" style="width: auto; flex: 1; margin: 0;">
+                                    💾 Salva Officina
+                                </button>
+                                <button onclick="this.closest('div[style*=fixed]').remove()" class="submit-btn" style="width: auto; flex: 1; margin: 0; background: #666;">
+                                    ✖️ Chiudi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', detailsHtml);
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getGarageDetailsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&placeId=${encodeURIComponent(placeId)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        function addGarageFromOnline(name, address, phone) {
+            // Pre-fill form with online data
+            document.getElementById('newGarageName').value = name;
+            document.getElementById('newGarageAddress').value = address;
+            document.getElementById('newGaragePhone').value = phone;
+            
+            // Parse city and zip from address if possible
+            const addressParts = address.split(',');
+            if (addressParts.length >= 2) {
+                const cityZipPart = addressParts[addressParts.length - 1].trim();
+                const zipMatch = cityZipPart.match(/(\d{4,5})\s+(.+)/);
+                if (zipMatch) {
+                    document.getElementById('newGarageZip').value = zipMatch[1];
+                    document.getElementById('newGarageCity').value = zipMatch[2];
+                }
+            }
+            
+            // Show form
+            showAddGarageForm();
+            
+            // Close modal
+            document.querySelector('div[style*="position: fixed"]')?.remove();
+            
+            // Scroll to form
+            document.getElementById('addGarageForm').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
 </body>
 </html>
