@@ -366,14 +366,40 @@ function doPost(e) {
       return createJsonResponseWithCors({ error: "No data provided" });
     }
 
-    // Validate authentication
+    const functionName = e.parameter.function;
+    Logger.log('Processing form-encoded function: ' + functionName);
+    
+    // Special handling for uploadMaintenancePDF (uses direct parameters, not requestBody)
+    if (functionName === "uploadMaintenancePDF") {
+      Logger.log('Handling uploadMaintenancePDF POST with fileName: ' + e.parameter.fileName);
+      
+      // Validate auth token from parameters
+      if (!validateAuthToken(e.parameter.authToken)) {
+        Logger.log('Auth token validation failed for uploadMaintenancePDF');
+        const errorResult = { success: false, error: "Unauthorized: Invalid auth token" };
+        if (e.parameter.callback) {
+          const jsonpResponse = e.parameter.callback + '(' + JSON.stringify(errorResult) + ')';
+          return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+        }
+        return createJsonResponseWithCors(errorResult);
+      }
+      
+      const result = uploadMaintenancePDF(e.parameter.fileName, e.parameter.pdfData, e.parameter.listId);
+      
+      // Return JSONP callback if provided
+      if (e.parameter.callback) {
+        const jsonpResponse = e.parameter.callback + '(' + JSON.stringify(result) + ')';
+        return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      return createJsonResponseWithCors(result);
+    }
+    
+    // Validate authentication for requestBody-based functions
     if (!validateAuthToken(requestBody.authToken)) {
       Logger.log('Auth token validation failed for form data');
       return createJsonResponseWithCors({ error: "Unauthorized: Invalid auth token" });
     }
 
-    const functionName = e.parameter.function;
-    Logger.log('Processing form-encoded function: ' + functionName);
     let result;
 
     switch (functionName) {
@@ -385,15 +411,6 @@ function doPost(e) {
         break;
       case "updateCleaningInVisioneGenerale":
         result = updateCleaningInVisioneGenerale(requestBody);
-        break;
-      case "uploadMaintenancePDF":
-        Logger.log('Handling uploadMaintenancePDF POST with fileName: ' + e.parameter.fileName);
-        result = uploadMaintenancePDF(e.parameter.fileName, e.parameter.pdfData, e.parameter.listId);
-        // Return JSONP callback if provided
-        if (e.parameter.callback) {
-          const jsonpResponse = e.parameter.callback + '(' + JSON.stringify(result) + ')';
-          return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
-        }
         break;
       default:
         Logger.log('Unknown form-encoded function: ' + functionName);
