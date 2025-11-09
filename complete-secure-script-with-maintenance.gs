@@ -3150,7 +3150,7 @@ function updateIssueStatus(reportId, issueIndex, completed) {
     // Find the row for this reportId and issueIndex
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (row[0] === reportId && row[17] === issueIndex) {
+      if (row[0] === reportId && parseInt(row[17]) === issueIndex) {
         // Update completed checkbox (column J = 10)
         const completedCell = sheet.getRange(i + 1, 10);
         completedCell.setValue(completed);
@@ -3226,7 +3226,7 @@ function updateIssueDetails(reportId, issueIndex, issueData) {
     // Find the row for this reportId and issueIndex
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (row[0] === reportId && row[17] === issueIndex) {
+      if (row[0] === reportId && parseInt(row[17]) === issueIndex) {
         // Update issue details
         const rowIndex = i + 1;
 
