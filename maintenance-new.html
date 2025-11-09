@@ -2486,6 +2486,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 critical: 'CRITICA'
             };
 
+            // Cache issue data for edit modal
+            report.issues.forEach(issue => {
+                const cacheKey = `${report.reportId}_${issue.issueNumber}`;
+                issueDataCache[cacheKey] = issue;
+            });
+
             return `
                 <div class="report-card">
                     <div class="report-header">
@@ -2506,13 +2512,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             <li class="issue-list-item">
                                 <input type="checkbox" class="issue-checkbox" 
                                     ${issue.completed ? 'checked' : ''} 
-                                    onchange="toggleIssueStatus('${report.id}', ${issue.issueNumber}, this.checked)">
+                                    onchange="toggleIssueStatus('${report.reportId}', ${issue.issueNumber}, this.checked)">
                                 <div class="issue-content">
                                     <div class="issue-category">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
                                     <div class="issue-description">${issue.description}</div>
                                     <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 11px; padding: 4px 10px;">${urgencyLabels[issue.urgency] || issue.urgency}</span>
                                 </div>
-                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.id}', ${issue.issueNumber}, ${JSON.stringify(issue).replace(/"/g, '&quot;')})" title="Modifica danno">
+                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.reportId}', ${issue.issueNumber})" title="Modifica danno">
                                     ✏️
                                 </button>
                             </li>
@@ -2536,7 +2542,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         }
 
         // Toggle issue completion status
-        function toggleIssueStatus(reportId, issueIndex, completed) {
+        function toggleIssueStatus(reportId, issueNumber, completed) {
             const callback = 'handleIssueUpdated';
             window[callback] = function(response) {
                 if (response.success) {
@@ -2546,7 +2552,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 }
             };
 
-            const url = `${window.APP_CONFIG.scriptUrl}?function=updateIssueStatusJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueIndex=${issueIndex}&completed=${completed}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=updateIssueStatusJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueIndex=${issueNumber}&completed=${completed}&callback=${callback}&_=${Date.now()}`;
             
             const script = document.createElement('script');
             script.src = url;
@@ -4366,14 +4372,21 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         let currentEditReportId = null;
         let currentEditIssueIndex = null;
         let editIssueUploadedPhotos = [];
+        const issueDataCache = {};
 
-        function openEditIssueModal(reportId, issueIndex, issueData) {
+        function openEditIssueModal(reportId, issueNumber) {
             currentEditReportId = reportId;
-            currentEditIssueIndex = issueIndex;
+            currentEditIssueIndex = issueNumber;
             editIssueUploadedPhotos = [];
-
-            // Parse issue data
-            const issue = typeof issueData === 'string' ? JSON.parse(issueData) : issueData;
+            
+            // Get issue data from cache
+            const cacheKey = `${reportId}_${issueNumber}`;
+            const issue = issueDataCache[cacheKey];
+            
+            if (!issue) {
+                alert('Errore: dati del problema non trovati');
+                return;
+            }
 
             // Populate form
             document.getElementById('editIssueCategory').value = issue.category || '';

@@ -3313,22 +3313,25 @@ function updateIssueDetails(reportId, issueIndex, issueData) {
 function updateIssueDetailsJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
 
-  // Parse issue data from params
+  // Parse the JSON data from params.data
+  const updateData = JSON.parse(params.data || '{}');
+  
+  // Extract issue data
   const issueData = {};
-  if (params.category) issueData.category = params.category;
-  if (params.description) issueData.description = params.description;
-  if (params.urgency) issueData.urgency = params.urgency;
-  if (params.notes) issueData.notes = params.notes;
+  if (updateData.category) issueData.category = updateData.category;
+  if (updateData.description) issueData.description = updateData.description;
+  if (updateData.urgency) issueData.urgency = updateData.urgency;
+  if (updateData.notes) issueData.notes = updateData.notes;
 
   // Handle photo data
-  if (params.photoIds) {
-    issueData.photoIds = Array.isArray(params.photoIds) ? params.photoIds : [params.photoIds];
+  if (updateData.photoIds) {
+    issueData.photoIds = Array.isArray(updateData.photoIds) ? updateData.photoIds : [updateData.photoIds];
   }
-  if (params.photoUrls) {
-    issueData.photoUrls = Array.isArray(params.photoUrls) ? params.photoUrls : [params.photoUrls];
+  if (updateData.photoUrls) {
+    issueData.photoUrls = Array.isArray(updateData.photoUrls) ? updateData.photoUrls : [updateData.photoUrls];
   }
 
-  const response = updateIssueDetails(params.reportId, parseInt(params.issueIndex), issueData);
+  const response = updateIssueDetails(updateData.reportId, parseInt(updateData.issueIndex), issueData);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
