@@ -4544,6 +4544,52 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             </div>
                         ` : ''}
                         
+                        ${list.invoiceAnalysis ? `
+                            <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #9c27b0;">
+                                <h4 style="margin: 0 0 10px 0; color: #7b1fa2; display: flex; align-items: center; gap: 8px;">
+                                    <span>🤖 Analisi Fattura AI</span>
+                                    ${list.invoicePhotoUrl ? `<a href="${escapeHtml(list.invoicePhotoUrl)}" target="_blank" style="background: #9c27b0; color: white; padding: 4px 10px; border-radius: 6px; text-decoration: none; font-size: 12px; margin-left: auto;">📷 Vedi Foto</a>` : ''}
+                                </h4>
+                                
+                                ${list.invoiceAnalysis.invoiceData ? `
+                                    <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                                        <p style="margin: 4px 0;"><strong>💰 Costo:</strong> ${escapeHtml(list.invoiceAnalysis.invoiceData.totalCost || 'N/D')}</p>
+                                        <p style="margin: 4px 0;"><strong>📅 Data:</strong> ${escapeHtml(list.invoiceAnalysis.invoiceData.invoiceDate || 'N/D')}</p>
+                                        ${list.invoiceAnalysis.invoiceData.invoiceNumber ? `<p style="margin: 4px 0;"><strong>📄 Numero:</strong> ${escapeHtml(list.invoiceAnalysis.invoiceData.invoiceNumber)}</p>` : ''}
+                                    </div>
+                                ` : ''}
+                                
+                                ${list.invoiceAnalysis.comparison ? `
+                                    <div style="background: white; padding: 12px; border-radius: 6px;">
+                                        ${list.invoiceAnalysis.comparison.worksCompleted && list.invoiceAnalysis.comparison.worksCompleted.length > 0 ? `
+                                            <div style="margin-bottom: 8px;">
+                                                <strong style="color: #4caf50;">✅ Completati (${list.invoiceAnalysis.comparison.worksCompleted.length}):</strong>
+                                                <ul style="margin: 4px 0; padding-left: 20px; font-size: 13px;">
+                                                    ${list.invoiceAnalysis.comparison.worksCompleted.map(w => `<li style="color: #666;">${escapeHtml(w)}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                        ${list.invoiceAnalysis.comparison.worksAdded && list.invoiceAnalysis.comparison.worksAdded.length > 0 ? `
+                                            <div style="margin-bottom: 8px;">
+                                                <strong style="color: #ff9800;">➕ Aggiunti (${list.invoiceAnalysis.comparison.worksAdded.length}):</strong>
+                                                <ul style="margin: 4px 0; padding-left: 20px; font-size: 13px;">
+                                                    ${list.invoiceAnalysis.comparison.worksAdded.map(w => `<li style="color: #666;">${escapeHtml(w)}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                        ${list.invoiceAnalysis.comparison.worksMissing && list.invoiceAnalysis.comparison.worksMissing.length > 0 ? `
+                                            <div>
+                                                <strong style="color: #f44336;">❌ Mancanti (${list.invoiceAnalysis.comparison.worksMissing.length}):</strong>
+                                                <ul style="margin: 4px 0; padding-left: 20px; font-size: 13px;">
+                                                    ${list.invoiceAnalysis.comparison.worksMissing.map(w => `<li style="color: #666;">${escapeHtml(w)}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button onclick="completeWorkshopListFull('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
                                 ✅ Completa Tutto
@@ -4668,9 +4714,295 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             document.body.appendChild(script);
         }
 
-        // Upload invoice and analyze with AI (Phase 2 - placeholder for now)
+        // Upload invoice and analyze with AI
         function uploadInvoiceForList(listId) {
-            alert('Funzione in sviluppo: Upload e analisi fattura AI per lista ' + listId);
+            // Create modal for photo upload
+            const modal = document.createElement('div');
+            modal.id = 'invoiceUploadModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <h2 style="margin: 0 0 20px 0; color: #333; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 32px;">📷</span>
+                        Carica Fattura Officina
+                    </h2>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <strong style="color: #1976d2;">🤖 Analisi AI Automatica</strong>
+                        <p style="margin: 8px 0 0 0; color: #555; font-size: 14px;">
+                            L'intelligenza artificiale analizzerà la fattura ed estrarrà automaticamente:
+                            costi, lavori effettuati, data e confronterà con quanto preventivato.
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                            Seleziona foto della fattura:
+                        </label>
+                        <input type="file" 
+                               id="invoicePhotoInput" 
+                               accept="image/*" 
+                               style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 8px; cursor: pointer;"
+                               onchange="previewInvoicePhoto(this)">
+                    </div>
+
+                    <div id="invoicePreview" style="display: none; margin-bottom: 20px; text-align: center;">
+                        <img id="invoicePreviewImg" 
+                             style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 2px solid #ddd;">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="closeInvoiceModal()" 
+                                style="padding: 12px 24px; background: #ccc; color: #333; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            Annulla
+                        </button>
+                        <button id="uploadInvoiceBtn" 
+                                onclick="processInvoiceUpload('${listId}')" 
+                                disabled
+                                style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; opacity: 0.5;">
+                            🤖 Analizza con AI
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Close modal on background click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeInvoiceModal();
+                }
+            });
+        }
+
+        // Preview invoice photo
+        function previewInvoicePhoto(input) {
+            const preview = document.getElementById('invoicePreview');
+            const previewImg = document.getElementById('invoicePreviewImg');
+            const uploadBtn = document.getElementById('uploadInvoiceBtn');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('❌ Errore: Il file è troppo grande. Massimo 5MB.');
+                    input.value = '';
+                    return;
+                }
+
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('❌ Errore: Seleziona un file immagine (JPG, PNG, ecc.)');
+                    input.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    uploadBtn.disabled = false;
+                    uploadBtn.style.opacity = '1';
+                };
+
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Close invoice modal
+        function closeInvoiceModal() {
+            const modal = document.getElementById('invoiceUploadModal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        }
+
+        // Process invoice upload and AI analysis
+        async function processInvoiceUpload(listId) {
+            const input = document.getElementById('invoicePhotoInput');
+            const uploadBtn = document.getElementById('uploadInvoiceBtn');
+            const originalText = uploadBtn.textContent;
+
+            if (!input.files || !input.files[0]) {
+                alert('❌ Seleziona prima una foto');
+                return;
+            }
+
+            const file = input.files[0];
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = '⏳ Caricamento e analisi...';
+
+                // Convert image to base64
+                const base64Photo = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                const fileName = `Fattura_${listId}_${Date.now()}.${file.type.split('/')[1]}`;
+
+                // Call backend to upload and analyze
+                const callback = 'uploadInvoiceCallback_' + Date.now();
+                
+                window[callback] = function(response) {
+                    delete window[callback];
+                    
+                    uploadBtn.textContent = originalText;
+                    uploadBtn.disabled = false;
+
+                    if (response.success) {
+                        closeInvoiceModal();
+                        
+                        // Show results
+                        showInvoiceAnalysisResults(response);
+                        
+                        // Reload workshop lists to show updated data
+                        loadWorkshopLists();
+                    } else {
+                        alert('❌ Errore: ' + response.error);
+                    }
+                };
+
+                // Use the uploadPhoto mechanism (already handles large files well)
+                const script = document.createElement('script');
+                script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadAndAnalyzeInvoiceJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&photoData=${encodeURIComponent(base64Photo)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+                script.onerror = () => {
+                    uploadBtn.textContent = originalText;
+                    uploadBtn.disabled = false;
+                    alert('❌ Errore di connessione');
+                    delete window[callback];
+                };
+                document.body.appendChild(script);
+
+            } catch (error) {
+                uploadBtn.textContent = originalText;
+                uploadBtn.disabled = false;
+                alert('❌ Errore: ' + error.message);
+            }
+        }
+
+        // Show invoice analysis results in a nice modal
+        function showInvoiceAnalysisResults(response) {
+            const analysis = response.analysis;
+            
+            if (!analysis || !analysis.invoiceData) {
+                alert('✅ Fattura caricata ma analisi non disponibile');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                overflow-y: auto;
+            `;
+
+            const inv = analysis.invoiceData;
+            const comp = analysis.comparison || {};
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 30px; max-width: 700px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin: 20px;">
+                    <h2 style="margin: 0 0 20px 0; color: #333; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 32px;">🤖</span>
+                        Analisi Fattura Completata
+                    </h2>
+
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+                        <h3 style="margin: 0 0 10px 0; color: #2e7d32;">📄 Dati Fattura</h3>
+                        <p style="margin: 5px 0;"><strong>Costo Totale:</strong> ${escapeHtml(inv.totalCost || 'N/D')}</p>
+                        <p style="margin: 5px 0;"><strong>Data:</strong> ${escapeHtml(inv.invoiceDate || 'N/D')}</p>
+                        <p style="margin: 5px 0;"><strong>Officina:</strong> ${escapeHtml(inv.workshopName || 'N/D')}</p>
+                        ${inv.invoiceNumber ? `<p style="margin: 5px 0;"><strong>Numero:</strong> ${escapeHtml(inv.invoiceNumber)}</p>` : ''}
+                    </div>
+
+                    ${inv.worksDone && inv.worksDone.length > 0 ? `
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="margin: 0 0 10px 0; color: #333;">🔧 Lavori Effettuati</h3>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                ${inv.worksDone.map(work => `<li>${escapeHtml(work)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    ${comp.worksCompleted || comp.worksAdded || comp.worksMissing ? `
+                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="margin: 0 0 10px 0; color: #e65100;">📊 Confronto vs Preventivo</h3>
+                            
+                            ${comp.worksCompleted && comp.worksCompleted.length > 0 ? `
+                                <div style="margin-bottom: 10px;">
+                                    <strong style="color: #4caf50;">✅ Completati:</strong>
+                                    <ul style="margin: 5px 0; padding-left: 20px;">
+                                        ${comp.worksCompleted.map(w => `<li style="color: #4caf50;">${escapeHtml(w)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+
+                            ${comp.worksAdded && comp.worksAdded.length > 0 ? `
+                                <div style="margin-bottom: 10px;">
+                                    <strong style="color: #ff9800;">➕ Aggiunti:</strong>
+                                    <ul style="margin: 5px 0; padding-left: 20px;">
+                                        ${comp.worksAdded.map(w => `<li style="color: #ff9800;">${escapeHtml(w)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+
+                            ${comp.worksMissing && comp.worksMissing.length > 0 ? `
+                                <div style="margin-bottom: 10px;">
+                                    <strong style="color: #f44336;">❌ Mancanti:</strong>
+                                    <ul style="margin: 5px 0; padding-left: 20px;">
+                                        ${comp.worksMissing.map(w => `<li style="color: #f44336;">${escapeHtml(w)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button onclick="this.closest('div').parentElement.parentElement.remove()" 
+                                style="padding: 12px 24px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            OK, Capito
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
         }
 
         // Regenerate PDF for workshop list

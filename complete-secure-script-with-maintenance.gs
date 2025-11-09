@@ -213,6 +213,9 @@ function doGet(e) {
       case "finalizePdfUploadJsonp":
         return finalizePdfUploadJsonp(e.parameter);
         break;
+      case "uploadAndAnalyzeInvoiceJsonp":
+        return uploadAndAnalyzeInvoiceJsonp(e.parameter);
+        break;
       case "analyzeDamageJsonp":
         return analyzeDamageJsonp(e.parameter);
         break;
@@ -2209,6 +2212,295 @@ function finalizePdfUploadJsonp(params) {
 }
 
 /*************************************************************
+ * INVOICE AI ANALYSIS SYSTEM
+ * Upload and analyze workshop invoices with OpenAI Vision
+ *************************************************************/
+
+// Upload invoice photo and analyze with AI
+function uploadAndAnalyzeInvoice(fileName, photoData, listId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const folderId = scriptProperties.getProperty('MAINTENANCE_PDF_FOLDER_ID') || scriptProperties.getProperty('PHOTO_FOLDER_ID');
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!folderId) {
+      return { success: false, error: 'Cartella foto non configurata' };
+    }
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID non configurato' };
+    }
+
+    // 1. Upload photo to Drive
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(photoData),
+      'image/jpeg',
+      fileName
+    );
+
+    const folder = DriveApp.getFolderById(folderId);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const photoUrl = file.getUrl();
+
+    Logger.log('Invoice photo uploaded: ' + photoUrl);
+
+    // 2. Get workshop list data for context
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    
+    if (!workshopSheet) {
+      return { success: false, error: 'Liste Officina sheet not found' };
+    }
+
+    const data = workshopSheet.getDataRange().getValues();
+    let listRow = -1;
+    let listData = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        listRow = i;
+        listData = data[i];
+        break;
+      }
+    }
+
+    if (listRow === -1) {
+      return { success: false, error: 'Lista non trovata' };
+    }
+
+    // Parse expected works from list
+    let expectedWorks = [];
+    try {
+      const additionalWorks = JSON.parse(listData[11] || '{}');
+      expectedWorks = [
+        ...(additionalWorks.serviceWorks || []),
+        ...(additionalWorks.extraWorks || [])
+      ];
+    } catch (e) {
+      Logger.log('Error parsing additional works: ' + e);
+    }
+
+    // Get issues for this list
+    const difettiSheet = ss.getSheetByName('Difetti e Riparazioni');
+    const difettiData = difettiSheet.getDataRange().getValues();
+    const listIssues = [];
+
+    for (let j = 1; j < difettiData.length; j++) {
+      if (difettiData[j][20] === listId) {
+        listIssues.push({
+          category: difettiData[j][5],
+          description: difettiData[j][6]
+        });
+      }
+    }
+
+    listIssues.forEach(issue => {
+      expectedWorks.push(`${issue.category}: ${issue.description}`);
+    });
+
+    Logger.log('Expected works: ' + JSON.stringify(expectedWorks));
+
+    // 3. Analyze invoice with OpenAI Vision
+    const analysisResult = analyzeInvoiceWithAI(photoUrl, expectedWorks);
+
+    if (!analysisResult.success) {
+      // Save photo URL even if analysis fails
+      workshopSheet.getRange(listRow + 1, 15).setValue(photoUrl);
+      workshopSheet.getRange(listRow + 1, 17).setValue(new Date());
+      workshopSheet.getRange(listRow + 1, 18).setValue('Error');
+      
+      return {
+        success: false,
+        error: 'Analisi fallita: ' + analysisResult.error,
+        photoUrl: photoUrl
+      };
+    }
+
+    // 4. Save results to sheet
+    workshopSheet.getRange(listRow + 1, 15).setValue(photoUrl);                          // Col 15: Foto Fattura URL
+    workshopSheet.getRange(listRow + 1, 16).setValue(JSON.stringify(analysisResult.analysis)); // Col 16: Analisi (JSON)
+    workshopSheet.getRange(listRow + 1, 17).setValue(new Date());                        // Col 17: Data Upload
+    workshopSheet.getRange(listRow + 1, 18).setValue('Success');                         // Col 18: Stato
+
+    // Update total cost if available
+    if (analysisResult.analysis && analysisResult.analysis.invoiceData && analysisResult.analysis.invoiceData.totalCost) {
+      workshopSheet.getRange(listRow + 1, 10).setValue(analysisResult.analysis.invoiceData.totalCost);
+    }
+
+    return {
+      success: true,
+      photoUrl: photoUrl,
+      analysis: analysisResult.analysis
+    };
+
+  } catch (error) {
+    Logger.log('Error in uploadAndAnalyzeInvoice: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Analyze invoice using OpenAI Vision API
+function analyzeInvoiceWithAI(photoUrl, expectedWorks) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
+    }
+
+    // Download image and convert to base64
+    const photoBlob = UrlFetchApp.fetch(photoUrl).getBlob();
+    const base64Image = Utilities.base64Encode(photoBlob.getBytes());
+    const mimeType = photoBlob.getContentType();
+
+    // Construct prompt
+    const prompt = `Analizza questa fattura di officina meccanica ed estrai le seguenti informazioni in formato JSON.
+
+LAVORI PREVENTIVATI ORIGINALI:
+${expectedWorks.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+Estrai dalla fattura:
+1. Costo totale (includi valuta, es: "CHF 450.00")
+2. Lista completa dei lavori effettuati (come appaiono in fattura)
+3. Data della fattura (formato YYYY-MM-DD)
+4. Nome dell'officina/garage
+5. Numero fattura se presente
+
+Poi confronta i lavori fatturati con quelli preventivati e classifica:
+- worksCompleted: lavori preventivati che sono stati effettuati
+- worksAdded: lavori effettuati ma NON preventivati
+- worksMissing: lavori preventivati ma NON effettuati
+
+Rispondi SOLO con JSON valido nel seguente formato:
+{
+  "invoiceData": {
+    "totalCost": "importo con valuta",
+    "invoiceDate": "YYYY-MM-DD",
+    "workshopName": "nome officina",
+    "invoiceNumber": "numero se presente o null",
+    "worksDone": ["lavoro1", "lavoro2", "..."]
+  },
+  "comparison": {
+    "worksCompleted": ["lavori preventivati e completati"],
+    "worksAdded": ["lavori extra non preventivati"],
+    "worksMissing": ["lavori preventivati ma non effettuati"]
+  },
+  "aiConfidence": 0.95
+}
+
+Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto dei lavori.`;
+
+    // Call OpenAI API
+    const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: 'gpt-4-vision-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.2
+      }),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log('OpenAI Response Code: ' + responseCode);
+    Logger.log('OpenAI Response: ' + responseText);
+
+    if (responseCode !== 200) {
+      return {
+        success: false,
+        error: 'OpenAI API error: ' + responseText
+      };
+    }
+
+    const result = JSON.parse(responseText);
+    
+    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+      return {
+        success: false,
+        error: 'Risposta OpenAI non valida'
+      };
+    }
+
+    const aiResponse = result.choices[0].message.content;
+    
+    // Parse JSON from AI response
+    let analysis;
+    try {
+      // Remove markdown code blocks if present
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysis = JSON.parse(jsonMatch[0]);
+      } else {
+        analysis = JSON.parse(aiResponse);
+      }
+    } catch (e) {
+      Logger.log('Error parsing AI response: ' + e);
+      return {
+        success: false,
+        error: 'Impossibile interpretare la risposta AI: ' + aiResponse
+      };
+    }
+
+    // Add analysis timestamp
+    analysis.analysisDate = new Date().toISOString();
+
+    return {
+      success: true,
+      analysis: analysis
+    };
+
+  } catch (error) {
+    Logger.log('Error in analyzeInvoiceWithAI: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function uploadAndAnalyzeInvoiceJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = uploadAndAnalyzeInvoice(params.fileName, params.photoData, params.listId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+/*************************************************************
  * DAMAGE AI RECOGNITION SYSTEM
  * Analyzes photos to find who caused vehicle damage
  *************************************************************/
@@ -3767,23 +4059,27 @@ function getOrCreateWorkshopListsSheet() {
     if (!sheet) {
       sheet = ss.insertSheet('Liste Officina');
       
-      // Add headers (14 columns now - added PDF History)
-      const headerRow = sheet.getRange(1, 1, 1, 14);
+      // Add headers (18 columns now - added Invoice AI columns)
+      const headerRow = sheet.getRange(1, 1, 1, 18);
       headerRow.setValues([[
-        'ID Lista',
-        'Data Creazione',
-        'ID Veicolo',
-        'Nome Veicolo',
-        'Nome Officina',
-        'Report IDs (JSON)',
-        'PDF URL',
-        'Fattura URL',
-        'Stato',
-        'Costo Totale (CHF)',
-        'Data Completamento',
-        'Note Officina',
-        'Dati Fattura (JSON)',
-        'PDF History (JSON)'
+        'ID Lista',                    // 1
+        'Data Creazione',              // 2
+        'ID Veicolo',                  // 3
+        'Nome Veicolo',                // 4
+        'Nome Officina',               // 5
+        'Report IDs (JSON)',           // 6
+        'PDF URL',                     // 7
+        'Fattura URL',                 // 8
+        'Stato',                       // 9
+        'Costo Totale (CHF)',          // 10
+        'Data Completamento',          // 11
+        'Lavori Aggiuntivi (JSON)',    // 12 - serviceWorks, extraWorks
+        'Note',                        // 13
+        'PDF History (JSON)',          // 14
+        'Foto Fattura URL',            // 15 - NEW: Link alla foto fattura su Drive
+        'Analisi Fattura (JSON)',      // 16 - NEW: Risultato analisi AI
+        'Data Upload Fattura',         // 17 - NEW: Timestamp upload
+        'Stato Analisi'                // 18 - NEW: Pending/Success/Error
       ]]);
       
       // Format headers
@@ -3794,20 +4090,24 @@ function getOrCreateWorkshopListsSheet() {
       sheet.setFrozenRows(1);
       
       // Set column widths
-      sheet.setColumnWidth(1, 150); // ID Lista
-      sheet.setColumnWidth(2, 120); // Data Creazione
-      sheet.setColumnWidth(3, 120); // ID Veicolo
-      sheet.setColumnWidth(4, 150); // Nome Veicolo
-      sheet.setColumnWidth(5, 150); // Nome Officina
-      sheet.setColumnWidth(6, 200); // Report IDs
-      sheet.setColumnWidth(7, 200); // PDF URL
-      sheet.setColumnWidth(8, 200); // Fattura URL
-      sheet.setColumnWidth(9, 120); // Stato
+      sheet.setColumnWidth(1, 150);  // ID Lista
+      sheet.setColumnWidth(2, 120);  // Data Creazione
+      sheet.setColumnWidth(3, 120);  // ID Veicolo
+      sheet.setColumnWidth(4, 150);  // Nome Veicolo
+      sheet.setColumnWidth(5, 150);  // Nome Officina
+      sheet.setColumnWidth(6, 200);  // Report IDs
+      sheet.setColumnWidth(7, 200);  // PDF URL
+      sheet.setColumnWidth(8, 200);  // Fattura URL (legacy)
+      sheet.setColumnWidth(9, 120);  // Stato
       sheet.setColumnWidth(10, 120); // Costo Totale
       sheet.setColumnWidth(11, 120); // Data Completamento
-      sheet.setColumnWidth(12, 200); // Note Officina
-      sheet.setColumnWidth(13, 250); // Dati Fattura
+      sheet.setColumnWidth(12, 250); // Lavori Aggiuntivi
+      sheet.setColumnWidth(13, 200); // Note
       sheet.setColumnWidth(14, 250); // PDF History
+      sheet.setColumnWidth(15, 200); // Foto Fattura URL
+      sheet.setColumnWidth(16, 300); // Analisi Fattura (JSON)
+      sheet.setColumnWidth(17, 120); // Data Upload Fattura
+      sheet.setColumnWidth(18, 100); // Stato Analisi
     }
 
     return {
@@ -4076,22 +4376,26 @@ function createWorkshopList(listData) {
       extraWorks: listData.extraWorks || []
     };
 
-    // Create workshop list entry
+    // Create workshop list entry (18 columns)
     workshopSheet.appendRow([
-      listId,                                // ID Lista
-      new Date(),                            // Data Creazione
-      listData.vehicleId,                    // ID Veicolo
-      listData.vehicleName,                  // Nome Veicolo
-      listData.workshopName || '',           // Nome Officina
-      JSON.stringify(issueIdentifiers),      // Report IDs (JSON)
-      listData.pdfUrl || '',                 // PDF URL
-      '',                                    // Fattura URL
-      'In Corso',                            // Stato
-      '',                                    // Costo Totale
-      '',                                    // Data Completamento
-      JSON.stringify(additionalWorks),       // Note Officina (now contains service/extra works)
-      '',                                    // Dati Fattura (JSON)
-      ''                                     // PDF History (JSON)
+      listId,                                // 1: ID Lista
+      new Date(),                            // 2: Data Creazione
+      listData.vehicleId,                    // 3: ID Veicolo
+      listData.vehicleName,                  // 4: Nome Veicolo
+      listData.workshopName || '',           // 5: Nome Officina
+      JSON.stringify(issueIdentifiers),      // 6: Report IDs (JSON)
+      listData.pdfUrl || '',                 // 7: PDF URL
+      '',                                    // 8: Fattura URL (legacy)
+      'In Corso',                            // 9: Stato
+      '',                                    // 10: Costo Totale
+      '',                                    // 11: Data Completamento
+      JSON.stringify(additionalWorks),       // 12: Lavori Aggiuntivi (JSON)
+      '',                                    // 13: Note
+      '',                                    // 14: PDF History (JSON)
+      '',                                    // 15: Foto Fattura URL
+      '',                                    // 16: Analisi Fattura (JSON)
+      '',                                    // 17: Data Upload Fattura
+      ''                                     // 18: Stato Analisi
     ]);
 
     return {
@@ -4260,6 +4564,16 @@ function getWorkshopLists() {
         pdfHistory = [];
       }
 
+      // Parse invoice analysis (col 16, index 15)
+      let invoiceAnalysis = null;
+      try {
+        if (row[15]) {
+          invoiceAnalysis = JSON.parse(row[15]);
+        }
+      } catch (e) {
+        invoiceAnalysis = null;
+      }
+
       lists.push({
         listId: listId,
         dataCreazione: row[1],
@@ -4274,6 +4588,12 @@ function getWorkshopLists() {
         noteOfficina: typeof additionalWorks === 'object' ? '' : row[11], // Only if not JSON
         datiFattura: row[12],
         pdfHistory: pdfHistory,
+        // NEW: Invoice AI fields
+        invoicePhotoUrl: row[14] || '',
+        invoiceAnalysis: invoiceAnalysis,
+        invoiceUploadDate: row[16] || '',
+        invoiceAnalysisStatus: row[17] || '',
+        // Issues and works
         issues: listIssues,
         totalIssues: listIssues.length,
         serviceWorks: additionalWorks.serviceWorks || [],
