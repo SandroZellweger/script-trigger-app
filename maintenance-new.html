@@ -1359,6 +1359,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('new-report')">📝 Nuovo Report</button>
             <button class="tab" onclick="switchTab('active-reports')">🔨 Report Attivi</button>
+            <button class="tab" onclick="switchTab('workshop-lists')">🏥 In Officina</button>
             <button class="tab" onclick="switchTab('history')">📊 Storico Completo</button>
             <button class="tab" onclick="switchTab('garages')">🔧 Gestione Officine</button>
             <button class="tab" onclick="switchTab('import-legacy')">📥 Importa Dati Legacy</button>
@@ -1446,6 +1447,23 @@
                     <div class="loading">
                         <div class="spinner"></div>
                         <p>Caricamento storico...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WORKSHOP LISTS TAB -->
+        <div id="workshop-lists" class="tab-content">
+            <div class="content-card">
+                <h2 style="margin-bottom: 20px;">🏥 Lavori in Corso / Officina</h2>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Qui trovi i veicoli attualmente in officina con le liste di manutenzione inviate.
+                </p>
+                
+                <div id="workshopListsContainer">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Caricamento liste officina...</p>
                     </div>
                 </div>
             </div>
@@ -1699,6 +1717,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             if (tabName === 'active-reports') {
                 loadActiveReports();
+            } else if (tabName === 'workshop-lists') {
+                loadWorkshopLists();
             } else if (tabName === 'history') {
                 loadHistory();
             } else if (tabName === 'garages') {
@@ -4059,12 +4079,60 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 const fileName = `Lista_Manutenzione_${pdfWizardData.vehicleName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
                 doc.save(fileName);
 
-                // Restore button
-                generateBtn.textContent = originalText;
-                generateBtn.disabled = false;
+                // Check if should send to workshop
+                const sendToWorkshop = document.getElementById('sendToWorkshopCheckbox')?.checked;
+                
+                if (sendToWorkshop && pdfWizardData.selectedDamages.length > 0) {
+                    generateBtn.textContent = '📤 Invio in officina...';
+                    
+                    // Prepare issue identifiers
+                    const issueIdentifiers = pdfWizardData.selectedDamages.map(damage => ({
+                        reportId: damage.id.split('_')[0], // Extract reportId from damage ID
+                        issueNumber: parseInt(damage.id.split('_')[1] || 1)
+                    }));
 
-                alert('✅ PDF generato con successo con foto incluse!');
-                closeMaintenancePdfWizard();
+                    const listData = {
+                        vehicleId: pdfWizardData.vehicleId,
+                        vehicleName: pdfWizardData.vehicleName,
+                        workshopName: pdfWizardData.garageName || '',
+                        issueIdentifiers: JSON.stringify(issueIdentifiers),
+                        pdfUrl: '', // TODO: upload PDF to Drive and get URL
+                        notes: 'Lista generata automaticamente dal wizard PDF'
+                    };
+
+                    const callback = 'createWorkshopListCallback_' + Date.now();
+                    
+                    window[callback] = function(response) {
+                        generateBtn.textContent = originalText;
+                        generateBtn.disabled = false;
+                        
+                        if (response.success) {
+                            alert(`✅ PDF generato e veicolo inviato in officina!\n\nLista: ${response.listId}\nProblemi aggiornati: ${response.issuesUpdated}`);
+                        } else {
+                            alert('✅ PDF generato ma errore nell\'invio in officina: ' + response.error);
+                        }
+                        
+                        closeMaintenancePdfWizard();
+                        delete window[callback];
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=createWorkshopListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(listData))}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        generateBtn.textContent = originalText;
+                        generateBtn.disabled = false;
+                        alert('✅ PDF generato ma errore di connessione per l\'invio in officina');
+                        closeMaintenancePdfWizard();
+                        delete window[callback];
+                    };
+                    document.body.appendChild(script);
+                } else {
+                    // Just PDF generation, no workshop send
+                    generateBtn.textContent = originalText;
+                    generateBtn.disabled = false;
+                    alert('✅ PDF generato con successo con foto incluse!');
+                    closeMaintenancePdfWizard();
+                }
 
             } catch (error) {
                 console.error('Errore generazione PDF:', error);
@@ -4214,6 +4282,138 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 delete window[callback];
             };
             document.body.appendChild(script);
+        }
+
+        // Load workshop lists (vehicles in workshop)
+        function loadWorkshopLists() {
+            const container = document.getElementById('workshopListsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Caricamento...</p></div>';
+
+            const callback = 'workshopListsCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (!response.success) {
+                    container.innerHTML = `<div class="error-message">Errore: ${response.error}</div>`;
+                    delete window[callback];
+                    return;
+                }
+
+                const lists = response.lists || [];
+
+                if (lists.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">Nessun veicolo attualmente in officina.</p>';
+                    delete window[callback];
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                lists.forEach((list, index) => {
+                    const listCard = document.createElement('div');
+                    listCard.className = 'report-card';
+                    listCard.style.borderLeft = '4px solid #17a2b8';
+                    
+                    const dataCreazione = list.dataCreazione ? new Date(list.dataCreazione).toLocaleDateString('it-CH') : 'N/D';
+                    
+                    listCard.innerHTML = `
+                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                            <div style="flex: 1; min-width: 250px;">
+                                <h3 style="color: #17a2b8; margin: 0 0 5px 0;">🚗 ${escapeHtml(list.vehicleName)} - ${escapeHtml(list.listId)}</h3>
+                                <p style="margin: 5px 0; color: #666;">
+                                    <strong>📅 Inviato:</strong> ${dataCreazione} | 
+                                    <strong>🏪 Officina:</strong> ${escapeHtml(list.workshopName || 'Non specificata')}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                ${list.pdfUrl ? `<a href="${escapeHtml(list.pdfUrl)}" target="_blank" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; text-decoration: none; cursor: pointer; font-size: 14px;">📄 Vedi PDF</a>` : ''}
+                                <button onclick="uploadInvoiceForList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    📷 Carica Fattura
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 10px 0; color: #333;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
+                            <div id="issues-${escapeHtml(list.listId)}" style="display: flex; flex-direction: column; gap: 8px;">
+                                ${list.issues.map((issue, idx) => `
+                                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                        <div style="flex: 1; min-width: 200px;">
+                                            <input type="checkbox" ${issue.completato ? 'checked' : ''} disabled style="margin-right: 8px;">
+                                            <strong>${escapeHtml(issue.category)}:</strong> ${escapeHtml(issue.description)}
+                                            <span style="margin-left: 10px; color: #999; font-size: 13px;">(${escapeHtml(issue.urgency)})</span>
+                                        </div>
+                                        <button onclick="removeIssueFromWorkshop('${escapeHtml(list.listId)}', '${escapeHtml(issue.reportId)}', ${issue.issueNumber})" 
+                                                style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                            ↩️ Rimetti in Attivi
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                                ➕ Aggiungi Lavoro
+                            </button>
+                            <button onclick="completeWorkshopList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                                ✅ Completa Tutto
+                            </button>
+                        </div>
+                    `;
+                    
+                    container.appendChild(listCard);
+                });
+
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getWorkshopListsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                container.innerHTML = '<div class="error-message">Errore di connessione</div>';
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // Remove issue from workshop (back to active reports)
+        function removeIssueFromWorkshop(listId, reportId, issueNumber) {
+            if (!confirm('Rimuovere questo problema dalla lista officina?\nTornerà nei Report Attivi.')) {
+                return;
+            }
+
+            const callback = 'removeIssueCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert('✅ Problema rimosso dalla lista officina');
+                    loadWorkshopLists();
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=moveIssueBackToActiveJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueNumber=${issueNumber}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // Placeholder functions for future implementation
+        function addIssueToWorkshopList(listId) {
+            alert('Funzione in sviluppo: Aggiungi nuovo lavoro alla lista ' + listId);
+        }
+
+        function completeWorkshopList(listId) {
+            alert('Funzione in sviluppo: Completa tutti i lavori della lista ' + listId);
+        }
+
+        function uploadInvoiceForList(listId) {
+            alert('Funzione in sviluppo: Upload e analisi fattura per lista ' + listId);
         }
 
         // Open edit garage modal
@@ -5501,6 +5701,19 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         <h3>🏢 Officina selezionata</h3>
                         <div id="summaryGarage"></div>
                     </div>
+
+                    <div class="summary-section" style="background: #e3f2fd; border: 2px solid #17a2b8; padding: 20px; border-radius: 12px;">
+                        <h3 style="color: #17a2b8; margin-top: 0;">🏥 Gestione Officina</h3>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 16px;">
+                            <input type="checkbox" id="sendToWorkshopCheckbox" style="width: 20px; height: 20px; cursor: pointer;">
+                            <span>
+                                <strong>Invia veicolo in officina</strong> 
+                                <span style="display: block; color: #666; font-size: 14px; margin-top: 5px;">
+                                    Seleziona questa opzione per spostare automaticamente i problemi nella sezione "In Officina"
+                                </span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Navigation Buttons -->
@@ -5513,7 +5726,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         Avanti →
                     </button>
                     <button id="wizardGenerateBtn" class="wizard-btn wizard-btn-generate" onclick="generateMaintenancePDF()" style="display: none;">
-                        📄 Genera PDF
+                        📄 Genera PDF e ${document.getElementById('sendToWorkshopCheckbox')?.checked ? 'Invia in Officina' : 'Completa'}
                     </button>
                 </div>
             </div>
