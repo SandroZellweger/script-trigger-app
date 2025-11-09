@@ -4127,12 +4127,26 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 garages.forEach((garage, index) => {
                     const garageCard = document.createElement('div');
                     garageCard.className = 'report-card';
+                    
+                    // Store garage data in cache
+                    const garageKey = `garage_${index}`;
+                    window.garageDataCache = window.garageDataCache || {};
+                    window.garageDataCache[garageKey] = garage;
+                    
                     garageCard.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                             <h3 style="color: #667eea; margin: 0;">${escapeHtml(garage.name)}</h3>
-                            <span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                                ${escapeHtml(garage.specialization || 'Generale')}
-                            </span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                    ${escapeHtml(garage.specialization || 'Generale')}
+                                </span>
+                                <button onclick="openEditGarageModal('${garageKey}')" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Modifica officina">
+                                    ✏️ Modifica
+                                </button>
+                                <button onclick="deleteGarage('${garageKey}')" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Elimina officina">
+                                    🗑️ Elimina
+                                </button>
+                            </div>
                         </div>
                         ${garage.address ? `<p style="margin: 8px 0;"><strong>📍</strong> ${escapeHtml(garage.address)}${garage.city ? ', ' + escapeHtml(garage.city) : ''}${garage.zip ? ' ' + escapeHtml(garage.zip) : ''}</p>` : ''}
                         ${garage.phone ? `<p style="margin: 8px 0;"><strong>📞</strong> <a href="tel:${escapeHtml(garage.phone)}">${escapeHtml(garage.phone)}</a></p>` : ''}
@@ -4195,6 +4209,136 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             const script = document.createElement('script');
             script.src = `${window.APP_CONFIG.scriptUrl}?function=addGarageJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(garageData))}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // Open edit garage modal
+        function openEditGarageModal(garageKey) {
+            const garage = window.garageDataCache[garageKey];
+            if (!garage) {
+                alert('Errore: dati officina non trovati');
+                return;
+            }
+
+            // Store the garage key for later use
+            document.getElementById('editGarageIndex').value = garageKey;
+
+            // Populate form fields
+            document.getElementById('editGarageName').value = garage.name || '';
+            document.getElementById('editGarageAddress').value = garage.address || '';
+            document.getElementById('editGarageCity').value = garage.city || '';
+            document.getElementById('editGarageZip').value = garage.zip || '';
+            document.getElementById('editGaragePhone').value = garage.phone || '';
+            document.getElementById('editGarageMobile').value = garage.mobile || '';
+            document.getElementById('editGarageEmail').value = garage.email || '';
+            document.getElementById('editGarageWebsite').value = garage.website || '';
+            document.getElementById('editGarageResponsabile').value = garage.responsabile || '';
+            document.getElementById('editGarageSpecialization').value = garage.specialization || 'Generale';
+            document.getElementById('editGarageNotes').value = garage.notes || '';
+
+            // Show modal
+            document.getElementById('editGarageModal').style.display = 'flex';
+        }
+
+        // Close edit garage modal
+        function closeEditGarageModal() {
+            document.getElementById('editGarageModal').style.display = 'none';
+            document.getElementById('editGarageForm').reset();
+        }
+
+        // Save edited garage
+        function saveEditedGarage(event) {
+            event.preventDefault();
+
+            const garageKey = document.getElementById('editGarageIndex').value;
+            const name = document.getElementById('editGarageName').value.trim();
+
+            if (!name) {
+                alert('Il nome dell\'officina è obbligatorio');
+                document.getElementById('editGarageName').focus();
+                return;
+            }
+
+            const garageData = {
+                name: name,
+                address: document.getElementById('editGarageAddress').value.trim(),
+                city: document.getElementById('editGarageCity').value.trim(),
+                zip: document.getElementById('editGarageZip').value.trim(),
+                phone: document.getElementById('editGaragePhone').value.trim(),
+                mobile: document.getElementById('editGarageMobile').value.trim(),
+                email: document.getElementById('editGarageEmail').value.trim(),
+                website: document.getElementById('editGarageWebsite').value.trim(),
+                responsabile: document.getElementById('editGarageResponsabile').value.trim(),
+                specialization: document.getElementById('editGarageSpecialization').value.trim(),
+                notes: document.getElementById('editGarageNotes').value.trim()
+            };
+
+            const callback = 'updateGarageCallback_' + Date.now();
+
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert('✅ Officina aggiornata con successo!');
+                    closeEditGarageModal();
+                    loadSavedGarages();
+                } else {
+                    alert('❌ Errore nell\'aggiornamento: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=updateGarageJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(garageData))}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // Delete garage with password confirmation
+        function deleteGarage(garageKey) {
+            const garage = window.garageDataCache[garageKey];
+            if (!garage) {
+                alert('Errore: dati officina non trovati');
+                return;
+            }
+
+            // Ask for confirmation - user must type "delete" or enter admin password
+            const confirmation = prompt(
+                `⚠️ ATTENZIONE: Stai per eliminare l'officina "${garage.name}".\n\n` +
+                `Per confermare, digita "delete" oppure inserisci la password admin:`
+            );
+
+            if (!confirmation) {
+                return; // User cancelled
+            }
+
+            const trimmedConfirmation = confirmation.trim();
+
+            // Check if user typed "delete" or correct admin password
+            if (trimmedConfirmation.toLowerCase() !== 'delete' && trimmedConfirmation !== window.APP_CONFIG.authToken) {
+                alert('❌ Conferma non valida. Eliminazione annullata.');
+                return;
+            }
+
+            const callback = 'deleteGarageCallback_' + Date.now();
+
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert('✅ Officina eliminata con successo');
+                    loadSavedGarages();
+                } else {
+                    alert('❌ Errore nell\'eliminazione: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=deleteGarageJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&garageName=${encodeURIComponent(garage.name)}&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 alert('❌ Errore di connessione');
                 delete window[callback];
@@ -4957,6 +5101,90 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     <div class="edit-issue-actions">
                         <button type="button" onclick="closeEditIssueModal()" class="edit-issue-btn edit-issue-btn-cancel">❌ Annulla</button>
+                        <button type="submit" class="edit-issue-btn edit-issue-btn-save">💾 Salva Modifiche</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Garage Modal -->
+    <div id="editGarageModal" class="edit-issue-overlay">
+        <div class="edit-issue-modal-content">
+            <div class="edit-issue-modal-header">
+                <h2>✏️ Modifica Officina</h2>
+                <button class="edit-issue-close" onclick="closeEditGarageModal()">×</button>
+            </div>
+            <div class="edit-issue-modal-body">
+                <form id="editGarageForm" onsubmit="saveEditedGarage(event)">
+                    <input type="hidden" id="editGarageIndex">
+                    
+                    <div class="edit-issue-field">
+                        <label for="editGarageName">Nome Officina *</label>
+                        <input type="text" id="editGarageName" required>
+                    </div>
+
+                    <div class="edit-issue-field">
+                        <label for="editGarageAddress">Indirizzo</label>
+                        <input type="text" id="editGarageAddress">
+                    </div>
+
+                    <div class="edit-issue-field-group">
+                        <div class="edit-issue-field">
+                            <label for="editGarageCity">Città</label>
+                            <input type="text" id="editGarageCity">
+                        </div>
+                        <div class="edit-issue-field">
+                            <label for="editGarageZip">CAP</label>
+                            <input type="text" id="editGarageZip">
+                        </div>
+                    </div>
+
+                    <div class="edit-issue-field-group">
+                        <div class="edit-issue-field">
+                            <label for="editGaragePhone">Telefono</label>
+                            <input type="tel" id="editGaragePhone">
+                        </div>
+                        <div class="edit-issue-field">
+                            <label for="editGarageMobile">Cellulare</label>
+                            <input type="tel" id="editGarageMobile">
+                        </div>
+                    </div>
+
+                    <div class="edit-issue-field">
+                        <label for="editGarageEmail">Email</label>
+                        <input type="email" id="editGarageEmail">
+                    </div>
+
+                    <div class="edit-issue-field">
+                        <label for="editGarageWebsite">Sito Web</label>
+                        <input type="url" id="editGarageWebsite" placeholder="https://">
+                    </div>
+
+                    <div class="edit-issue-field">
+                        <label for="editGarageResponsabile">Responsabile</label>
+                        <input type="text" id="editGarageResponsabile">
+                    </div>
+
+                    <div class="edit-issue-field">
+                        <label for="editGarageSpecialization">Specializzazione</label>
+                        <select id="editGarageSpecialization">
+                            <option value="Generale">Generale</option>
+                            <option value="Carrozzeria">Carrozzeria</option>
+                            <option value="Meccanica">Meccanica</option>
+                            <option value="Elettronica">Elettronica</option>
+                            <option value="Gomme">Gomme</option>
+                            <option value="Tagliandi">Tagliandi</option>
+                        </select>
+                    </div>
+
+                    <div class="edit-issue-field">
+                        <label for="editGarageNotes">Note</label>
+                        <textarea id="editGarageNotes" rows="3" placeholder="Note aggiuntive sull'officina..."></textarea>
+                    </div>
+
+                    <div class="edit-issue-actions">
+                        <button type="button" onclick="closeEditGarageModal()" class="edit-issue-btn edit-issue-btn-cancel">❌ Annulla</button>
                         <button type="submit" class="edit-issue-btn edit-issue-btn-save">💾 Salva Modifiche</button>
                     </div>
                 </form>

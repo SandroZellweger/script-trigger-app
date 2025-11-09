@@ -249,6 +249,12 @@ function doGet(e) {
       case "addGarageJsonp":
         return addGarageJsonp(e.parameter);
         break;
+      case "updateGarageJsonp":
+        return updateGarageJsonp(e.parameter);
+        break;
+      case "deleteGarageJsonp":
+        return deleteGarageJsonp(e.parameter);
+        break;
       case "searchGaragesOnlineJsonp":
         return searchGaragesOnlineJsonp(e.parameter);
         break;
@@ -3506,6 +3512,126 @@ function addGarageJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const garageData = JSON.parse(params.data);
   const response = addGarage(garageData);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Update existing garage
+function updateGarage(garageData) {
+  try {
+    const result = getOrCreateGaragesSheet();
+    if (!result.success) {
+      return result;
+    }
+
+    const sheet = result.sheet;
+    const data = sheet.getDataRange().getValues();
+    
+    // Find the garage by name
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === garageData.name) {
+        rowIndex = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        error: 'Garage not found'
+      };
+    }
+
+    // Update the row
+    sheet.getRange(rowIndex, 1, 1, 11).setValues([[
+      garageData.name || '',
+      garageData.address || '',
+      garageData.city || '',
+      garageData.zip || '',
+      garageData.phone || '',
+      garageData.mobile || '',
+      garageData.email || '',
+      garageData.website || '',
+      garageData.responsabile || '',
+      garageData.specialization || '',
+      garageData.notes || ''
+    ]]);
+
+    return {
+      success: true,
+      message: 'Garage updated successfully',
+      garage: garageData
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function updateGarageJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const garageData = JSON.parse(params.data);
+  const response = updateGarage(garageData);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Delete garage
+function deleteGarage(garageName) {
+  try {
+    const result = getOrCreateGaragesSheet();
+    if (!result.success) {
+      return result;
+    }
+
+    const sheet = result.sheet;
+    const data = sheet.getDataRange().getValues();
+    
+    // Find the garage by name
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === garageName) {
+        rowIndex = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        error: 'Garage not found'
+      };
+    }
+
+    // Delete the row
+    sheet.deleteRow(rowIndex);
+
+    return {
+      success: true,
+      message: 'Garage deleted successfully'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function deleteGarageJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = deleteGarage(params.garageName);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
