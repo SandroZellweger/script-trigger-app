@@ -264,6 +264,12 @@ function doGet(e) {
       case "getWorkshopListsJsonp":
         return getWorkshopListsJsonp(e.parameter);
         break;
+      case "deleteWorkshopListJsonp":
+        return deleteWorkshopListJsonp(e.parameter);
+        break;
+      case "completeWorkshopListJsonp":
+        return completeWorkshopListJsonp(e.parameter);
+        break;
       case "searchGaragesOnlineJsonp":
         return searchGaragesOnlineJsonp(e.parameter);
         break;
@@ -3778,15 +3784,32 @@ function createWorkshopList(listData) {
     // Update each issue's status to "In Officina"
     const data = difettiSheet.getDataRange().getValues();
     
+    // Build a map of reportId -> issue positions for matching
+    const reportIssueMap = {};
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const reportId = row[0];
+      if (!reportIssueMap[reportId]) {
+        reportIssueMap[reportId] = [];
+      }
+      reportIssueMap[reportId].push({
+        rowIndex: i,
+        issueNumber: parseInt(row[17]) // N. Problema column (actual issue number from sheet)
+      });
+    }
+    
+    // Now match and update issues
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const reportId = row[0];
       const issueNumber = parseInt(row[17]); // N. Problema column
 
-      // Check if this issue is in our list
-      const matchingIssue = issueIdentifiers.find(id => 
-        id.reportId === reportId && id.issueNumber === issueNumber
-      );
+      // Check if this issue is in our list - match by reportId and issueNumber
+      const matchingIssue = issueIdentifiers.find(id => {
+        // id.issueNumber from wizard is 1-based index (issueIdx + 1)
+        // We need to match it with the actual issueNumber in the sheet
+        return id.reportId === reportId && id.issueNumber === issueNumber;
+      });
 
       if (matchingIssue) {
         // Update columns: Stato Lavoro (20), ID Lista Officina (21), Data Invio Officina (22)
@@ -3945,16 +3968,16 @@ function getWorkshopLists() {
       const listIssues = [];
       for (let j = 1; j < difettiData.length; j++) {
         const issueRow = difettiData[j];
-        const issueListId = issueRow[20]; // ID Lista Officina column
+        const issueListId = issueRow[20]; // ID Lista Officina column (col 21, index 20)
         
         if (issueListId === listId) {
           listIssues.push({
             reportId: issueRow[0],
-            issueNumber: issueRow[17],
+            issueNumber: parseInt(issueRow[17]), // N. Problema
             category: issueRow[5],
             description: issueRow[6],
             urgency: issueRow[7],
-            stato: issueRow[19], // Stato Lavoro
+            stato: issueRow[19], // Stato Lavoro (col 20, index 19)
             completato: issueRow[9],
             dataCompletamento: issueRow[10],
             tipoRiparazione: issueRow[11],
@@ -4000,6 +4023,170 @@ function getWorkshopLists() {
 function getWorkshopListsJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = getWorkshopLists();
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Delete entire workshop list and return all issues to "Aperto" status
+function deleteWorkshopList(listId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    
+    // Get difetti sheet to reset issues
+    const difettiSheet = ss.getSheetByName('Difetti e Riparazioni');
+    if (!difettiSheet) {
+      return { success: false, error: 'Difetti e Riparazioni sheet not found' };
+    }
+
+    // Reset all issues with this listId back to "Aperto"
+    const data = difettiSheet.getDataRange().getValues();
+    let issuesReset = 0;
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const issueListId = row[20]; // ID Lista Officina column
+      
+      if (issueListId === listId) {
+        // Reset to "Aperto" state
+        difettiSheet.getRange(i + 1, 20).setValue('Aperto');      // Stato Lavoro
+        difettiSheet.getRange(i + 1, 21).setValue('');            // ID Lista Officina
+        difettiSheet.getRange(i + 1, 22).setValue('');            // Data Invio Officina
+        issuesReset++;
+      }
+    }
+
+    // Delete workshop list entry
+    const workshopResult = getOrCreateWorkshopListsSheet();
+    if (!workshopResult.success) {
+      return workshopResult;
+    }
+    const workshopSheet = workshopResult.sheet;
+    const workshopData = workshopSheet.getDataRange().getValues();
+    
+    let listRowIndex = -1;
+    for (let i = 1; i < workshopData.length; i++) {
+      if (workshopData[i][0] === listId) {
+        listRowIndex = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (listRowIndex > 0) {
+      workshopSheet.deleteRow(listRowIndex);
+    }
+
+    return {
+      success: true,
+      message: 'Workshop list deleted and issues returned to active',
+      issuesReset: issuesReset
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function deleteWorkshopListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = deleteWorkshopList(params.listId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Complete all issues in a workshop list
+function completeWorkshopList(listId, completionData) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const difettiSheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    if (!difettiSheet) {
+      return { success: false, error: 'Sheet not found' };
+    }
+
+    const data = difettiSheet.getDataRange().getValues();
+    let issuesCompleted = 0;
+    const now = new Date();
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const issueListId = row[20]; // ID Lista Officina column
+      
+      if (issueListId === listId) {
+        // Mark as completed
+        difettiSheet.getRange(i + 1, 10).setValue(true);           // Completato checkbox
+        difettiSheet.getRange(i + 1, 11).setValue(now);            // Data Completamento
+        difettiSheet.getRange(i + 1, 20).setValue('Completato');   // Stato Lavoro
+        
+        // If completion data provided (from invoice), fill in details
+        if (completionData && completionData.garage) {
+          difettiSheet.getRange(i + 1, 14).setValue(completionData.garage);
+        }
+        if (completionData && completionData.invoiceNumber) {
+          difettiSheet.getRange(i + 1, 15).setValue(completionData.invoiceNumber);
+        }
+        
+        issuesCompleted++;
+      }
+    }
+
+    // Update workshop list status
+    const workshopResult = getOrCreateWorkshopListsSheet();
+    if (workshopResult.success) {
+      const workshopSheet = workshopResult.sheet;
+      const workshopData = workshopSheet.getDataRange().getValues();
+      
+      for (let i = 1; i < workshopData.length; i++) {
+        if (workshopData[i][0] === listId) {
+          workshopSheet.getRange(i + 1, 9).setValue('Completato');   // Stato
+          workshopSheet.getRange(i + 1, 11).setValue(now);           // Data Completamento
+          if (completionData && completionData.totalCost) {
+            workshopSheet.getRange(i + 1, 10).setValue(completionData.totalCost);
+          }
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      issuesCompleted: issuesCompleted
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function completeWorkshopListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const completionData = params.completionData ? JSON.parse(params.completionData) : null;
+  const response = completeWorkshopList(params.listId, completionData);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 

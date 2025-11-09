@@ -3049,7 +3049,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             vehicleDamages.forEach(report => {
                 report.issues.forEach((issue, idx) => {
-                    const damageId = `${report.reportId}-${idx}`;
+                    const damageId = `${report.reportId}-${issue.issueNumber}`;
                     const urgencyClass = issue.urgency === 'critical' ? '#ffcdd2' : 
                                        issue.urgency === 'high' ? '#ffccbc' : 
                                        issue.urgency === 'medium' ? '#fff9c4' : '#c8e6c9';
@@ -3064,7 +3064,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     const damageHtml = `
                         <div class="damage-item">
                             <input type="checkbox" id="damage-${damageId}" value="${damageId}" 
-                                   data-report="${report.reportId}" data-issue-idx="${idx}"
+                                   data-report="${report.reportId}" data-issue-number="${issue.issueNumber}"
                                    data-category="${issue.category}" data-description="${encodedDescription}"
                                    data-urgency="${issue.urgency}" data-photos='${JSON.stringify(issue.photoURLs || [])}'
                                    data-photo-ids='${JSON.stringify(issue.photoIds || [])}'>
@@ -4085,11 +4085,17 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 if (sendToWorkshop && pdfWizardData.selectedDamages.length > 0) {
                     generateBtn.textContent = '📤 Invio in officina...';
                     
-                    // Prepare issue identifiers
-                    const issueIdentifiers = pdfWizardData.selectedDamages.map(damage => ({
-                        reportId: damage.id.split('_')[0], // Extract reportId from damage ID
-                        issueNumber: parseInt(damage.id.split('_')[1] || 1)
-                    }));
+                    // Prepare issue identifiers from checkbox data attributes
+                    const issueIdentifiers = [];
+                    document.querySelectorAll('#wizardDamagesList input[type="checkbox"]:checked').forEach(cb => {
+                        const reportId = cb.dataset.report;
+                        const issueNumber = parseInt(cb.dataset.issueNumber); // Use actual issue number from sheet
+                        
+                        issueIdentifiers.push({
+                            reportId: reportId,
+                            issueNumber: issueNumber
+                        });
+                    });
 
                     const listData = {
                         vehicleId: pdfWizardData.vehicleId,
@@ -4352,11 +4358,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         </div>
                         
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                                ➕ Aggiungi Lavoro
-                            </button>
-                            <button onclick="completeWorkshopList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            <button onclick="completeWorkshopListFull('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
                                 ✅ Completa Tutto
+                            </button>
+                            <button onclick="deleteWorkshopListFull('${escapeHtml(list.listId)}')" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                                🗑️ Elimina Lista
                             </button>
                         </div>
                     `;
@@ -4403,17 +4409,81 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             document.body.appendChild(script);
         }
 
-        // Placeholder functions for future implementation
-        function addIssueToWorkshopList(listId) {
-            alert('Funzione in sviluppo: Aggiungi nuovo lavoro alla lista ' + listId);
+        // Complete all issues in workshop list
+        function completeWorkshopListFull(listId) {
+            if (!confirm('⚠️ Completare tutti i lavori di questa lista?\n\nTutti i problemi verranno marcati come risolti.')) {
+                return;
+            }
+
+            const callback = 'completeListCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert(`✅ Lista completata!\n\nProblemi risolti: ${response.issuesCompleted}`);
+                    loadWorkshopLists();
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=completeWorkshopListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
         }
 
-        function completeWorkshopList(listId) {
-            alert('Funzione in sviluppo: Completa tutti i lavori della lista ' + listId);
+        // Delete workshop list (with password confirmation)
+        function deleteWorkshopListFull(listId) {
+            const confirmation = prompt(
+                `⚠️ ATTENZIONE: Stai per eliminare questa lista officina.\n\n` +
+                `Tutti i problemi torneranno nella sezione "Report Attivi".\n\n` +
+                `Per confermare, digita "delete" oppure inserisci la password admin:`
+            );
+
+            if (!confirmation) {
+                return; // User cancelled
+            }
+
+            const trimmedConfirmation = confirmation.trim();
+
+            // Check if user typed "delete" or correct admin password
+            if (trimmedConfirmation.toLowerCase() !== 'delete' && trimmedConfirmation !== window.APP_CONFIG.authToken) {
+                alert('❌ Conferma non valida. Eliminazione annullata.');
+                return;
+            }
+
+            const callback = 'deleteListCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert(`✅ Lista eliminata!\n\nProblemi riportati in Report Attivi: ${response.issuesReset}`);
+                    loadWorkshopLists();
+                    // Refresh active reports if that tab is visible
+                    if (document.getElementById('active-reports').classList.contains('active')) {
+                        loadActiveReports();
+                    }
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=deleteWorkshopListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
         }
 
+        // Upload invoice and analyze with AI (Phase 2 - placeholder for now)
         function uploadInvoiceForList(listId) {
-            alert('Funzione in sviluppo: Upload e analisi fattura per lista ' + listId);
+            alert('Funzione in sviluppo: Upload e analisi fattura AI per lista ' + listId);
         }
 
         // Open edit garage modal
