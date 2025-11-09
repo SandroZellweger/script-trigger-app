@@ -3688,6 +3688,85 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
         }
 
+        // Helper function to upload PDF via POST to avoid URL length limits
+        async function uploadMaintenancePDFViaPost(fileName, pdfBase64, listId) {
+            return new Promise((resolve, reject) => {
+                const callback = 'uploadPdfPostCallback_' + Date.now();
+                
+                window[callback] = function(response) {
+                    delete window[callback];
+                    resolve(response);
+                };
+                
+                // Use form-based POST approach to bypass URL limits
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = window.APP_CONFIG.scriptUrl;
+                form.target = 'uploadFrame_' + Date.now();
+                form.style.display = 'none';
+                
+                // Create hidden iframe for response
+                const iframe = document.createElement('iframe');
+                iframe.name = form.target;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Add form fields
+                const fields = {
+                    function: 'uploadMaintenancePDF',
+                    authToken: window.APP_CONFIG.authToken,
+                    fileName: fileName,
+                    pdfData: pdfBase64,
+                    listId: listId,
+                    callback: callback
+                };
+                
+                Object.keys(fields).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = fields[key];
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                
+                // Handle timeout
+                const timeout = setTimeout(() => {
+                    document.body.removeChild(form);
+                    document.body.removeChild(iframe);
+                    delete window[callback];
+                    reject(new Error('Timeout durante il caricamento del PDF'));
+                }, 30000);
+                
+                // Listen for response
+                iframe.onload = () => {
+                    clearTimeout(timeout);
+                    try {
+                        // Try to read iframe content
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const responseText = iframeDoc.body.textContent;
+                        if (responseText) {
+                            const response = JSON.parse(responseText);
+                            window[callback](response);
+                        }
+                    } catch (e) {
+                        // CORS will prevent reading iframe, but callback should still be called
+                        console.log('Waiting for callback from script...');
+                    }
+                    
+                    setTimeout(() => {
+                        try {
+                            document.body.removeChild(form);
+                            document.body.removeChild(iframe);
+                        } catch (e) {}
+                    }, 1000);
+                };
+                
+                form.submit();
+            });
+        }
+
         async function generateMaintenancePDF() {
             // DIAGNOSTIC: Check config before starting
             console.log('🔧 PDF Generation Started');
@@ -4121,35 +4200,29 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         if (response.success) {
                             const listId = response.listId;
                             
-                            // Now upload PDF to Drive
+                            // Now upload PDF to Drive using POST-style approach
                             generateBtn.textContent = '☁️ Caricamento PDF su Drive...';
                             
-                            const uploadCallback = 'uploadPdfCallback_' + Date.now();
-                            
-                            window[uploadCallback] = function(uploadResponse) {
-                                generateBtn.textContent = originalText;
-                                generateBtn.disabled = false;
-                                
-                                if (uploadResponse.success) {
-                                    alert(`✅ PDF generato, caricato su Drive e veicolo inviato in officina!\n\nLista: ${listId}\nProblemi aggiornati: ${response.issuesUpdated}\nPDF disponibile online`);
-                                } else {
-                                    alert(`✅ Lista creata ma errore nel caricamento PDF: ${uploadResponse.error}\n\nLista: ${listId}`);
-                                }
-                                
-                                closeMaintenancePdfWizard();
-                                delete window[uploadCallback];
-                            };
-                            
-                            const uploadScript = document.createElement('script');
-                            uploadScript.src = `${window.APP_CONFIG.scriptUrl}?function=uploadMaintenancePDFJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&pdfData=${encodeURIComponent(pdfBase64)}&listId=${encodeURIComponent(listId)}&callback=${uploadCallback}&_=${Date.now()}`;
-                            uploadScript.onerror = () => {
-                                generateBtn.textContent = originalText;
-                                generateBtn.disabled = false;
-                                alert('✅ Lista creata ma errore nel caricamento PDF su Drive');
-                                closeMaintenancePdfWizard();
-                                delete window[uploadCallback];
-                            };
-                            document.body.appendChild(uploadScript);
+                            // Upload PDF using fetch with POST
+                            uploadMaintenancePDFViaPost(fileName, pdfBase64, listId)
+                                .then(uploadResponse => {
+                                    generateBtn.textContent = originalText;
+                                    generateBtn.disabled = false;
+                                    
+                                    if (uploadResponse.success) {
+                                        alert(`✅ PDF generato, caricato su Drive e veicolo inviato in officina!\n\nLista: ${listId}\nProblemi aggiornati: ${response.issuesUpdated}\nPDF disponibile online`);
+                                    } else {
+                                        alert(`✅ Lista creata ma errore nel caricamento PDF: ${uploadResponse.error}\n\nLista: ${listId}`);
+                                    }
+                                    
+                                    closeMaintenancePdfWizard();
+                                })
+                                .catch(error => {
+                                    generateBtn.textContent = originalText;
+                                    generateBtn.disabled = false;
+                                    alert('✅ Lista creata ma errore nel caricamento PDF su Drive: ' + error.message);
+                                    closeMaintenancePdfWizard();
+                                });
                         } else {
                             generateBtn.textContent = originalText;
                             generateBtn.disabled = false;

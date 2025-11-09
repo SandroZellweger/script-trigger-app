@@ -386,6 +386,15 @@ function doPost(e) {
       case "updateCleaningInVisioneGenerale":
         result = updateCleaningInVisioneGenerale(requestBody);
         break;
+      case "uploadMaintenancePDF":
+        Logger.log('Handling uploadMaintenancePDF POST with fileName: ' + e.parameter.fileName);
+        result = uploadMaintenancePDF(e.parameter.fileName, e.parameter.pdfData, e.parameter.listId);
+        // Return JSONP callback if provided
+        if (e.parameter.callback) {
+          const jsonpResponse = e.parameter.callback + '(' + JSON.stringify(result) + ')';
+          return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+        }
+        break;
       default:
         Logger.log('Unknown form-encoded function: ' + functionName);
         result = { error: `Unknown POST function: ${functionName}` };
