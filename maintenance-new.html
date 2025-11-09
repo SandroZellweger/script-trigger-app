@@ -4074,11 +4074,17 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     doc.text('Noleggio Semplice - Sistema di Gestione Manutenzione', pageWidth / 2, 290, { align: 'center' });
                 }
 
-                // Save PDF
+                // Save PDF locally
                 generateBtn.textContent = '💾 Salvataggio PDF...';
-                const fileName = `Lista_Manutenzione_${pdfWizardData.vehicleName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                const timestamp = new Date().toISOString().split('T')[0] + '_' + new Date().getTime();
+                const fileName = `Lista_Manutenzione_${pdfWizardData.vehicleName.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+                
+                // Save to user's computer
                 doc.save(fileName);
 
+                // Get PDF as base64 for upload to Drive
+                const pdfBase64 = doc.output('datauristring').split(',')[1]; // Extract base64 part
+                
                 // Check if should send to workshop
                 const sendToWorkshop = document.getElementById('sendToWorkshopCheckbox')?.checked;
                 
@@ -4097,12 +4103,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         });
                     });
 
+                    // First create workshop list to get listId
                     const listData = {
                         vehicleId: pdfWizardData.vehicleId,
                         vehicleName: pdfWizardData.vehicleName,
                         workshopName: pdfWizardData.selectedGarage?.name || 'Non specificata',
                         issueIdentifiers: JSON.stringify(issueIdentifiers),
-                        pdfUrl: '', // TODO: upload PDF to Drive and get URL
+                        pdfUrl: '', // Will be updated after PDF upload
                         serviceWorks: pdfWizardData.serviceWorks || [],
                         extraWorks: pdfWizardData.extraWorks || [],
                         notes: 'Lista generata automaticamente dal wizard PDF'
@@ -4111,16 +4118,45 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     const callback = 'createWorkshopListCallback_' + Date.now();
                     
                     window[callback] = function(response) {
-                        generateBtn.textContent = originalText;
-                        generateBtn.disabled = false;
-                        
                         if (response.success) {
-                            alert(`✅ PDF generato e veicolo inviato in officina!\n\nLista: ${response.listId}\nProblemi aggiornati: ${response.issuesUpdated}`);
+                            const listId = response.listId;
+                            
+                            // Now upload PDF to Drive
+                            generateBtn.textContent = '☁️ Caricamento PDF su Drive...';
+                            
+                            const uploadCallback = 'uploadPdfCallback_' + Date.now();
+                            
+                            window[uploadCallback] = function(uploadResponse) {
+                                generateBtn.textContent = originalText;
+                                generateBtn.disabled = false;
+                                
+                                if (uploadResponse.success) {
+                                    alert(`✅ PDF generato, caricato su Drive e veicolo inviato in officina!\n\nLista: ${listId}\nProblemi aggiornati: ${response.issuesUpdated}\nPDF disponibile online`);
+                                } else {
+                                    alert(`✅ Lista creata ma errore nel caricamento PDF: ${uploadResponse.error}\n\nLista: ${listId}`);
+                                }
+                                
+                                closeMaintenancePdfWizard();
+                                delete window[uploadCallback];
+                            };
+                            
+                            const uploadScript = document.createElement('script');
+                            uploadScript.src = `${window.APP_CONFIG.scriptUrl}?function=uploadMaintenancePDFJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&pdfData=${encodeURIComponent(pdfBase64)}&listId=${encodeURIComponent(listId)}&callback=${uploadCallback}&_=${Date.now()}`;
+                            uploadScript.onerror = () => {
+                                generateBtn.textContent = originalText;
+                                generateBtn.disabled = false;
+                                alert('✅ Lista creata ma errore nel caricamento PDF su Drive');
+                                closeMaintenancePdfWizard();
+                                delete window[uploadCallback];
+                            };
+                            document.body.appendChild(uploadScript);
                         } else {
+                            generateBtn.textContent = originalText;
+                            generateBtn.disabled = false;
                             alert('✅ PDF generato ma errore nell\'invio in officina: ' + response.error);
+                            closeMaintenancePdfWizard();
                         }
                         
-                        closeMaintenancePdfWizard();
                         delete window[callback];
                     };
 
@@ -4383,6 +4419,27 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                             ${escapeHtml(work)}
                                         </div>
                                     `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${list.pdfHistory && list.pdfHistory.length > 0 ? `
+                            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 10px 0; color: #1976d2;">📑 Storico PDF (${list.pdfHistory.length})</h4>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    ${list.pdfHistory.map((pdf, idx) => {
+                                        const date = new Date(pdf.timestamp);
+                                        const formattedDate = date.toLocaleDateString('it-CH', {year: '2-digit', month: '2-digit', day: '2-digit'}) + ' - ' + date.toLocaleTimeString('it-CH', {hour: '2-digit', minute: '2-digit'});
+                                        return `
+                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                            <span style="color: #333; font-size: 14px;">
+                                                <strong>${formattedDate}</strong>
+                                            </span>
+                                            <a href="${escapeHtml(pdf.url)}" target="_blank" style="background: #2196f3; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">
+                                                📥 Scarica PDF
+                                            </a>
+                                        </div>
+                                    `}).join('')}
                                 </div>
                             </div>
                         ` : ''}

@@ -204,6 +204,9 @@ function doGet(e) {
       case "uploadPhotoJsonp":
         return uploadPhotoJsonp(e.parameter);
         break;
+      case "uploadMaintenancePDFJsonp":
+        return uploadMaintenancePDFJsonp(e.parameter);
+        break;
       case "analyzeDamageJsonp":
         return analyzeDamageJsonp(e.parameter);
         break;
@@ -1968,6 +1971,106 @@ function uploadPhotoJsonp(params) {
   }
 }
 
+// Upload PDF to Google Drive
+function uploadMaintenancePDF(fileName, pdfBase64, listId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const folderId = scriptProperties.getProperty('MAINTENANCE_PDF_FOLDER_ID') || scriptProperties.getProperty('PHOTO_FOLDER_ID');
+    
+    if (!folderId) {
+      return {
+        success: false,
+        error: 'PDF folder not configured. Set MAINTENANCE_PDF_FOLDER_ID in Script Properties.'
+      };
+    }
+
+    // Decode base64 PDF data
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(pdfBase64),
+      'application/pdf',
+      fileName
+    );
+
+    // Get or create folder
+    const folder = DriveApp.getFolderById(folderId);
+    
+    // Create file in folder
+    const file = folder.createFile(blob);
+    
+    // Make file accessible to anyone with link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const pdfUrl = file.getUrl();
+    const timestamp = new Date();
+
+    // Update workshop list with PDF URL and add to history
+    if (listId) {
+      const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+      if (sheetId) {
+        const ss = SpreadsheetApp.openById(sheetId);
+        const workshopSheet = ss.getSheetByName('Liste Officina');
+        
+        if (workshopSheet) {
+          const data = workshopSheet.getDataRange().getValues();
+          
+          for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === listId) {
+              // Update PDF URL (col 7, index 6)
+              workshopSheet.getRange(i + 1, 7).setValue(pdfUrl);
+              
+              // Add to PDF history
+              const historyCell = workshopSheet.getRange(i + 1, 14); // New column for PDF history
+              let history = [];
+              try {
+                const existingHistory = historyCell.getValue();
+                if (existingHistory) {
+                  history = JSON.parse(existingHistory);
+                }
+              } catch (e) {
+                history = [];
+              }
+              
+              history.push({
+                timestamp: timestamp.toISOString(),
+                url: pdfUrl,
+                fileName: fileName
+              });
+              
+              historyCell.setValue(JSON.stringify(history));
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      fileId: file.getId(),
+      fileName: file.getName(),
+      fileUrl: pdfUrl,
+      timestamp: timestamp.toISOString()
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function uploadMaintenancePDFJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = uploadMaintenancePDF(params.fileName, params.pdfData, params.listId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
 /*************************************************************
  * DAMAGE AI RECOGNITION SYSTEM
  * Analyzes photos to find who caused vehicle damage
@@ -3527,8 +3630,8 @@ function getOrCreateWorkshopListsSheet() {
     if (!sheet) {
       sheet = ss.insertSheet('Liste Officina');
       
-      // Add headers
-      const headerRow = sheet.getRange(1, 1, 1, 13);
+      // Add headers (14 columns now - added PDF History)
+      const headerRow = sheet.getRange(1, 1, 1, 14);
       headerRow.setValues([[
         'ID Lista',
         'Data Creazione',
@@ -3542,7 +3645,8 @@ function getOrCreateWorkshopListsSheet() {
         'Costo Totale (CHF)',
         'Data Completamento',
         'Note Officina',
-        'Dati Fattura (JSON)'
+        'Dati Fattura (JSON)',
+        'PDF History (JSON)'
       ]]);
       
       // Format headers
@@ -3566,6 +3670,7 @@ function getOrCreateWorkshopListsSheet() {
       sheet.setColumnWidth(11, 120); // Data Completamento
       sheet.setColumnWidth(12, 200); // Note Officina
       sheet.setColumnWidth(13, 250); // Dati Fattura
+      sheet.setColumnWidth(14, 250); // PDF History
     }
 
     return {
@@ -3848,7 +3953,8 @@ function createWorkshopList(listData) {
       '',                                    // Costo Totale
       '',                                    // Data Completamento
       JSON.stringify(additionalWorks),       // Note Officina (now contains service/extra works)
-      ''                                     // Dati Fattura (JSON)
+      '',                                    // Dati Fattura (JSON)
+      ''                                     // PDF History (JSON)
     ]);
 
     return {
@@ -4007,6 +4113,16 @@ function getWorkshopLists() {
         // If not JSON, it's just text notes
       }
 
+      // Parse PDF history (col 14, index 13)
+      let pdfHistory = [];
+      try {
+        if (row[13]) {
+          pdfHistory = JSON.parse(row[13]);
+        }
+      } catch (e) {
+        pdfHistory = [];
+      }
+
       lists.push({
         listId: listId,
         dataCreazione: row[1],
@@ -4020,6 +4136,7 @@ function getWorkshopLists() {
         dataCompletamento: row[10],
         noteOfficina: typeof additionalWorks === 'object' ? '' : row[11], // Only if not JSON
         datiFattura: row[12],
+        pdfHistory: pdfHistory,
         issues: listIssues,
         totalIssues: listIssues.length,
         serviceWorks: additionalWorks.serviceWorks || [],
