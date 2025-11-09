@@ -216,6 +216,15 @@ function doGet(e) {
       case "uploadAndAnalyzeInvoiceJsonp":
         return uploadAndAnalyzeInvoiceJsonp(e.parameter);
         break;
+      case "uploadInvoiceChunkJsonp":
+        return uploadInvoiceChunkJsonp(e.parameter);
+        break;
+      case "finalizeInvoiceUploadJsonp":
+        return finalizeInvoiceUploadJsonp(e.parameter);
+        break;
+      case "analyzeUploadedInvoiceJsonp":
+        return analyzeUploadedInvoiceJsonp(e.parameter);
+        break;
       case "analyzeDamageJsonp":
         return analyzeDamageJsonp(e.parameter);
         break;
@@ -2492,6 +2501,231 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
 function uploadAndAnalyzeInvoiceJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = uploadAndAnalyzeInvoice(params.fileName, params.photoData, params.listId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Upload invoice photo chunk (same pattern as PDF chunks)
+function uploadInvoiceChunkJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  try {
+    const chunkIndex = parseInt(params.chunkIndex);
+    const chunkData = params.chunkData;
+    const sessionId = params.sessionId || 'default';
+    
+    const cache = CacheService.getScriptCache();
+    const cacheKey = 'invoice_chunk_' + sessionId + '_' + chunkIndex;
+    
+    // Store chunk in cache (expires in 10 minutes)
+    cache.put(cacheKey, chunkData, 600);
+    
+    const response = { success: true, chunkIndex: chunkIndex };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    const response = { success: false, error: error.toString() };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// Finalize invoice photo upload and save to Drive
+function finalizeInvoiceUpload(fileName, listId, sessionId, totalChunks) {
+  try {
+    const cache = CacheService.getScriptCache();
+    
+    // Retrieve all chunks from cache
+    const chunks = [];
+    for (let i = 0; i < parseInt(totalChunks); i++) {
+      const cacheKey = 'invoice_chunk_' + sessionId + '_' + i;
+      const chunkData = cache.get(cacheKey);
+      
+      if (!chunkData) {
+        throw new Error('Chunk ' + i + ' non trovato. Riprova il caricamento.');
+      }
+      
+      chunks.push(chunkData);
+    }
+    
+    // Combine all chunks
+    const photoBase64 = chunks.join('');
+    
+    // Clear cache
+    for (let i = 0; i < parseInt(totalChunks); i++) {
+      cache.remove('invoice_chunk_' + sessionId + '_' + i);
+    }
+    
+    // Upload photo to Drive
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const folderId = scriptProperties.getProperty('MAINTENANCE_PDF_FOLDER_ID') || scriptProperties.getProperty('PHOTO_FOLDER_ID');
+    
+    if (!folderId) {
+      return { success: false, error: 'Cartella foto non configurata' };
+    }
+    
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(photoBase64),
+      'image/jpeg',
+      fileName
+    );
+
+    const folder = DriveApp.getFolderById(folderId);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const photoUrl = file.getUrl();
+
+    Logger.log('Invoice photo uploaded: ' + photoUrl);
+
+    // Save photo URL to sheet (column 15), mark as Pending analysis
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    const data = workshopSheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        workshopSheet.getRange(i + 1, 15).setValue(photoUrl);           // Foto Fattura URL
+        workshopSheet.getRange(i + 1, 17).setValue(new Date());         // Data Upload
+        workshopSheet.getRange(i + 1, 18).setValue('Pending');          // Stato Analisi
+        break;
+      }
+    }
+
+    return {
+      success: true,
+      photoUrl: photoUrl,
+      listId: listId
+    };
+
+  } catch (error) {
+    Logger.log('Error in finalizeInvoiceUpload: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function finalizeInvoiceUploadJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = finalizeInvoiceUpload(params.fileName, params.listId, params.sessionId, params.totalChunks);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Analyze already uploaded invoice
+function analyzeUploadedInvoice(listId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID non configurato' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    const data = workshopSheet.getDataRange().getValues();
+    
+    let listRow = -1;
+    let listData = null;
+    let photoUrl = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        listRow = i;
+        listData = data[i];
+        photoUrl = data[i][14]; // Column 15, index 14
+        break;
+      }
+    }
+
+    if (listRow === -1) {
+      return { success: false, error: 'Lista non trovata' };
+    }
+
+    if (!photoUrl) {
+      return { success: false, error: 'Foto fattura non trovata' };
+    }
+
+    // Parse expected works
+    let expectedWorks = [];
+    try {
+      const additionalWorks = JSON.parse(listData[11] || '{}');
+      expectedWorks = [
+        ...(additionalWorks.serviceWorks || []),
+        ...(additionalWorks.extraWorks || [])
+      ];
+    } catch (e) {
+      Logger.log('Error parsing additional works: ' + e);
+    }
+
+    // Get issues
+    const difettiSheet = ss.getSheetByName('Difetti e Riparazioni');
+    const difettiData = difettiSheet.getDataRange().getValues();
+    
+    for (let j = 1; j < difettiData.length; j++) {
+      if (difettiData[j][20] === listId) {
+        expectedWorks.push(`${difettiData[j][5]}: ${difettiData[j][6]}`);
+      }
+    }
+
+    Logger.log('Analyzing invoice for listId: ' + listId);
+    Logger.log('Expected works: ' + JSON.stringify(expectedWorks));
+
+    // Analyze with AI
+    const analysisResult = analyzeInvoiceWithAI(photoUrl, expectedWorks);
+
+    if (!analysisResult.success) {
+      workshopSheet.getRange(listRow + 1, 18).setValue('Error');
+      return {
+        success: false,
+        error: 'Analisi fallita: ' + analysisResult.error
+      };
+    }
+
+    // Save results
+    workshopSheet.getRange(listRow + 1, 16).setValue(JSON.stringify(analysisResult.analysis));
+    workshopSheet.getRange(listRow + 1, 18).setValue('Success');
+
+    // Update total cost if available
+    if (analysisResult.analysis && analysisResult.analysis.invoiceData && analysisResult.analysis.invoiceData.totalCost) {
+      workshopSheet.getRange(listRow + 1, 10).setValue(analysisResult.analysis.invoiceData.totalCost);
+    }
+
+    return {
+      success: true,
+      analysis: analysisResult.analysis,
+      photoUrl: photoUrl
+    };
+
+  } catch (error) {
+    Logger.log('Error in analyzeUploadedInvoice: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function analyzeUploadedInvoiceJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = analyzeUploadedInvoice(params.listId);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 

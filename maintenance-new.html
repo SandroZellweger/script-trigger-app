@@ -3688,6 +3688,77 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
         }
 
+        // Helper function to upload invoice photo by splitting into chunks
+        async function uploadInvoicePhotoInChunks(fileName, photoBase64, listId, progressCallback) {
+            return new Promise((resolve, reject) => {
+                const sessionId = 'invoice_' + Date.now();
+                
+                // Split photo into chunks
+                const CHUNK_SIZE = 2000;
+                const chunks = [];
+                for (let i = 0; i < photoBase64.length; i += CHUNK_SIZE) {
+                    chunks.push(photoBase64.substring(i, i + CHUNK_SIZE));
+                }
+                
+                const totalChunks = chunks.length;
+                console.log(`📦 Splitting invoice photo into ${totalChunks} chunks`);
+                
+                let uploadedChunks = 0;
+                
+                function sendNextChunk() {
+                    if (uploadedChunks >= chunks.length) {
+                        // All chunks sent, now finalize upload
+                        console.log('✅ All chunks sent, finalizing invoice upload...');
+                        const finalizeCallback = 'finalizeInvoiceCallback_' + Date.now();
+                        
+                        window[finalizeCallback] = function(response) {
+                            delete window[finalizeCallback];
+                            resolve(response);
+                        };
+                        
+                        const script = document.createElement('script');
+                        script.src = `${window.APP_CONFIG.scriptUrl}?function=finalizeInvoiceUploadJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&listId=${encodeURIComponent(listId)}&sessionId=${encodeURIComponent(sessionId)}&totalChunks=${totalChunks}&callback=${finalizeCallback}&_=${Date.now()}`;
+                        script.onerror = () => {
+                            delete window[finalizeCallback];
+                            reject(new Error('Errore nella finalizzazione'));
+                        };
+                        document.body.appendChild(script);
+                        return;
+                    }
+                    
+                    const chunkCallback = 'invoiceChunkCallback_' + uploadedChunks + '_' + Date.now();
+                    
+                    window[chunkCallback] = function(response) {
+                        delete window[chunkCallback];
+                        
+                        if (response.success) {
+                            uploadedChunks++;
+                            const progress = Math.round((uploadedChunks / totalChunks) * 100);
+                            if (progressCallback) progressCallback(progress);
+                            console.log(`✓ Chunk ${uploadedChunks}/${totalChunks} uploaded`);
+                            sendNextChunk();
+                        } else {
+                            reject(new Error('Errore nel chunk ' + uploadedChunks + ': ' + response.error));
+                        }
+                    };
+                    
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadInvoiceChunkJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&sessionId=${encodeURIComponent(sessionId)}&chunkIndex=${uploadedChunks}&chunkData=${encodeURIComponent(chunks[uploadedChunks])}&callback=${chunkCallback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[chunkCallback];
+                        reject(new Error('Errore di rete nel chunk ' + uploadedChunks));
+                    };
+                    document.body.appendChild(script);
+                }
+                
+                sendNextChunk();
+                
+                setTimeout(() => {
+                    reject(new Error('Timeout durante il caricamento'));
+                }, 60000);
+            });
+        }
+
         // Helper function to upload PDF by splitting into chunks
         async function uploadMaintenancePDFViaPost(fileName, pdfBase64, listId) {
             return new Promise((resolve, reject) => {
@@ -4862,38 +4933,53 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 const fileName = `Fattura_${listId}_${Date.now()}.${file.type.split('/')[1]}`;
 
-                // Call backend to upload and analyze
-                const callback = 'uploadInvoiceCallback_' + Date.now();
+                // Upload using chunk system (same as PDF upload)
+                uploadBtn.textContent = '📤 Caricamento foto...';
                 
-                window[callback] = function(response) {
-                    delete window[callback];
-                    
-                    uploadBtn.textContent = originalText;
-                    uploadBtn.disabled = false;
+                try {
+                    const uploadResult = await uploadInvoicePhotoInChunks(fileName, base64Photo, listId, (progress) => {
+                        uploadBtn.textContent = `📤 ${progress}%`;
+                    });
 
-                    if (response.success) {
-                        closeInvoiceModal();
-                        
-                        // Show results
-                        showInvoiceAnalysisResults(response);
-                        
-                        // Reload workshop lists to show updated data
-                        loadWorkshopLists();
-                    } else {
-                        alert('❌ Errore: ' + response.error);
+                    if (!uploadResult.success) {
+                        throw new Error(uploadResult.error);
                     }
-                };
 
-                // Use the uploadPhoto mechanism (already handles large files well)
-                const script = document.createElement('script');
-                script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadAndAnalyzeInvoiceJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&photoData=${encodeURIComponent(base64Photo)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
-                script.onerror = () => {
+                    uploadBtn.textContent = '🤖 Analisi AI in corso...';
+                    
+                    // Now trigger AI analysis
+                    const analysisCallback = 'analyzeInvoiceCallback_' + Date.now();
+                    
+                    window[analysisCallback] = function(response) {
+                        delete window[analysisCallback];
+                        
+                        uploadBtn.textContent = originalText;
+                        uploadBtn.disabled = false;
+
+                        if (response.success) {
+                            closeInvoiceModal();
+                            showInvoiceAnalysisResults(response);
+                            loadWorkshopLists();
+                        } else {
+                            alert('❌ Errore analisi: ' + response.error);
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=analyzeUploadedInvoiceJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&callback=${analysisCallback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        uploadBtn.textContent = originalText;
+                        uploadBtn.disabled = false;
+                        alert('❌ Errore nell\'analisi AI');
+                        delete window[analysisCallback];
+                    };
+                    document.body.appendChild(script);
+
+                } catch (error) {
                     uploadBtn.textContent = originalText;
                     uploadBtn.disabled = false;
-                    alert('❌ Errore di connessione');
-                    delete window[callback];
-                };
-                document.body.appendChild(script);
+                    alert('❌ Errore: ' + error.message);
+                }
 
             } catch (error) {
                 uploadBtn.textContent = originalText;
