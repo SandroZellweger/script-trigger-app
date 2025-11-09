@@ -1855,6 +1855,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     <div class="form-group">
                         <label>🛠️ Istruzioni per il meccanico (opzionali)</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <button type="button" class="generate-note-btn" onclick="generateMechanicNote(${issueId})" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;">
+                                🤖 Genera con AI
+                            </button>
+                            <span id="note-status-${issueId}" style="font-size: 13px; color: #666; align-self: center;"></span>
+                        </div>
                         <textarea class="issue-note" placeholder="Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm"></textarea>
                     </div>
 
@@ -2127,6 +2133,141 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 delete window[callback];
             };
 
+            document.body.appendChild(script);
+        }
+
+        // Generate mechanic note with AI
+        function generateMechanicNote(issueId) {
+            const issueElement = document.getElementById(issueId);
+            if (!issueElement) {
+                return;
+            }
+
+            const descriptionInput = issueElement.querySelector('.issue-description');
+            const categorySelect = issueElement.querySelector('.issue-category');
+            const noteInput = issueElement.querySelector('.issue-note');
+            const noteStatus = document.getElementById(`note-status-${issueId}`);
+
+            if (!descriptionInput || !descriptionInput.value.trim()) {
+                if (noteStatus) {
+                    noteStatus.textContent = '⚠️ Inserisci prima una descrizione';
+                    noteStatus.style.color = '#dc3545';
+                }
+                return;
+            }
+
+            const description = descriptionInput.value.trim();
+            const category = categorySelect ? categorySelect.value : '';
+
+            if (noteStatus) {
+                noteStatus.textContent = '⏳ Generazione in corso...';
+                noteStatus.style.color = '#666';
+            }
+
+            const callback = `generateNote_${issueId.replace(/-/g, '_')}_${Date.now()}`;
+            
+            window[callback] = function(response) {
+                if (response.success && response.suggestion && response.suggestion.recommendedNote) {
+                    const recommendedNote = response.suggestion.recommendedNote.trim();
+                    if (noteInput && recommendedNote) {
+                        noteInput.value = recommendedNote;
+                        if (noteStatus) {
+                            noteStatus.textContent = '✅ Nota generata!';
+                            noteStatus.style.color = '#28a745';
+                            setTimeout(() => {
+                                noteStatus.textContent = '';
+                            }, 3000);
+                        }
+                    }
+                } else {
+                    if (noteStatus) {
+                        noteStatus.textContent = '❌ Errore nella generazione';
+                        noteStatus.style.color = '#dc3545';
+                    }
+                }
+                delete window[callback];
+            };
+
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            let vehicleName = '';
+            if (vehicleSelect && vehicleSelect.selectedIndex >= 0) {
+                vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].dataset.vehicleName || '';
+            }
+
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                if (noteStatus) {
+                    noteStatus.textContent = '❌ Errore di rete';
+                    noteStatus.style.color = '#dc3545';
+                }
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // Generate mechanic note with AI for edit modal
+        function generateEditMechanicNote() {
+            const descriptionInput = document.getElementById('editIssueDescription');
+            const categorySelect = document.getElementById('editIssueCategory');
+            const noteInput = document.getElementById('editIssueNote');
+            const noteStatus = document.getElementById('editNoteStatus');
+
+            if (!descriptionInput || !descriptionInput.value.trim()) {
+                if (noteStatus) {
+                    noteStatus.textContent = '⚠️ Inserisci prima una descrizione';
+                    noteStatus.style.color = '#dc3545';
+                }
+                return;
+            }
+
+            const description = descriptionInput.value.trim();
+            const category = categorySelect ? categorySelect.value : '';
+
+            if (noteStatus) {
+                noteStatus.textContent = '⏳ Generazione in corso...';
+                noteStatus.style.color = '#666';
+            }
+
+            const callback = `generateEditNote_${Date.now()}`;
+            
+            window[callback] = function(response) {
+                if (response.success && response.suggestion && response.suggestion.recommendedNote) {
+                    const recommendedNote = response.suggestion.recommendedNote.trim();
+                    if (noteInput && recommendedNote) {
+                        noteInput.value = recommendedNote;
+                        if (noteStatus) {
+                            noteStatus.textContent = '✅ Nota generata!';
+                            noteStatus.style.color = '#28a745';
+                            setTimeout(() => {
+                                noteStatus.textContent = '';
+                            }, 3000);
+                        }
+                    }
+                } else {
+                    if (noteStatus) {
+                        noteStatus.textContent = '❌ Errore nella generazione';
+                        noteStatus.style.color = '#dc3545';
+                    }
+                }
+                delete window[callback];
+            };
+
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+            const vehicleName = pdfWizardData.vehicleName || '';
+
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                if (noteStatus) {
+                    noteStatus.textContent = '❌ Errore di rete';
+                    noteStatus.style.color = '#dc3545';
+                }
+                delete window[callback];
+            };
             document.body.appendChild(script);
         }
 
@@ -4792,6 +4933,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     <div class="form-group">
                         <label>🛠️ Istruzioni per il meccanico (opzionali)</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <button type="button" class="generate-note-btn" onclick="generateEditMechanicNote()" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;">
+                                🤖 Genera con AI
+                            </button>
+                            <span id="editNoteStatus" style="font-size: 13px; color: #666; align-self: center;"></span>
+                        </div>
                         <textarea id="editIssueNote" rows="3" placeholder="Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm"></textarea>
                     </div>
 
