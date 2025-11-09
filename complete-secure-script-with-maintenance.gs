@@ -2952,9 +2952,11 @@ function getActiveMaintenanceReports() {
       const row = data[i];
       const reportId = row[0];
       const completed = row[9]; // completed column
+      const statoLavoro = row[19]; // Stato Lavoro column (col 20, index 19)
 
-      // Only include incomplete reports
-      if (!completed) {
+      // Only include incomplete reports that are NOT in officina
+      // (Stato Lavoro should be "Aperto", not "In Officina" or "Completato")
+      if (!completed && statoLavoro !== 'In Officina' && statoLavoro !== 'Completato') {
         if (!reportsMap[reportId]) {
           reportsMap[reportId] = {
             reportId: reportId,
@@ -3826,6 +3828,12 @@ function createWorkshopList(listData) {
       }
     }
 
+    // Prepare additional works data (service and extra works)
+    const additionalWorks = {
+      serviceWorks: listData.serviceWorks || [],
+      extraWorks: listData.extraWorks || []
+    };
+
     // Create workshop list entry
     workshopSheet.appendRow([
       listId,                                // ID Lista
@@ -3839,7 +3847,7 @@ function createWorkshopList(listData) {
       'In Corso',                            // Stato
       '',                                    // Costo Totale
       '',                                    // Data Completamento
-      listData.notes || '',                  // Note Officina
+      JSON.stringify(additionalWorks),       // Note Officina (now contains service/extra works)
       ''                                     // Dati Fattura (JSON)
     ]);
 
@@ -3989,6 +3997,16 @@ function getWorkshopLists() {
         }
       }
 
+      // Parse additional works from noteOfficina (col 12)
+      let additionalWorks = { serviceWorks: [], extraWorks: [] };
+      try {
+        if (row[11] && row[11].toString().startsWith('{')) {
+          additionalWorks = JSON.parse(row[11]);
+        }
+      } catch (e) {
+        // If not JSON, it's just text notes
+      }
+
       lists.push({
         listId: listId,
         dataCreazione: row[1],
@@ -4000,10 +4018,12 @@ function getWorkshopLists() {
         stato: row[8],
         costoTotale: row[9],
         dataCompletamento: row[10],
-        noteOfficina: row[11],
+        noteOfficina: typeof additionalWorks === 'object' ? '' : row[11], // Only if not JSON
         datiFattura: row[12],
         issues: listIssues,
-        totalIssues: listIssues.length
+        totalIssues: listIssues.length,
+        serviceWorks: additionalWorks.serviceWorks || [],
+        extraWorks: additionalWorks.extraWorks || []
       });
     }
 

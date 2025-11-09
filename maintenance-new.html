@@ -4100,9 +4100,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     const listData = {
                         vehicleId: pdfWizardData.vehicleId,
                         vehicleName: pdfWizardData.vehicleName,
-                        workshopName: pdfWizardData.garageName || '',
+                        workshopName: pdfWizardData.selectedGarage?.name || 'Non specificata',
                         issueIdentifiers: JSON.stringify(issueIdentifiers),
                         pdfUrl: '', // TODO: upload PDF to Drive and get URL
+                        serviceWorks: pdfWizardData.serviceWorks || [],
+                        extraWorks: pdfWizardData.extraWorks || [],
                         notes: 'Lista generata automaticamente dal wizard PDF'
                     };
 
@@ -4356,6 +4358,34 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 `).join('')}
                             </div>
                         </div>
+                        
+                        ${list.serviceWorks && list.serviceWorks.length > 0 ? `
+                            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 10px 0; color: #2e7d32;">⚙️ Lavori Tagliando (${list.serviceWorks.length})</h4>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    ${list.serviceWorks.map(work => `
+                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #c8e6c9;">
+                                            <input type="checkbox" disabled style="margin-right: 8px;">
+                                            ${escapeHtml(work)}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${list.extraWorks && list.extraWorks.length > 0 ? `
+                            <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 10px 0; color: #e65100;">✨ Lavori Extra (${list.extraWorks.length})</h4>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    ${list.extraWorks.map(work => `
+                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #ffe0b2;">
+                                            <input type="checkbox" disabled style="margin-right: 8px;">
+                                            ${escapeHtml(work)}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                         
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button onclick="completeWorkshopListFull('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
