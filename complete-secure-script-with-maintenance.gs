@@ -225,6 +225,9 @@ function doGet(e) {
       case "analyzeUploadedInvoiceJsonp":
         return analyzeUploadedInvoiceJsonp(e.parameter);
         break;
+      case "analyzeInvoiceFromDriveJsonp":
+        return analyzeInvoiceFromDriveJsonp(e.parameter);
+        break;
       case "uploadInvoicePhotoDirectJsonp":
         return uploadInvoicePhotoDirectJsonp(e.parameter);
         break;
@@ -2790,6 +2793,197 @@ function analyzeUploadedInvoice(listId) {
 function analyzeUploadedInvoiceJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = analyzeUploadedInvoice(params.listId);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+/*************************************************************
+ * ANALYZE INVOICE FROM EXISTING DRIVE FILE
+ * Analyzes invoice (image or PDF) already on Google Drive
+ *************************************************************/
+
+// Analyze invoice from existing Drive file (supports images and PDFs)
+function analyzeInvoiceFromDrive(fileId, listId) {
+  try {
+    Logger.log('=== ANALYZE INVOICE FROM DRIVE ===');
+    Logger.log('fileId: ' + fileId);
+    Logger.log('listId: ' + listId);
+    
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID non configurato' };
+    }
+
+    // Get file from Drive
+    let file;
+    try {
+      file = DriveApp.getFileById(fileId);
+    } catch (e) {
+      Logger.log('ERROR: File not found or no access: ' + e);
+      return { success: false, error: 'File non trovato o non accessibile' };
+    }
+    
+    const fileName = file.getName();
+    const mimeType = file.getMimeType();
+    const photoUrl = file.getUrl();
+    
+    Logger.log('File trovato: ' + fileName);
+    Logger.log('Mime type: ' + mimeType);
+    Logger.log('URL: ' + photoUrl);
+
+    // Check if file is image or PDF
+    const isImage = mimeType.startsWith('image/');
+    const isPDF = mimeType === 'application/pdf';
+
+    if (!isImage && !isPDF) {
+      return { 
+        success: false, 
+        error: 'Tipo file non supportato. Solo immagini (JPG, PNG) e PDF.' 
+      };
+    }
+
+    // Get worksheet list data for expected works
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    
+    if (!workshopSheet) {
+      return { success: false, error: 'Liste Officina sheet not found' };
+    }
+
+    const data = workshopSheet.getDataRange().getValues();
+    let listRow = -1;
+    let listData = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        listRow = i;
+        listData = data[i];
+        break;
+      }
+    }
+
+    if (listRow === -1) {
+      return { success: false, error: 'Lista non trovata con ID: ' + listId };
+    }
+
+    // Parse expected works from list
+    let expectedWorks = [];
+    try {
+      const additionalWorks = JSON.parse(listData[11] || '{}');
+      expectedWorks = [
+        ...(additionalWorks.serviceWorks || []),
+        ...(additionalWorks.extraWorks || [])
+      ];
+    } catch (e) {
+      Logger.log('Error parsing additional works: ' + e);
+    }
+
+    // Get issues for this list from Difetti e Riparazioni sheet
+    const difettiSheet = ss.getSheetByName('Difetti e Riparazioni');
+    if (difettiSheet) {
+      const difettiData = difettiSheet.getDataRange().getValues();
+      for (let j = 1; j < difettiData.length; j++) {
+        if (difettiData[j][20] === listId) { // Column U (Lista Officina ID)
+          const issueType = difettiData[j][5] || 'Issue';
+          const issueDesc = difettiData[j][6] || '';
+          if (issueDesc) {
+            expectedWorks.push(`${issueType}: ${issueDesc}`);
+          }
+        }
+      }
+    }
+
+    Logger.log('Expected works (' + expectedWorks.length + '): ' + JSON.stringify(expectedWorks));
+
+    // For PDF files, we need to convert first page to image or use PDF analysis
+    let analysisUrl = photoUrl;
+    
+    if (isPDF) {
+      Logger.log('PDF detected - using direct URL for analysis');
+      // OpenAI Vision API can handle PDF URLs directly in some cases
+      // Or we can extract text and analyze as text
+      // For now, we'll pass the URL and let the AI handle it
+    }
+
+    // Analyze invoice with AI
+    const analysisResult = analyzeInvoiceWithAI(analysisUrl, expectedWorks);
+
+    if (!analysisResult.success) {
+      // Save file URL even if analysis fails
+      workshopSheet.getRange(listRow + 1, 15).setValue(photoUrl);
+      workshopSheet.getRange(listRow + 1, 17).setValue(new Date());
+      workshopSheet.getRange(listRow + 1, 18).setValue('Error: ' + (analysisResult.error || 'Unknown'));
+      
+      return {
+        success: false,
+        error: 'Analisi fallita: ' + (analysisResult.error || 'Unknown error'),
+        photoUrl: photoUrl,
+        fileType: isPDF ? 'PDF' : 'Image'
+      };
+    }
+
+    Logger.log('Analysis successful');
+
+    // Save results to sheet
+    workshopSheet.getRange(listRow + 1, 15).setValue(photoUrl); // Foto Fattura URL
+    workshopSheet.getRange(listRow + 1, 16).setValue(JSON.stringify(analysisResult.analysis)); // Risultati Analisi
+    workshopSheet.getRange(listRow + 1, 17).setValue(new Date()); // Data Analisi
+    workshopSheet.getRange(listRow + 1, 18).setValue('Success'); // Stato Analisi
+
+    // Update total cost if available
+    if (analysisResult.analysis && 
+        analysisResult.analysis.invoiceData && 
+        analysisResult.analysis.invoiceData.totalCost) {
+      const totalCost = analysisResult.analysis.invoiceData.totalCost;
+      workshopSheet.getRange(listRow + 1, 10).setValue(totalCost); // Costo Finale
+      Logger.log('Total cost updated: ' + totalCost);
+    }
+
+    return {
+      success: true,
+      photoUrl: photoUrl,
+      analysis: analysisResult.analysis,
+      fileType: isPDF ? 'PDF' : 'Image',
+      fileName: fileName,
+      message: 'Fattura analizzata con successo'
+    };
+
+  } catch (error) {
+    Logger.log('ERROR in analyzeInvoiceFromDrive: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrapper for analyzeInvoiceFromDrive
+function analyzeInvoiceFromDriveJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  if (!params.fileId) {
+    const errorResponse = { success: false, error: 'fileId parameter required' };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  
+  if (!params.listId) {
+    const errorResponse = { success: false, error: 'listId parameter required' };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  
+  const response = analyzeInvoiceFromDrive(params.fileId, params.listId);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 

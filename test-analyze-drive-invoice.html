@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Analizza Fattura da Drive</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .info-box strong {
+            color: #1976d2;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #3367d6;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button.secondary {
+            background: #28a745;
+        }
+        button.secondary:hover {
+            background: #218838;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log div {
+            margin: 3px 0;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff4444; }
+        .info { color: #00aaff; }
+        .warning { color: #ffaa00; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-box .value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-box .label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .example-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .example-box code {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 Test Analisi Fattura da Drive</h1>
+        <p class="subtitle">Testa l'analisi AI di fatture (immagini e PDF) già caricate su Google Drive</p>
+
+        <div class="info-box">
+            <strong>✨ Nuova Funzionalità!</strong>
+            <p style="margin: 8px 0 0 0;">
+                Questa funzione analizza fatture già esistenti su Drive senza doverle ricaricare.
+                Supporta sia <strong>immagini</strong> (JPG, PNG) che <strong>PDF</strong>.
+            </p>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Come Ottenere il File ID</h2>
+            <ol style="color: #555; line-height: 1.8;">
+                <li>Apri il file su Google Drive</li>
+                <li>Guarda l'URL nel browser</li>
+                <li>L'URL sarà tipo: <code>drive.google.com/file/d/<strong>FILE_ID</strong>/view</code></li>
+                <li>Copia la parte <strong>FILE_ID</strong> (la stringa lunga tra /d/ e /view)</li>
+            </ol>
+            
+            <div class="example-box">
+                <strong>💡 Esempio:</strong><br>
+                URL: <code>https://drive.google.com/file/d/<strong style="color:#f44336">1a2b3c4d5e6f7g8h9i0j</strong>/view</code><br>
+                File ID: <code><strong style="color:#f44336">1a2b3c4d5e6f7g8h9i0j</strong></code>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Test Parametri</h2>
+            
+            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                File ID da Drive:
+            </label>
+            <input type="text" id="fileIdInput" placeholder="es: 1abc...xyz">
+            
+            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                Lista Officina ID:
+            </label>
+            <input type="text" id="listIdInput" placeholder="es: WORKSHOP_20251109_001" value="WORKSHOP_20251109_001">
+            
+            <button id="analyzeBtn" onclick="testAnalyzeFromDrive()">
+                🤖 Analizza Fattura
+            </button>
+            <button class="secondary" onclick="clearLog()">
+                🧹 Pulisci Log
+            </button>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="value" id="fileType">-</div>
+                    <div class="label">Tipo File</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value" id="analysisTime">-</div>
+                    <div class="label">Tempo Analisi</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // Load config
+        const APP_CONFIG = {
+            scriptUrl: '',
+            authToken: ''
+        };
+
+        // Load configuration files
+        function loadConfig() {
+            return new Promise((resolve, reject) => {
+                const script1 = document.createElement('script');
+                script1.src = 'config.public.js';
+                script1.onload = () => {
+                    if (window.PUBLIC_CONFIG) {
+                        APP_CONFIG.scriptUrl = window.PUBLIC_CONFIG.scriptUrl;
+                        log('✅ Public config caricato', 'success');
+                        
+                        const script2 = document.createElement('script');
+                        script2.src = 'config.private.js';
+                        script2.onload = () => {
+                            if (window.PRIVATE_CONFIG) {
+                                APP_CONFIG.authToken = window.PRIVATE_CONFIG.authToken;
+                                log('✅ Private config caricato', 'success');
+                                resolve();
+                            } else {
+                                reject('Private config non trovato');
+                            }
+                        };
+                        script2.onerror = () => reject('Errore caricamento config.private.js');
+                        document.head.appendChild(script2);
+                    } else {
+                        reject('Public config non trovato');
+                    }
+                };
+                script1.onerror = () => reject('Errore caricamento config.public.js');
+                document.head.appendChild(script1);
+            });
+        }
+
+        // Log function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Clear log
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('fileType').textContent = '-';
+            document.getElementById('analysisTime').textContent = '-';
+        }
+
+        // Test analyze from Drive
+        async function testAnalyzeFromDrive() {
+            const fileId = document.getElementById('fileIdInput').value.trim();
+            const listId = document.getElementById('listIdInput').value.trim();
+            const analyzeBtn = document.getElementById('analyzeBtn');
+
+            if (!fileId) {
+                alert('⚠️ Inserisci un File ID!');
+                return;
+            }
+
+            if (!listId) {
+                alert('⚠️ Inserisci un Lista ID!');
+                return;
+            }
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '⏳ Analisi in corso...';
+
+            const startTime = Date.now();
+
+            try {
+                log('🚀 Inizio analisi fattura da Drive', 'info');
+                log(`📁 File ID: ${fileId}`, 'info');
+                log(`📋 Lista ID: ${listId}`, 'info');
+
+                const result = await new Promise((resolve, reject) => {
+                    const callback = 'analyzeCallback_' + Date.now();
+
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Analisi fallita'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${APP_CONFIG.scriptUrl}?function=analyzeInvoiceFromDriveJsonp&authToken=${encodeURIComponent(APP_CONFIG.authToken)}&fileId=${encodeURIComponent(fileId)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+                    
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+
+                    document.body.appendChild(script);
+
+                    // Timeout after 60 seconds
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            reject(new Error('Timeout - analisi troppo lenta'));
+                        }
+                    }, 60000);
+                });
+
+                const analysisTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                log('✅ Analisi completata con successo!', 'success');
+                log(`📊 Tipo file: ${result.fileType}`, 'info');
+                log(`📷 URL: ${result.photoUrl}`, 'info');
+
+                document.getElementById('fileType').textContent = result.fileType || 'Unknown';
+                document.getElementById('analysisTime').textContent = analysisTime + 's';
+
+                if (result.analysis && result.analysis.invoiceData) {
+                    const inv = result.analysis.invoiceData;
+                    log('', 'info');
+                    log('=== DATI FATTURA ===', 'success');
+                    log(`💰 Costo: ${inv.totalCost || 'N/D'}`, 'info');
+                    log(`📅 Data: ${inv.invoiceDate || 'N/D'}`, 'info');
+                    log(`🏢 Officina: ${inv.workshopName || 'N/D'}`, 'info');
+                    log(`🔢 Numero: ${inv.invoiceNumber || 'N/D'}`, 'info');
+
+                    if (inv.worksDone && inv.worksDone.length > 0) {
+                        log('', 'info');
+                        log('=== LAVORI EFFETTUATI ===', 'success');
+                        inv.worksDone.forEach((work, i) => {
+                            log(`${i + 1}. ${work}`, 'info');
+                        });
+                    }
+
+                    if (result.analysis.comparison) {
+                        const comp = result.analysis.comparison;
+                        log('', 'info');
+                        log('=== CONFRONTO ===', 'success');
+                        
+                        if (comp.worksCompleted && comp.worksCompleted.length > 0) {
+                            log(`✅ Completati: ${comp.worksCompleted.length}`, 'success');
+                        }
+                        if (comp.worksAdded && comp.worksAdded.length > 0) {
+                            log(`➕ Aggiunti: ${comp.worksAdded.length}`, 'warning');
+                        }
+                        if (comp.worksMissing && comp.worksMissing.length > 0) {
+                            log(`❌ Mancanti: ${comp.worksMissing.length}`, 'error');
+                        }
+                    }
+                }
+
+                analyzeBtn.textContent = '✅ Completato!';
+                analyzeBtn.style.background = '#28a745';
+
+                setTimeout(() => {
+                    analyzeBtn.textContent = '🤖 Analizza Fattura';
+                    analyzeBtn.style.background = '#4285f4';
+                    analyzeBtn.disabled = false;
+                }, 3000);
+
+            } catch (error) {
+                log(`❌ Errore: ${error.message}`, 'error');
+                
+                analyzeBtn.textContent = '❌ Errore';
+                analyzeBtn.style.background = '#dc3545';
+
+                setTimeout(() => {
+                    analyzeBtn.textContent = '🤖 Analizza Fattura';
+                    analyzeBtn.style.background = '#4285f4';
+                    analyzeBtn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', async () => {
+            try {
+                await loadConfig();
+                log('🎯 Sistema pronto per i test', 'success');
+                log('📋 Inserisci File ID e clicca "Analizza Fattura"', 'info');
+            } catch (error) {
+                log(`❌ Errore inizializzazione: ${error}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -4519,6 +4519,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 <button onclick="uploadInvoiceForList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     📷 Carica Fattura
                                 </button>
+                                <button onclick="promptDriveFileForInvoice('${escapeHtml(list.listId)}')" style="background: #4285f4; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Analizza una fattura (immagine o PDF) già caricata su Google Drive">
+                                    📁 Analizza da Drive
+                                </button>
                             </div>
                         </div>
                         
@@ -4933,33 +4936,19 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 const fileName = `Fattura_${listId}_${Date.now()}.${file.type.split('/')[1]}`;
 
-                // Direct upload (no chunks - faster for small files)
+                // Upload using chunks to avoid CORB/URL length issues
                 uploadBtn.textContent = '📤 Caricamento foto...';
                 
                 try {
-                    // Direct upload via single JSONP call
-                    const uploadCallback = 'uploadInvoiceCallback_' + Date.now();
-                    
-                    const uploadPromise = new Promise((resolve, reject) => {
-                        window[uploadCallback] = function(response) {
-                            delete window[uploadCallback];
-                            if (response.success) {
-                                resolve(response);
-                            } else {
-                                reject(new Error(response.error || 'Upload fallito'));
-                            }
-                        };
-
-                        const script = document.createElement('script');
-                        script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadInvoicePhotoDirectJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&fileName=${encodeURIComponent(fileName)}&photoData=${encodeURIComponent(base64Photo)}&callback=${uploadCallback}&_=${Date.now()}`;
-                        script.onerror = () => {
-                            delete window[uploadCallback];
-                            reject(new Error('Errore connessione upload'));
-                        };
-                        document.body.appendChild(script);
-                    });
-
-                    const uploadResult = await uploadPromise;
+                    // Use the chunk upload system (avoids CORB errors)
+                    const uploadResult = await uploadInvoicePhotoInChunks(
+                        fileName, 
+                        base64Photo, 
+                        listId, 
+                        (progress) => {
+                            uploadBtn.textContent = `📤 Caricamento ${progress}%...`;
+                        }
+                    );
 
                     uploadBtn.textContent = '🤖 Analisi AI in corso...';
                     
@@ -5105,6 +5094,176 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     document.body.removeChild(modal);
                 }
             });
+        }
+
+        // NEW: Analyze invoice from existing Drive file (supports images and PDFs)
+        async function analyzeExistingInvoice(fileId, listId) {
+            try {
+                console.log('🔍 Analisi fattura esistente...');
+                console.log('File ID:', fileId);
+                console.log('List ID:', listId);
+
+                // Show loading notification
+                showNotification('🤖 Analisi fattura in corso...', 'info');
+
+                const callback = 'analyzeExistingCallback_' + Date.now();
+
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Analisi fallita'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=analyzeInvoiceFromDriveJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileId=${encodeURIComponent(fileId)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione analisi'));
+                    };
+                    document.body.appendChild(script);
+
+                    // Timeout after 60 seconds
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            reject(new Error('Timeout: l\'analisi sta impiegando troppo tempo'));
+                        }
+                    }, 60000);
+                });
+
+                console.log('✅ Analisi completata:', result);
+
+                // Show success notification
+                showNotification(`✅ Fattura ${result.fileType} analizzata con successo!`, 'success');
+
+                // Show analysis results
+                if (result.analysis) {
+                    showInvoiceAnalysisResults(result);
+                }
+
+                // Reload workshop lists to show updated data
+                loadWorkshopLists();
+
+                return result;
+
+            } catch (error) {
+                console.error('❌ Errore analisi:', error);
+                showNotification('❌ Errore: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
+        // Prompt user to select a file from Drive and analyze it
+        function promptDriveFileForInvoice(listId) {
+            const modal = document.createElement('div');
+            modal.id = 'driveFileModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <h2 style="margin: 0 0 20px 0; color: #333; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 32px;">📁</span>
+                        Analizza Fattura da Drive
+                    </h2>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <strong style="color: #1976d2;">ℹ️ File già caricato su Drive</strong>
+                        <p style="margin: 8px 0 0 0; color: #555; font-size: 14px;">
+                            Inserisci l'ID del file Drive (immagine o PDF) per analizzarlo con AI.
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                            File ID da Drive:
+                        </label>
+                        <input type="text" 
+                               id="driveFileIdInput" 
+                               placeholder="es: 1abc...xyz"
+                               style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: monospace;">
+                        <small style="color: #666; font-size: 12px;">
+                            💡 Trova l'ID nell'URL del file: drive.google.com/file/d/<strong>FILE_ID</strong>/view
+                        </small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                        <button onclick="closeDriveFileModal()" 
+                                style="padding: 12px 24px; background: #ccc; color: #333; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            Annulla
+                        </button>
+                        <button onclick="processDriveFileAnalysis('${listId}')" 
+                                style="padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            🤖 Analizza
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Focus on input
+            setTimeout(() => {
+                document.getElementById('driveFileIdInput').focus();
+            }, 100);
+
+            // Close modal on background click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeDriveFileModal();
+                }
+            });
+
+            // Allow Enter key to submit
+            document.getElementById('driveFileIdInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    processDriveFileAnalysis(listId);
+                }
+            });
+        }
+
+        // Close Drive file modal
+        function closeDriveFileModal() {
+            const modal = document.getElementById('driveFileModal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        }
+
+        // Process Drive file analysis
+        async function processDriveFileAnalysis(listId) {
+            const fileIdInput = document.getElementById('driveFileIdInput');
+            const fileId = fileIdInput.value.trim();
+
+            if (!fileId) {
+                alert('❌ Inserisci un File ID valido');
+                fileIdInput.focus();
+                return;
+            }
+
+            // Close modal
+            closeDriveFileModal();
+
+            // Start analysis
+            try {
+                await analyzeExistingInvoice(fileId, listId);
+            } catch (error) {
+                console.error('Error in processDriveFileAnalysis:', error);
+            }
         }
 
         // Regenerate PDF for workshop list
