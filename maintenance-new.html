@@ -4933,17 +4933,33 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 const fileName = `Fattura_${listId}_${Date.now()}.${file.type.split('/')[1]}`;
 
-                // Upload using chunk system (same as PDF upload)
+                // Direct upload (no chunks - faster for small files)
                 uploadBtn.textContent = '📤 Caricamento foto...';
                 
                 try {
-                    const uploadResult = await uploadInvoicePhotoInChunks(fileName, base64Photo, listId, (progress) => {
-                        uploadBtn.textContent = `📤 ${progress}%`;
+                    // Direct upload via single JSONP call
+                    const uploadCallback = 'uploadInvoiceCallback_' + Date.now();
+                    
+                    const uploadPromise = new Promise((resolve, reject) => {
+                        window[uploadCallback] = function(response) {
+                            delete window[uploadCallback];
+                            if (response.success) {
+                                resolve(response);
+                            } else {
+                                reject(new Error(response.error || 'Upload fallito'));
+                            }
+                        };
+
+                        const script = document.createElement('script');
+                        script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadInvoicePhotoDirectJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&fileName=${encodeURIComponent(fileName)}&photoData=${encodeURIComponent(base64Photo)}&callback=${uploadCallback}&_=${Date.now()}`;
+                        script.onerror = () => {
+                            delete window[uploadCallback];
+                            reject(new Error('Errore connessione upload'));
+                        };
+                        document.body.appendChild(script);
                     });
 
-                    if (!uploadResult.success) {
-                        throw new Error(uploadResult.error);
-                    }
+                    const uploadResult = await uploadPromise;
 
                     uploadBtn.textContent = '🤖 Analisi AI in corso...';
                     
