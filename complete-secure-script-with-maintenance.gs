@@ -2103,23 +2103,25 @@ function uploadMaintenancePDFJsonp(params) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
-// Global storage for PDF chunks (temporary, cleared after upload)
-const pdfChunkStorage = {};
-
-// Upload PDF chunk
+// Upload PDF chunk using CacheService for temporary storage
 function uploadPdfChunkJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   
   try {
     const chunkIndex = parseInt(params.chunkIndex);
     const chunkData = params.chunkData;
+    const sessionId = params.sessionId || 'default';
     
-    // Store chunk in temporary storage
-    if (!pdfChunkStorage.chunks) {
-      pdfChunkStorage.chunks = [];
-    }
+    const cache = CacheService.getScriptCache();
+    const cacheKey = 'pdf_chunk_' + sessionId + '_' + chunkIndex;
     
-    pdfChunkStorage.chunks[chunkIndex] = chunkData;
+    // Store chunk in cache (expires in 10 minutes)
+    cache.put(cacheKey, chunkData, 600);
+    
+    // Also store the total number of chunks received so far
+    const countKey = 'pdf_chunk_count_' + sessionId;
+    const currentCount = parseInt(cache.get(countKey) || '0');
+    cache.put(countKey, String(currentCount + 1), 600);
     
     const response = { success: true, chunkIndex: chunkIndex };
     const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
@@ -2144,12 +2146,33 @@ function finalizePdfUploadJsonp(params) {
   try {
     const fileName = params.fileName;
     const listId = params.listId;
+    const sessionId = params.sessionId || 'default';
+    const totalChunks = parseInt(params.totalChunks);
+    
+    const cache = CacheService.getScriptCache();
+    
+    // Retrieve all chunks from cache
+    const chunks = [];
+    for (let i = 0; i < totalChunks; i++) {
+      const cacheKey = 'pdf_chunk_' + sessionId + '_' + i;
+      const chunkData = cache.get(cacheKey);
+      
+      if (!chunkData) {
+        throw new Error('Chunk ' + i + ' non trovato. Riprova il caricamento.');
+      }
+      
+      chunks.push(chunkData);
+    }
     
     // Combine all chunks
-    const pdfBase64 = pdfChunkStorage.chunks.join('');
+    const pdfBase64 = chunks.join('');
     
-    // Clear chunk storage
-    pdfChunkStorage.chunks = [];
+    // Clear cache for this session
+    for (let i = 0; i < totalChunks; i++) {
+      const cacheKey = 'pdf_chunk_' + sessionId + '_' + i;
+      cache.remove(cacheKey);
+    }
+    cache.remove('pdf_chunk_count_' + sessionId);
     
     // Upload the complete PDF
     const response = uploadMaintenancePDF(fileName, pdfBase64, listId);
@@ -2160,7 +2183,16 @@ function finalizePdfUploadJsonp(params) {
       .createTextOutput(jsonpResponse)
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   } catch (error) {
-    pdfChunkStorage.chunks = []; // Clear on error
+    // Clear cache on error
+    const sessionId = params.sessionId || 'default';
+    const totalChunks = parseInt(params.totalChunks || '0');
+    const cache = CacheService.getScriptCache();
+    
+    for (let i = 0; i < totalChunks; i++) {
+      cache.remove('pdf_chunk_' + sessionId + '_' + i);
+    }
+    cache.remove('pdf_chunk_count_' + sessionId);
+    
     const response = { success: false, error: error.toString() };
     const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
     

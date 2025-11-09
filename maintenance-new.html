@@ -3692,6 +3692,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         async function uploadMaintenancePDFViaPost(fileName, pdfBase64, listId) {
             return new Promise((resolve, reject) => {
                 const callback = 'uploadPdfCallback_' + Date.now();
+                const sessionId = 'pdf_' + Date.now(); // Unique session ID for this upload
                 
                 window[callback] = function(response) {
                     delete window[callback];
@@ -3705,7 +3706,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     chunks.push(pdfBase64.substring(i, i + CHUNK_SIZE));
                 }
                 
-                console.log(`📦 Splitting PDF into ${chunks.length} chunks`);
+                const totalChunks = chunks.length;
+                console.log(`📦 Splitting PDF into ${totalChunks} chunks (session: ${sessionId})`);
                 
                 // Send chunks sequentially
                 let uploadedChunks = 0;
@@ -3722,7 +3724,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         };
                         
                         const script = document.createElement('script');
-                        script.src = `${window.APP_CONFIG.scriptUrl}?function=finalizePdfUploadJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&listId=${encodeURIComponent(listId)}&callback=${finalizeCallback}&_=${Date.now()}`;
+                        script.src = `${window.APP_CONFIG.scriptUrl}?function=finalizePdfUploadJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&listId=${encodeURIComponent(listId)}&sessionId=${encodeURIComponent(sessionId)}&totalChunks=${totalChunks}&callback=${finalizeCallback}&_=${Date.now()}`;
                         script.onerror = () => {
                             delete window[finalizeCallback];
                             reject(new Error('Errore nella finalizzazione del PDF'));
@@ -3746,7 +3748,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     };
                     
                     const script = document.createElement('script');
-                    script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadPdfChunkJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&chunkIndex=${uploadedChunks}&chunkData=${encodeURIComponent(chunks[uploadedChunks])}&callback=${chunkCallback}&_=${Date.now()}`;
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadPdfChunkJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&sessionId=${encodeURIComponent(sessionId)}&chunkIndex=${uploadedChunks}&chunkData=${encodeURIComponent(chunks[uploadedChunks])}&callback=${chunkCallback}&_=${Date.now()}`;
                     script.onerror = () => {
                         delete window[chunkCallback];
                         reject(new Error('Errore di rete nel chunk ' + uploadedChunks));
