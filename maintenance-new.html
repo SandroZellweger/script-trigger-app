@@ -4440,8 +4440,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                     <strong>🏪 Officina:</strong> ${escapeHtml(list.workshopName || 'Non specificata')}
                                 </p>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                 ${list.pdfUrl ? `<a href="${escapeHtml(list.pdfUrl)}" target="_blank" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; text-decoration: none; cursor: pointer; font-size: 14px;">📄 Vedi PDF</a>` : ''}
+                                <button onclick="regenerateWorkshopPDF('${escapeHtml(list.listId)}')" style="background: #764ba2; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    🔄 Genera Nuovo PDF
+                                </button>
                                 <button onclick="uploadInvoiceForList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     📷 Carica Fattura
                                 </button>
@@ -4449,7 +4452,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         </div>
                         
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <h4 style="margin: 0 0 10px 0; color: #333;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0; color: #333;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
+                                <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                    ➕ Aggiungi Problema
+                                </button>
+                            </div>
                             <div id="issues-${escapeHtml(list.listId)}" style="display: flex; flex-direction: column; gap: 8px;">
                                 ${list.issues.map((issue, idx) => `
                                     <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -4467,33 +4475,53 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             </div>
                         </div>
                         
-                        ${list.serviceWorks && list.serviceWorks.length > 0 ? `
-                            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <h4 style="margin: 0 0 10px 0; color: #2e7d32;">⚙️ Lavori Tagliando (${list.serviceWorks.length})</h4>
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0; color: #2e7d32;">⚙️ Lavori Tagliando (${list.serviceWorks ? list.serviceWorks.length : 0})</h4>
+                                <button onclick="addServiceWorkToList('${escapeHtml(list.listId)}')" style="background: #2e7d32; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                    ➕ Aggiungi
+                                </button>
+                            </div>
+                            ${list.serviceWorks && list.serviceWorks.length > 0 ? `
                                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                                    ${list.serviceWorks.map(work => `
-                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #c8e6c9;">
-                                            <input type="checkbox" disabled style="margin-right: 8px;">
-                                            ${escapeHtml(work)}
+                                    ${list.serviceWorks.map((work, idx) => `
+                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #c8e6c9; display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <input type="checkbox" disabled style="margin-right: 8px;">
+                                                ${escapeHtml(work)}
+                                            </div>
+                                            <button onclick="removeServiceWork('${escapeHtml(list.listId)}', ${idx})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                🗑️
+                                            </button>
                                         </div>
                                     `).join('')}
                                 </div>
-                            </div>
-                        ` : ''}
+                            ` : '<p style="color: #666; font-size: 14px; margin: 10px 0;">Nessun lavoro di tagliando</p>'}
+                        </div>
                         
-                        ${list.extraWorks && list.extraWorks.length > 0 ? `
-                            <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <h4 style="margin: 0 0 10px 0; color: #e65100;">✨ Lavori Extra (${list.extraWorks.length})</h4>
+                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0; color: #e65100;">✨ Lavori Extra (${list.extraWorks ? list.extraWorks.length : 0})</h4>
+                                <button onclick="addExtraWorkToList('${escapeHtml(list.listId)}')" style="background: #e65100; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                    ➕ Aggiungi
+                                </button>
+                            </div>
+                            ${list.extraWorks && list.extraWorks.length > 0 ? `
                                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                                    ${list.extraWorks.map(work => `
-                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #ffe0b2;">
-                                            <input type="checkbox" disabled style="margin-right: 8px;">
-                                            ${escapeHtml(work)}
+                                    ${list.extraWorks.map((work, idx) => `
+                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #ffe0b2; display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <input type="checkbox" disabled style="margin-right: 8px;">
+                                                ${escapeHtml(work)}
+                                            </div>
+                                            <button onclick="removeExtraWork('${escapeHtml(list.listId)}', ${idx})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                🗑️
+                                            </button>
                                         </div>
                                     `).join('')}
                                 </div>
-                            </div>
-                        ` : ''}
+                            ` : '<p style="color: #666; font-size: 14px; margin: 10px 0;">Nessun lavoro extra</p>'}
+                        </div>
                         
                         ${list.pdfHistory && list.pdfHistory.length > 0 ? `
                             <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
@@ -4643,6 +4671,229 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         // Upload invoice and analyze with AI (Phase 2 - placeholder for now)
         function uploadInvoiceForList(listId) {
             alert('Funzione in sviluppo: Upload e analisi fattura AI per lista ' + listId);
+        }
+
+        // Regenerate PDF for workshop list
+        async function regenerateWorkshopPDF(listId) {
+            const confirmation = confirm('Vuoi generare un nuovo PDF con i dati aggiornati?');
+            if (!confirmation) return;
+
+            // Get workshop list data
+            const callback = 'getListDataCallback_' + Date.now();
+            
+            window[callback] = async function(response) {
+                delete window[callback];
+                
+                if (!response.success || !response.lists || response.lists.length === 0) {
+                    alert('❌ Errore: Lista non trovata');
+                    return;
+                }
+
+                const list = response.lists[0];
+                
+                // Generate PDF using existing function
+                try {
+                    const btn = document.querySelector(`button[onclick*="regenerateWorkshopPDF('${listId}')"]`);
+                    const originalText = btn ? btn.textContent : '';
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = '⏳ Generazione PDF...';
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Generate PDF content (simplified version - copy logic from generateMaintenancePDF)
+                    const timestamp = Date.now();
+                    const fileName = `Lista_Manutenzione_${list.vehicleName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}_${timestamp}.pdf`;
+                    
+                    // Header
+                    doc.setFillColor(102, 126, 234);
+                    doc.rect(0, 0, 210, 48, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(18);
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('LISTA MANUTENZIONE', 105, 20, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.text(`${list.vehicleName}`, 105, 30, { align: 'center' });
+                    doc.text(`Data: ${new Date().toLocaleDateString('it-CH')}`, 105, 37, { align: 'center' });
+
+                    let yPos = 60;
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('DANNI DA RIPARARE', 15, yPos);
+                    
+                    yPos += 10;
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    
+                    list.issues.forEach(issue => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(`[ ] ${issue.category}: ${issue.description}`, 20, yPos);
+                        yPos += 7;
+                    });
+
+                    if (list.serviceWorks && list.serviceWorks.length > 0) {
+                        yPos += 10;
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('LAVORI TAGLIANDO', 15, yPos);
+                        yPos += 7;
+                        doc.setFont('helvetica', 'normal');
+                        list.serviceWorks.forEach(work => {
+                            if (yPos > 270) {
+                                doc.addPage();
+                                yPos = 20;
+                            }
+                            doc.text(`[ ] ${work}`, 20, yPos);
+                            yPos += 7;
+                        });
+                    }
+
+                    if (list.extraWorks && list.extraWorks.length > 0) {
+                        yPos += 10;
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('LAVORI EXTRA', 15, yPos);
+                        yPos += 7;
+                        doc.setFont('helvetica', 'normal');
+                        list.extraWorks.forEach(work => {
+                            if (yPos > 270) {
+                                doc.addPage();
+                                yPos = 20;
+                            }
+                            doc.text(`[ ] ${work}`, 20, yPos);
+                            yPos += 7;
+                        });
+                    }
+
+                    // Convert to base64
+                    const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+                    // Upload PDF
+                    if (btn) btn.textContent = '☁️ Caricamento su Drive...';
+                    
+                    const uploadResponse = await uploadMaintenancePDFViaPost(fileName, pdfBase64, listId);
+                    
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }
+
+                    if (uploadResponse.success) {
+                        alert('✅ Nuovo PDF generato e caricato su Drive!');
+                        loadWorkshopLists();
+                    } else {
+                        alert('❌ Errore nel caricamento: ' + uploadResponse.error);
+                    }
+
+                } catch (error) {
+                    alert('❌ Errore nella generazione PDF: ' + error.message);
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getWorkshopListsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+            document.body.appendChild(script);
+        }
+
+        // Add issue to workshop list from active reports
+        function addIssueToWorkshopList(listId) {
+            alert('Per aggiungere problemi, usa il wizard PDF dal tab "Report Attivi" e seleziona lo stesso veicolo.\n\nIn sviluppo: aggiunta diretta dalla lista officina.');
+        }
+
+        // Add service work to workshop list
+        function addServiceWorkToList(listId) {
+            const work = prompt('Inserisci il lavoro di tagliando da aggiungere:');
+            if (!work || !work.trim()) return;
+
+            const callback = 'addServiceWorkCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                delete window[callback];
+                
+                if (response.success) {
+                    alert('✅ Lavoro aggiunto!');
+                    loadWorkshopLists();
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=addWorkToListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&workType=service&work=${encodeURIComponent(work.trim())}&callback=${callback}&_=${Date.now()}`;
+            document.body.appendChild(script);
+        }
+
+        // Add extra work to workshop list
+        function addExtraWorkToList(listId) {
+            const work = prompt('Inserisci il lavoro extra da aggiungere:');
+            if (!work || !work.trim()) return;
+
+            const callback = 'addExtraWorkCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                delete window[callback];
+                
+                if (response.success) {
+                    alert('✅ Lavoro aggiunto!');
+                    loadWorkshopLists();
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=addWorkToListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&workType=extra&work=${encodeURIComponent(work.trim())}&callback=${callback}&_=${Date.now()}`;
+            document.body.appendChild(script);
+        }
+
+        // Remove service work from workshop list
+        function removeServiceWork(listId, workIndex) {
+            const confirmation = confirm('Vuoi rimuovere questo lavoro di tagliando?');
+            if (!confirmation) return;
+
+            const callback = 'removeServiceWorkCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                delete window[callback];
+                
+                if (response.success) {
+                    alert('✅ Lavoro rimosso!');
+                    loadWorkshopLists();
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=removeWorkFromListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&workType=service&workIndex=${workIndex}&callback=${callback}&_=${Date.now()}`;
+            document.body.appendChild(script);
+        }
+
+        // Remove extra work from workshop list
+        function removeExtraWork(listId, workIndex) {
+            const confirmation = confirm('Vuoi rimuovere questo lavoro extra?');
+            if (!confirmation) return;
+
+            const callback = 'removeExtraWorkCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                delete window[callback];
+                
+                if (response.success) {
+                    alert('✅ Lavoro rimosso!');
+                    loadWorkshopLists();
+                } else {
+                    alert('❌ Errore: ' + response.error);
+                }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=removeWorkFromListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&workType=extra&workIndex=${workIndex}&callback=${callback}&_=${Date.now()}`;
+            document.body.appendChild(script);
         }
 
         // Open edit garage modal

@@ -279,6 +279,12 @@ function doGet(e) {
       case "completeWorkshopListJsonp":
         return completeWorkshopListJsonp(e.parameter);
         break;
+      case "addWorkToListJsonp":
+        return addWorkToListJsonp(e.parameter);
+        break;
+      case "removeWorkFromListJsonp":
+        return removeWorkFromListJsonp(e.parameter);
+        break;
       case "searchGaragesOnlineJsonp":
         return searchGaragesOnlineJsonp(e.parameter);
         break;
@@ -4455,6 +4461,143 @@ function completeWorkshopListJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const completionData = params.completionData ? JSON.parse(params.completionData) : null;
   const response = completeWorkshopList(params.listId, completionData);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Add work (service or extra) to workshop list
+function addWorkToList(listId, workType, work) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    
+    if (!workshopSheet) {
+      return { success: false, error: 'Liste Officina sheet not found' };
+    }
+
+    const data = workshopSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        // Get current additionalWorks JSON from column 12
+        let additionalWorks = { serviceWorks: [], extraWorks: [] };
+        try {
+          if (data[i][11]) {
+            additionalWorks = JSON.parse(data[i][11]);
+          }
+        } catch (e) {
+          additionalWorks = { serviceWorks: [], extraWorks: [] };
+        }
+
+        // Add work to appropriate array
+        if (workType === 'service') {
+          if (!additionalWorks.serviceWorks) additionalWorks.serviceWorks = [];
+          additionalWorks.serviceWorks.push(work);
+        } else if (workType === 'extra') {
+          if (!additionalWorks.extraWorks) additionalWorks.extraWorks = [];
+          additionalWorks.extraWorks.push(work);
+        }
+
+        // Update column 12 with new JSON
+        workshopSheet.getRange(i + 1, 12).setValue(JSON.stringify(additionalWorks));
+
+        return { success: true, listId: listId };
+      }
+    }
+
+    return { success: false, error: 'Lista non trovata' };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addWorkToListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = addWorkToList(params.listId, params.workType, params.work);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Remove work (service or extra) from workshop list
+function removeWorkFromList(listId, workType, workIndex) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    
+    if (!workshopSheet) {
+      return { success: false, error: 'Liste Officina sheet not found' };
+    }
+
+    const data = workshopSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        // Get current additionalWorks JSON from column 12
+        let additionalWorks = { serviceWorks: [], extraWorks: [] };
+        try {
+          if (data[i][11]) {
+            additionalWorks = JSON.parse(data[i][11]);
+          }
+        } catch (e) {
+          return { success: false, error: 'Errore nel parsing dei lavori' };
+        }
+
+        // Remove work from appropriate array
+        const index = parseInt(workIndex);
+        if (workType === 'service') {
+          if (additionalWorks.serviceWorks && index >= 0 && index < additionalWorks.serviceWorks.length) {
+            additionalWorks.serviceWorks.splice(index, 1);
+          } else {
+            return { success: false, error: 'Indice non valido' };
+          }
+        } else if (workType === 'extra') {
+          if (additionalWorks.extraWorks && index >= 0 && index < additionalWorks.extraWorks.length) {
+            additionalWorks.extraWorks.splice(index, 1);
+          } else {
+            return { success: false, error: 'Indice non valido' };
+          }
+        }
+
+        // Update column 12 with new JSON
+        workshopSheet.getRange(i + 1, 12).setValue(JSON.stringify(additionalWorks));
+
+        return { success: true, listId: listId };
+      }
+    }
+
+    return { success: false, error: 'Lista non trovata' };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function removeWorkFromListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = removeWorkFromList(params.listId, params.workType, params.workIndex);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
