@@ -207,6 +207,12 @@ function doGet(e) {
       case "uploadMaintenancePDFJsonp":
         return uploadMaintenancePDFJsonp(e.parameter);
         break;
+      case "uploadPdfChunkJsonp":
+        return uploadPdfChunkJsonp(e.parameter);
+        break;
+      case "finalizePdfUploadJsonp":
+        return finalizePdfUploadJsonp(e.parameter);
+        break;
       case "analyzeDamageJsonp":
         return analyzeDamageJsonp(e.parameter);
         break;
@@ -2095,6 +2101,73 @@ function uploadMaintenancePDFJsonp(params) {
   return ContentService
     .createTextOutput(jsonpResponse)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Global storage for PDF chunks (temporary, cleared after upload)
+const pdfChunkStorage = {};
+
+// Upload PDF chunk
+function uploadPdfChunkJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  try {
+    const chunkIndex = parseInt(params.chunkIndex);
+    const chunkData = params.chunkData;
+    
+    // Store chunk in temporary storage
+    if (!pdfChunkStorage.chunks) {
+      pdfChunkStorage.chunks = [];
+    }
+    
+    pdfChunkStorage.chunks[chunkIndex] = chunkData;
+    
+    const response = { success: true, chunkIndex: chunkIndex };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    const response = { success: false, error: error.toString() };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// Finalize PDF upload after all chunks received
+function finalizePdfUploadJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  try {
+    const fileName = params.fileName;
+    const listId = params.listId;
+    
+    // Combine all chunks
+    const pdfBase64 = pdfChunkStorage.chunks.join('');
+    
+    // Clear chunk storage
+    pdfChunkStorage.chunks = [];
+    
+    // Upload the complete PDF
+    const response = uploadMaintenancePDF(fileName, pdfBase64, listId);
+    
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    pdfChunkStorage.chunks = []; // Clear on error
+    const response = { success: false, error: error.toString() };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
 }
 
 /*************************************************************

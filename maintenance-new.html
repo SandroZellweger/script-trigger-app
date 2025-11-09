@@ -3688,82 +3688,79 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
         }
 
-        // Helper function to upload PDF via POST to avoid URL length limits
+        // Helper function to upload PDF by splitting into chunks
         async function uploadMaintenancePDFViaPost(fileName, pdfBase64, listId) {
             return new Promise((resolve, reject) => {
-                const callback = 'uploadPdfPostCallback_' + Date.now();
+                const callback = 'uploadPdfCallback_' + Date.now();
                 
                 window[callback] = function(response) {
                     delete window[callback];
                     resolve(response);
                 };
                 
-                // Use form-based POST approach to bypass URL limits
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = window.APP_CONFIG.scriptUrl;
-                form.target = 'uploadFrame_' + Date.now();
-                form.style.display = 'none';
+                // Split PDF into chunks to avoid URL length limits
+                const CHUNK_SIZE = 2000; // Safe size for URL parameters
+                const chunks = [];
+                for (let i = 0; i < pdfBase64.length; i += CHUNK_SIZE) {
+                    chunks.push(pdfBase64.substring(i, i + CHUNK_SIZE));
+                }
                 
-                // Create hidden iframe for response
-                const iframe = document.createElement('iframe');
-                iframe.name = form.target;
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
+                console.log(`📦 Splitting PDF into ${chunks.length} chunks`);
                 
-                // Add form fields
-                const fields = {
-                    function: 'uploadMaintenancePDF',
-                    authToken: window.APP_CONFIG.authToken,
-                    fileName: fileName,
-                    pdfData: pdfBase64,
-                    listId: listId,
-                    callback: callback
-                };
+                // Send chunks sequentially
+                let uploadedChunks = 0;
                 
-                Object.keys(fields).forEach(key => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = fields[key];
-                    form.appendChild(input);
-                });
-                
-                document.body.appendChild(form);
-                
-                // Handle timeout
-                const timeout = setTimeout(() => {
-                    document.body.removeChild(form);
-                    document.body.removeChild(iframe);
-                    delete window[callback];
-                    reject(new Error('Timeout durante il caricamento del PDF'));
-                }, 30000);
-                
-                // Listen for response
-                iframe.onload = () => {
-                    clearTimeout(timeout);
-                    try {
-                        // Try to read iframe content
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        const responseText = iframeDoc.body.textContent;
-                        if (responseText) {
-                            const response = JSON.parse(responseText);
+                function sendNextChunk() {
+                    if (uploadedChunks >= chunks.length) {
+                        // All chunks sent, now finalize upload
+                        console.log('✅ All chunks sent, finalizing...');
+                        const finalizeCallback = 'finalizePdfCallback_' + Date.now();
+                        
+                        window[finalizeCallback] = function(response) {
+                            delete window[finalizeCallback];
                             window[callback](response);
-                        }
-                    } catch (e) {
-                        // CORS will prevent reading iframe, but callback should still be called
-                        console.log('Waiting for callback from script...');
+                        };
+                        
+                        const script = document.createElement('script');
+                        script.src = `${window.APP_CONFIG.scriptUrl}?function=finalizePdfUploadJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileName=${encodeURIComponent(fileName)}&listId=${encodeURIComponent(listId)}&callback=${finalizeCallback}&_=${Date.now()}`;
+                        script.onerror = () => {
+                            delete window[finalizeCallback];
+                            reject(new Error('Errore nella finalizzazione del PDF'));
+                        };
+                        document.body.appendChild(script);
+                        return;
                     }
                     
-                    setTimeout(() => {
-                        try {
-                            document.body.removeChild(form);
-                            document.body.removeChild(iframe);
-                        } catch (e) {}
-                    }, 1000);
-                };
+                    const chunkCallback = 'chunkCallback_' + uploadedChunks + '_' + Date.now();
+                    
+                    window[chunkCallback] = function(response) {
+                        delete window[chunkCallback];
+                        
+                        if (response.success) {
+                            uploadedChunks++;
+                            console.log(`✓ Chunk ${uploadedChunks}/${chunks.length} uploaded`);
+                            sendNextChunk();
+                        } else {
+                            reject(new Error('Errore nel chunk ' + uploadedChunks + ': ' + response.error));
+                        }
+                    };
+                    
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=uploadPdfChunkJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&chunkIndex=${uploadedChunks}&chunkData=${encodeURIComponent(chunks[uploadedChunks])}&callback=${chunkCallback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[chunkCallback];
+                        reject(new Error('Errore di rete nel chunk ' + uploadedChunks));
+                    };
+                    document.body.appendChild(script);
+                }
                 
-                form.submit();
+                // Start sending chunks
+                sendNextChunk();
+                
+                // Timeout after 60 seconds
+                setTimeout(() => {
+                    reject(new Error('Timeout durante il caricamento del PDF'));
+                }, 60000);
             });
         }
 
