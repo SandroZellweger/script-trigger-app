@@ -225,6 +225,9 @@ function doGet(e) {
       case "analyzeUploadedInvoiceJsonp":
         return analyzeUploadedInvoiceJsonp(e.parameter);
         break;
+      case "uploadInvoicePhotoDirectJsonp":
+        return uploadInvoicePhotoDirectJsonp(e.parameter);
+        break;
       case "analyzeDamageJsonp":
         return analyzeDamageJsonp(e.parameter);
         break;
@@ -2507,6 +2510,67 @@ function uploadAndAnalyzeInvoiceJsonp(params) {
   return ContentService
     .createTextOutput(jsonpResponse)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// NEW: Direct upload for invoice photos (no chunking for files < 500KB)
+function uploadInvoicePhotoDirect(fileName, photoBase64, listId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const folderId = scriptProperties.getProperty('MAINTENANCE_PDF_FOLDER_ID') || scriptProperties.getProperty('PHOTO_FOLDER_ID');
+    
+    if (!folderId) {
+      return { success: false, error: 'Cartella foto non configurata' };
+    }
+    
+    // Upload to Drive
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(photoBase64),
+      'image/jpeg',
+      fileName
+    );
+
+    const folder = DriveApp.getFolderById(folderId);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const photoUrl = file.getUrl();
+
+    Logger.log('Invoice photo uploaded directly: ' + photoUrl);
+
+    // Save to sheet
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    const data = workshopSheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        workshopSheet.getRange(i + 1, 15).setValue(photoUrl);
+        workshopSheet.getRange(i + 1, 17).setValue(new Date());
+        workshopSheet.getRange(i + 1, 18).setValue('Pending');
+        break;
+      }
+    }
+
+    return {
+      success: true,
+      photoUrl: photoUrl,
+      listId: listId
+    };
+
+  } catch (error) {
+    Logger.log('Error in uploadInvoicePhotoDirect: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function uploadInvoicePhotoDirectJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = uploadInvoicePhotoDirect(params.fileName, params.photoData, params.listId);
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 // Upload invoice photo chunk (same pattern as PDF chunks)
