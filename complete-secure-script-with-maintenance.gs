@@ -2385,6 +2385,197 @@ function uploadAndAnalyzeInvoice(fileName, photoData, listId) {
   }
 }
 
+// Helpers for parsing OpenAI JSON responses
+function truncateForLog(text, maxLength) {
+  if (!text) return '';
+  const limit = maxLength || 1200;
+  if (text.length <= limit) {
+    return text;
+  }
+  return text.substring(0, limit) + '... [truncated ' + text.length + ' chars]';
+}
+
+function getAiMessageContentString(message) {
+  if (!message) {
+    return '';
+  }
+
+  const content = message.content;
+
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content.map(function(part) {
+      if (!part) {
+        return '';
+      }
+      if (typeof part === 'string') {
+        return part;
+      }
+      if (typeof part.text === 'string') {
+        return part.text;
+      }
+      if (Array.isArray(part.text)) {
+        return part.text.map(function(segment) {
+          if (!segment) {
+            return '';
+          }
+          if (typeof segment === 'string') {
+            return segment;
+          }
+          return segment.value || '';
+        }).join('');
+      }
+      if (part.type === 'output_text' && typeof part.text === 'string') {
+        return part.text;
+      }
+      if (part.type === 'text' && typeof part.text === 'string') {
+        return part.text;
+      }
+      return '';
+    }).join('\n');
+  }
+
+  if (content && typeof content === 'object') {
+    if (typeof content.text === 'string') {
+      return content.text;
+    }
+    if (Array.isArray(content.text)) {
+      return content.text.map(function(segment) {
+        if (!segment) {
+          return '';
+        }
+        if (typeof segment === 'string') {
+          return segment;
+        }
+        return segment.value || '';
+      }).join('');
+    }
+  }
+
+  return '';
+}
+
+function normalizeAiJsonString(raw) {
+  if (!raw) {
+    return '';
+  }
+
+  let normalized = raw.trim();
+
+  if (normalized.startsWith('```')) {
+    const firstFenceEnd = normalized.indexOf('\n');
+    if (firstFenceEnd !== -1) {
+      normalized = normalized.substring(firstFenceEnd + 1);
+    } else {
+      normalized = normalized.substring(3);
+    }
+    const lastFenceIndex = normalized.lastIndexOf('```');
+    if (lastFenceIndex !== -1) {
+      normalized = normalized.substring(0, lastFenceIndex);
+    }
+    normalized = normalized.trim();
+  }
+
+  const start = normalized.indexOf('{');
+  const end = normalized.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    normalized = normalized.substring(start, end + 1);
+  }
+
+  normalized = normalized.replace(/\u00A0/g, ' ');
+  normalized = normalized.replace(/\u200B/g, '');
+  normalized = normalized.replace(/\r\n/g, '\n');
+
+  return normalized.trim();
+}
+
+function parseAiJsonMessage(message, contextLabel) {
+  try {
+    if (!message) {
+      Logger.log(contextLabel + ' - Empty AI message.');
+      return { success: false, error: 'Invalid AI response format' };
+    }
+
+    if (message.parsed) {
+      var rawRepresentation = '';
+      try {
+        rawRepresentation = JSON.stringify(message.parsed);
+      } catch (stringifyError) {
+        rawRepresentation = '';
+      }
+      return {
+        success: true,
+        data: message.parsed,
+        raw: rawRepresentation
+      };
+    }
+
+    const rawContent = getAiMessageContentString(message);
+    const cleaned = normalizeAiJsonString(rawContent);
+
+    if (!cleaned) {
+      Logger.log(contextLabel + ' - No JSON content found. Raw snippet: ' + truncateForLog(rawContent));
+      return { success: false, error: 'Invalid AI response format', raw: rawContent };
+    }
+
+    const attempts = [];
+    attempts.push(cleaned);
+
+    const normalizedQuotes = cleaned.replace(/[“”]/g, '"').replace(/[’‘]/g, '\'');
+    if (normalizedQuotes !== cleaned) {
+      attempts.push(normalizedQuotes);
+    }
+
+    const noTrailingCommas = cleaned.replace(/,\s*([\]}])/g, '$1');
+    if (noTrailingCommas !== cleaned) {
+      attempts.push(noTrailingCommas);
+    }
+
+    const combined = normalizedQuotes.replace(/,\s*([\]}])/g, '$1');
+    if (combined !== normalizedQuotes) {
+      attempts.push(combined);
+    }
+
+    const uniqueAttempts = [];
+    const seen = {};
+    attempts.forEach(function(candidate) {
+      if (!seen[candidate]) {
+        uniqueAttempts.push(candidate);
+        seen[candidate] = true;
+      }
+    });
+
+    for (var i = 0; i < uniqueAttempts.length; i++) {
+      var attempt = uniqueAttempts[i];
+      try {
+        var parsed = JSON.parse(attempt);
+        return {
+          success: true,
+          data: parsed,
+          raw: rawContent,
+          cleaned: attempt
+        };
+      } catch (parseError) {
+        Logger.log(contextLabel + ' - JSON parse failed: ' + parseError + '. Attempt snippet: ' + truncateForLog(attempt));
+      }
+    }
+
+    Logger.log(contextLabel + ' - All parse attempts failed. Raw snippet: ' + truncateForLog(rawContent));
+    return {
+      success: false,
+      error: 'Invalid AI response format',
+      raw: rawContent,
+      cleaned: cleaned
+    };
+  } catch (error) {
+    Logger.log(contextLabel + ' - Exception while parsing AI response: ' + error);
+    return { success: false, error: 'Invalid AI response format' };
+  }
+}
+
 // Analyze invoice using OpenAI Vision API
 function analyzeInvoiceWithAI(photoUrl, expectedWorks) {
   try {
@@ -2508,39 +2699,22 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
       };
     }
 
-    const aiResponse = result.choices[0].message.content;
-    
-    // Parse JSON from AI response
-    let analysis;
-    try {
-      // Clean the response: remove markdown code blocks and extra text
-      let cleanContent = aiResponse.trim();
-      
-      // Remove markdown code blocks
-      cleanContent = cleanContent.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
-      
-      // Remove common prefixes like "Ecco il JSON:" or "Here is the JSON:"
-      cleanContent = cleanContent.replace(/^(Ecco il JSON:|Here is the JSON:|JSON:|Risposta:|Response:)\s*/i, '');
-      
-      // Find JSON object - look for first { and last }
-      const startIndex = cleanContent.indexOf('{');
-      const lastIndex = cleanContent.lastIndexOf('}');
-      
-      if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
-        cleanContent = cleanContent.substring(startIndex, lastIndex + 1);
-      }
-      
-      Logger.log('Cleaned content: ' + cleanContent);
-      
-      analysis = JSON.parse(cleanContent);
-    } catch (e) {
-      Logger.log('Error parsing AI response: ' + e);
+    const aiMessage = result.choices[0].message;
+    const parseOutcome = parseAiJsonMessage(aiMessage, 'analyzeInvoiceWithAI');
+
+    if (!parseOutcome.success) {
+      const fallbackRaw = parseOutcome.raw || getAiMessageContentString(aiMessage);
+      Logger.log('analyzeInvoiceWithAI - parse failure. Raw snippet: ' + truncateForLog(fallbackRaw));
       return {
         success: false,
-        error: 'Invalid AI response format',
-        rawResponse: aiResponse
+        error: parseOutcome.error || 'Invalid AI response format',
+        rawResponse: fallbackRaw
       };
     }
+
+    Logger.log('analyzeInvoiceWithAI - raw AI snippet: ' + truncateForLog(parseOutcome.raw || ''));
+
+    const analysis = parseOutcome.data;
 
     // Add analysis timestamp
     analysis.analysisDate = new Date().toISOString();
@@ -2820,47 +2994,27 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
     const content = result.choices[0].message.content;
     Logger.log('AI Response (text): ' + content);
 
-    try {
-      // Clean the response - remove markdown code blocks if present
-      let cleanContent = content.trim();
-      
-      // Remove markdown code blocks (```json ... ```)
-      if (cleanContent.startsWith('```')) {
-        const lines = cleanContent.split('\n');
-        // Remove first line if it starts with ```
-        if (lines[0].trim().startsWith('```')) {
-          lines.shift();
-        }
-        // Remove last line if it starts with ```
-        if (lines.length > 0 && lines[lines.length - 1].trim().startsWith('```')) {
-          lines.pop();
-        }
-        cleanContent = lines.join('\n').trim();
-      }
-      
-      // Try to find JSON if there's extra text before/after
-      let jsonStart = cleanContent.indexOf('{');
-      let jsonEnd = cleanContent.lastIndexOf('}');
-      
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
-      }
-      
-      const analysis = JSON.parse(cleanContent);
-      
-      return {
-        success: true,
-        analysis: analysis,
-        rawResponse: content
-      };
-    } catch (parseError) {
-      Logger.log('Error parsing AI response: ' + parseError);
+    // Use the robust JSON parsing helper
+    const aiMessage = result.choices[0].message;
+    const parseOutcome = parseAiJsonMessage(aiMessage, 'analyzeInvoiceTextWithAI');
+
+    if (!parseOutcome.success) {
+      const fallbackRaw = parseOutcome.raw || content;
+      Logger.log('analyzeInvoiceTextWithAI - parse failure. Raw snippet: ' + truncateForLog(fallbackRaw));
       return {
         success: false,
-        error: 'Invalid AI response format',
-        rawResponse: content
+        error: parseOutcome.error || 'Invalid AI response format',
+        rawResponse: fallbackRaw
       };
     }
+
+    Logger.log('analyzeInvoiceTextWithAI - raw AI snippet: ' + truncateForLog(parseOutcome.raw || ''));
+
+    return {
+      success: true,
+      analysis: parseOutcome.data,
+      rawResponse: content
+    };
 
   } catch (error) {
     Logger.log('Error in analyzeInvoiceTextWithAI: ' + error);
