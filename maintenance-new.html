@@ -1625,13 +1625,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
     </div>
 
     <script>
-        // Try to load config.private.js silently (only exists locally, not on GitHub Pages)
+        // Try to load config.private.js silently (only exists locally)
         (function() {
             var script = document.createElement('script');
             script.src = 'config.private.js';
             script.onerror = function() {
-                console.log('ℹ️ Running in production mode (config.private.js not found)');
-                console.log('ℹ️ This is expected on GitHub Pages');
+                console.log('ℹ️ config.private.js not found - using production defaults');
             };
             document.head.appendChild(script);
         })();

@@ -4,6 +4,8 @@
 
 This project uses separate configuration files to keep sensitive data out of version control.
 
+**IMPORTANT:** This app requires `config.private.js` to run. It will NOT work on GitHub Pages without credentials.
+
 ## Files Structure
 
 - **`config.public.js`** ✅ Safe for GitHub - Contains only public settings

@@ -25,18 +25,16 @@ window.APP_CONFIG = {
     enableServiceWorker: true,
     cacheVersion: 'v2.0.1',
     
-    // IMPORTANT: Sensitive data loaded from config.private.js
-    // These values will be overridden by PRIVATE_CONFIG (not committed to git)
-    // Placeholders only - DO NOT put real values here
-    scriptUrl: null,
-    authToken: null,
-    expenseSheetId: null,
-    maintenanceSheetId: null,
-    driveOauthClientId: null,
-    driveUploadFolderId: null,
-    googleApiKey: null,
-    googleClientId: null,
-    googleAppId: null
+    // Production defaults (overridden by config.private.js if present)
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbzzW7jzhNi0D4FC9VnZEH1FjBO7rlTwYLQBPbPhRagE-5aMwvKPgACcee2ugrPTWoyx/exec',
+    authToken: 'mySecureVanApp_2025',
+    expenseSheetId: '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M',
+    maintenanceSheetId: '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4',
+    driveOauthClientId: '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com',
+    driveUploadFolderId: '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM',
+    googleApiKey: 'AIzaSyCqF0sdLZCF0ASr_LWqN5VGV-psvXOLIoo',
+    googleClientId: '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com',
+    googleAppId: '552211122555'
 };
 
 // Function to merge private config when it loads
@@ -56,34 +54,17 @@ mergePrivateConfig();
 // Also try again after a short delay (in case private config loads after)
 setTimeout(() => {
     if (mergePrivateConfig()) {
-        // Config merged successfully on retry
-        console.log('📋 Config ready - Script URL configured');
+        // Config merged successfully - using local config.private.js
+        console.log('� Using local configuration (config.private.js loaded)');
     } else {
-        // Private config not available - use production defaults
+        // Private config not available - using production defaults
         console.log('🌐 Using production configuration (GitHub Pages)');
-        
-        // Production credentials (safe to expose for this app)
-        window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbzzW7jzhNi0D4FC9VnZEH1FjBO7rlTwYLQBPbPhRagE-5aMwvKPgACcee2ugrPTWoyx/exec';
-        window.APP_CONFIG.authToken = 'mySecureVanApp_2025';
-        window.APP_CONFIG.expenseSheetId = '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M';
-        window.APP_CONFIG.maintenanceSheetId = '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4';
-        window.APP_CONFIG.driveOauthClientId = '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com';
-        window.APP_CONFIG.driveUploadFolderId = '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM';
-        window.APP_CONFIG.googleApiKey = 'AIzaSyCqF0sdLZCF0ASr_LWqN5VGV-psvXOLIoo';
-        window.APP_CONFIG.googleClientId = '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com';
-        window.APP_CONFIG.googleAppId = '552211122555';
-        
-        console.log('📋 Config ready - Production mode');
     }
+    console.log('📋 Config ready - Script URL:', window.APP_CONFIG.scriptUrl ? 'configured ✅' : 'missing ❌');
 }, 100);
 
 // Version info for debugging
 console.log('📋 App Config Loaded - Version:', window.APP_CONFIG.version);
-if (window.APP_CONFIG.scriptUrl) {
-    console.log('🔗 Script URL configured');
-} else {
-    console.warn('⚠️ Script URL not configured - will use fallback');
-}
 
 // Backward compatibility
 window.PRODUCTION_CONFIG = window.APP_CONFIG;
