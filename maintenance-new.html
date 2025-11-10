@@ -5357,6 +5357,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         if (response.success) {
                             resolve(response);
                         } else {
+                            // Log the full response for debugging
+                            console.error('Backend error response:', response);
+                            if (response.rawResponse) {
+                                console.log('Raw AI Response:', response.rawResponse);
+                            }
                             reject(new Error(response.error || 'Analisi fallita'));
                         }
                     };

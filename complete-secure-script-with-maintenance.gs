@@ -2507,6 +2507,150 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
   }
 }
 
+// Analyze invoice image directly (receives base64 image)
+function analyzeInvoiceImageWithAI(base64Image, mimeType, expectedWorks) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
+    }
+
+    Logger.log('Analyzing image with mime type: ' + mimeType);
+
+    // Construct prompt
+    const prompt = `Analizza questa fattura di officina meccanica ed estrai le seguenti informazioni in formato JSON.
+
+LAVORI PREVENTIVATI ORIGINALI:
+${expectedWorks.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+Estrai dalla fattura:
+1. Costo totale (includi valuta, es: "CHF 450.00")
+2. Lista completa dei lavori effettuati (come appaiono in fattura)
+3. Data della fattura (formato YYYY-MM-DD)
+4. Nome dell'officina/garage
+5. Numero fattura se presente
+
+Poi confronta i lavori fatturati con quelli preventivati e classifica:
+- worksCompleted: lavori preventivati che sono stati effettuati
+- worksAdded: lavori effettuati ma NON preventivati
+- worksMissing: lavori preventivati ma NON effettuati
+
+Rispondi SOLO con JSON valido nel seguente formato:
+{
+  "invoiceData": {
+    "totalCost": "importo con valuta",
+    "invoiceDate": "YYYY-MM-DD",
+    "workshopName": "nome officina",
+    "invoiceNumber": "numero se presente o null",
+    "worksDone": ["lavoro1", "lavoro2", "..."]
+  },
+  "comparison": {
+    "worksCompleted": ["lavori preventivati e completati"],
+    "worksAdded": ["lavori extra non preventivati"],
+    "worksMissing": ["lavori preventivati ma non effettuati"]
+  },
+  "aiConfidence": 0.95
+}
+
+Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto dei lavori.`;
+
+    // Call OpenAI API with vision
+    const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.2,
+        response_format: { type: 'json_object' }
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+    
+    if (result.error) {
+      Logger.log('OpenAI API error: ' + JSON.stringify(result.error));
+      return {
+        success: false,
+        error: 'OpenAI API error: ' + JSON.stringify(result.error)
+      };
+    }
+
+    const content = result.choices[0].message.content;
+    Logger.log('AI Response (image): ' + content);
+
+    try {
+      // Clean the response: remove markdown code blocks and extra text
+      let cleanContent = content.trim();
+      
+      // Remove markdown code blocks
+      cleanContent = cleanContent.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
+      
+      // Remove common prefixes like "Ecco il JSON:" or "Here is the JSON:"
+      cleanContent = cleanContent.replace(/^(Ecco il JSON:|Here is the JSON:|JSON:|Risposta:|Response:)\s*/i, '');
+      
+      // Find JSON object - look for first { and last }
+      const startIndex = cleanContent.indexOf('{');
+      const lastIndex = cleanContent.lastIndexOf('}');
+      
+      if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
+        cleanContent = cleanContent.substring(startIndex, lastIndex + 1);
+      }
+      
+      Logger.log('Cleaned content: ' + cleanContent);
+      
+      const analysis = JSON.parse(cleanContent);
+      
+      return {
+        success: true,
+        analysis: analysis,
+        rawResponse: content
+      };
+    } catch (parseError) {
+      Logger.log('Error parsing AI response: ' + parseError);
+      Logger.log('Raw content was: ' + content);
+      return {
+        success: false,
+        error: 'Invalid AI response format',
+        rawResponse: content
+      };
+    }
+
+  } catch (error) {
+    Logger.log('Error in analyzeInvoiceImageWithAI: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
 // Analyze invoice using extracted text (for PDFs)
 function analyzeInvoiceTextWithAI(invoiceText, expectedWorks) {
   try {
@@ -3072,8 +3216,35 @@ function analyzeInvoiceFromDrive(fileId, listId) {
         };
       }
     } else {
-      // Image file - use standard image analysis
-      analysisResult = analyzeInvoiceWithAI(photoUrl, expectedWorks);
+      // Image file - get blob and analyze directly
+      try {
+        const imageBlob = file.getBlob();
+        const base64Image = Utilities.base64Encode(imageBlob.getBytes());
+        
+        // Ensure correct mime type
+        let imageMimeType = mimeType;
+        if (!imageMimeType.startsWith('image/')) {
+          // Force image mime type based on file extension
+          const extension = fileName.toLowerCase().split('.').pop();
+          const mimeMap = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp'
+          };
+          imageMimeType = mimeMap[extension] || 'image/jpeg';
+          Logger.log('Corrected mime type to: ' + imageMimeType);
+        }
+        
+        analysisResult = analyzeInvoiceImageWithAI(base64Image, imageMimeType, expectedWorks);
+      } catch (imageError) {
+        Logger.log('Image processing error: ' + imageError);
+        return {
+          success: false,
+          error: 'Errore elaborazione immagine: ' + imageError.toString()
+        };
+      }
     }
 
     if (!analysisResult.success) {
