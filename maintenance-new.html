@@ -5459,7 +5459,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
                             Annulla
                         </button>
-                        <button onclick="confirmDeleteInvoiceAnalysis('${listId}', '${invoiceDate}', ${photoUrl ? 'document.getElementById(\\'deleteInvoicePhotoCheck\\').checked' : 'false'})" 
+                        <button id="confirmDeleteBtn" data-listid="${listId}" data-date="${invoiceDate}" data-hasphoto="${photoUrl ? 'true' : 'false'}"
                                 style="background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
                             🗑️ Elimina
                         </button>
@@ -5468,6 +5468,16 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             `;
             
             document.body.appendChild(modal);
+            
+            // Add event listener for delete button
+            const deleteBtn = modal.querySelector('#confirmDeleteBtn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                    const hasPhoto = this.dataset.hasphoto === 'true';
+                    const deletePhoto = hasPhoto ? document.getElementById('deleteInvoicePhotoCheck').checked : false;
+                    confirmDeleteInvoiceAnalysis(this.dataset.listid, this.dataset.date, deletePhoto);
+                });
+            }
         }
 
         // Confirm delete invoice analysis
