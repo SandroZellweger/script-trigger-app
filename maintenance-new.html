@@ -5404,9 +5404,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         </div>
                     ` : ''}
 
-                    <div style="display: flex; justify-content: flex-end;">
+                    <div style="display: flex; justify-content: space-between; gap: 10px;">
+                        ${response.listId && inv.invoiceDate ? `
+                            <button onclick="deleteInvoiceAnalysis('${response.listId}', '${inv.invoiceDate}', '${response.photoUrl || ''}')" 
+                                    style="padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                                🗑️ Elimina
+                            </button>
+                        ` : ''}
                         <button onclick="this.closest('div').parentElement.parentElement.remove()" 
-                                style="padding: 12px 24px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                                style="padding: 12px 24px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; margin-left: auto;">
                             OK, Capito
                         </button>
                     </div>
@@ -5421,6 +5427,75 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     document.body.removeChild(modal);
                 }
             });
+        }
+
+        // Delete invoice analysis from Storico Lavori
+        function deleteInvoiceAnalysis(listId, invoiceDate, photoUrl) {
+            // Show custom confirmation dialog
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10001;';
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <h3 style="margin: 0 0 20px 0; color: #dc3545;">⚠️ Elimina Analisi Fattura</h3>
+                    <p style="margin-bottom: 20px; color: #333; line-height: 1.6;">
+                        Sei sicuro di voler eliminare questa analisi fattura?<br>
+                        <strong>Questa azione eliminerà:</strong>
+                    </p>
+                    <ul style="margin-bottom: 20px; color: #666;">
+                        <li>Tutti i lavori di questa fattura da "Storico Lavori"</li>
+                        <li>I riferimenti ai lavori completati</li>
+                    </ul>
+                    ${photoUrl ? `
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="deleteInvoicePhotoCheck" style="width: 20px; height: 20px; cursor: pointer;">
+                                <span style="color: #333;">Elimina anche la foto da Google Drive</span>
+                            </label>
+                        </div>
+                    ` : ''}
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="this.closest('div').parentElement.remove()" 
+                                style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            Annulla
+                        </button>
+                        <button onclick="confirmDeleteInvoiceAnalysis('${listId}', '${invoiceDate}', ${photoUrl ? 'document.getElementById(\\'deleteInvoicePhotoCheck\\').checked' : 'false'})" 
+                                style="background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            🗑️ Elimina
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        // Confirm delete invoice analysis
+        function confirmDeleteInvoiceAnalysis(listId, invoiceDate, deletePhoto) {
+            // Remove all modals (both confirmation and analysis result)
+            document.querySelectorAll('div[style*="position: fixed"]').forEach(el => el.remove());
+
+            // Show loading notification
+            showNotification('⏳ Eliminazione in corso...', 'info');
+
+            const callback = 'handleInvoiceDeleted';
+            window[callback] = function(response) {
+                if (response.success) {
+                    showNotification(`✅ ${response.message}`, 'success');
+                    // Reload workshop lists to reflect changes
+                    if (typeof loadWorkshopLists === 'function') {
+                        loadWorkshopLists();
+                    }
+                } else {
+                    showNotification('❌ Errore: ' + response.error, 'error');
+                }
+            };
+
+            const url = `${window.APP_CONFIG.scriptUrl}?function=deleteInvoiceFromHistoryJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&invoiceDate=${encodeURIComponent(invoiceDate)}&deletePhoto=${deletePhoto}&callback=${callback}&_=${Date.now()}`;
+            
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
         }
 
         // NEW: Analyze invoice from existing Drive file (supports images and PDFs)
