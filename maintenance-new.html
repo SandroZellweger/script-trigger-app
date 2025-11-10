@@ -7,10 +7,6 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#667eea">
     
-    <!-- Google APIs for Drive Picker -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
     <!-- PDF Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -1636,7 +1632,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         })();
     </script>
     <script src="config.public.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         // Maintenance System JavaScript
 
@@ -1666,28 +1661,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
         }
 
-        function updateDriveAuthUI() {
-            const prompt = document.getElementById('driveAuthPrompt');
-            if (!prompt) return;
-            prompt.style.display = driveAuthorized ? 'none' : 'block';
-        }
-
-        async function requestDriveAuthorization() {
-            await waitForConfig();
-            try {
-                console.log('🔐 Richiedendo autorizzazione Google Drive...');
-                const token = await ensureDriveToken();
-                if (token) {
-                    driveAuthorized = true;
-                    updateDriveAuthUI();
-                    alert('✅ Accesso a Google Drive autorizzato. Ora puoi caricare le foto.');
-                }
-            } catch (error) {
-                console.error('❌ Errore autorizzazione Drive:', error);
-                alert('Errore nell\'autorizzazione Google Drive: ' + error.message);
-            }
-        }
-
         // Initialize app after config loads
         async function initApp() {
             // Wait for config to load
@@ -1707,12 +1680,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const displayName = adminCode ? `${adminUser} (${adminCode})` : adminUser;
             document.getElementById('reportedBy').value = displayName;
 
-            // Initialize Google API for Drive Picker
-            initGoogleAPI();
-
-            // Update Drive authorization UI
-            updateDriveAuthUI();
-
             // Load vehicles
             loadVehicles();
             
@@ -1721,45 +1688,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             // Setup form submission
             document.getElementById('maintenanceForm').addEventListener('submit', handleSubmit);
-        }
-
-        // Initialize Google API for Drive Picker
-        function initGoogleAPI() {
-            try {
-                // Load Google API client
-                gapi.load('client:auth2:picker', function() {
-                    const GOOGLE_CLIENT_ID = window.APP_CONFIG?.googleClientId || 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-                    const GOOGLE_API_KEY = window.APP_CONFIG?.googleApiKey || 'YOUR_API_KEY';
-                    const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
-                    const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
-                    gapi.client.init({
-                        apiKey: GOOGLE_API_KEY,
-                        clientId: GOOGLE_CLIENT_ID,
-                        discoveryDocs: DISCOVERY_DOCS,
-                        scope: SCOPES
-                    }).then(function() {
-                        console.log('✅ Google API initialized for Drive Picker');
-                        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-                        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-                    }).catch(function(error) {
-                        console.warn('⚠️ Google API initialization failed:', error);
-                        console.log('📝 Fallback: Manual File ID input will be used');
-                    });
-                });
-            } catch (error) {
-                console.warn('⚠️ Google API not available:', error);
-                console.log('📝 Fallback: Manual File ID input will be used');
-            }
-        }
-
-        // Update signin status for Google API
-        function updateSigninStatus(isSignedIn) {
-            if (isSignedIn) {
-                console.log('✅ User is signed in to Google');
-            } else {
-                console.log('ℹ️ User not signed in to Google (will sign in when using Drive Picker)');
-            }
         }
 
         // Initialize
@@ -4577,9 +4505,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 <button onclick="uploadInvoiceForList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     📷 Carica Fattura
                                 </button>
-                                <button onclick="promptDriveFileForInvoice('${escapeHtml(list.listId)}')" style="background: #4285f4; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Analizza una fattura (immagine o PDF) già caricata su Google Drive">
-                                    📁 Analizza da Drive
-                                </button>
                             </div>
                         </div>
                         
@@ -5215,104 +5140,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             }
         }
 
-        // Google Drive Picker - Load API and show picker
-        let pickerApiLoaded = false;
-        let oauthToken = null;
-        let pickerInited = false;
-        let currentPickerListId = null;
-
-        function loadDrivePicker(listId) {
-            currentPickerListId = listId;
-            
-            // Load the Google Picker API
-            if (!pickerApiLoaded) {
-                gapi.load('picker', {
-                    'callback': function() {
-                        pickerApiLoaded = true;
-                        console.log('✅ Google Picker API loaded');
-                        authenticateAndShowPicker();
-                    },
-                    'onerror': function() {
-                        console.error('❌ Error loading Picker API');
-                        showNotification('❌ Errore caricamento Google Picker', 'error');
-                        // Fallback to manual input
-                        promptDriveFileForInvoiceManual(listId);
-                    }
-                });
-            } else {
-                authenticateAndShowPicker();
-            }
-        }
-
-        // Authenticate with Google OAuth
-        function authenticateAndShowPicker() {
-            // Use Google OAuth 2.0
-            gapi.auth2.getAuthInstance().signIn().then(function() {
-                oauthToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
-                console.log('✅ Authenticated with Google');
-                showDrivePicker();
-            }).catch(function(error) {
-                console.error('❌ Authentication error:', error);
-                showNotification('❌ Errore autenticazione Google', 'error');
-                // Fallback to manual input
-                promptDriveFileForInvoiceManual(currentPickerListId);
-            });
-        }
-
-        // Show Google Drive Picker
-        function showDrivePicker() {
-            if (!oauthToken) {
-                console.error('❌ No OAuth token');
-                promptDriveFileForInvoiceManual(currentPickerListId);
-                return;
-            }
-
-            const view = new google.picker.DocsView()
-                .setIncludeFolders(true)
-                .setMimeTypes('image/jpeg,image/png,image/gif,application/pdf')
-                .setMode(google.picker.DocsViewMode.LIST);
-
-            const picker = new google.picker.PickerBuilder()
-                .setAppId(window.APP_CONFIG.googleAppId || 'your-app-id')
-                .setOAuthToken(oauthToken)
-                .addView(view)
-                .addView(new google.picker.DocsUploadView())
-                .setCallback(pickerCallback)
-                .setTitle('Seleziona Fattura da Analizzare')
-                .build();
-
-            picker.setVisible(true);
-        }
-
-        // Picker callback when file is selected
-        function pickerCallback(data) {
-            if (data.action === google.picker.Action.PICKED) {
-                const file = data.docs[0];
-                const fileId = file.id;
-                const fileName = file.name;
-                const mimeType = file.mimeType;
-
-                console.log('✅ File selezionato:', fileName);
-                console.log('📁 File ID:', fileId);
-                console.log('📄 Mime type:', mimeType);
-
-                // Check if file is supported
-                const isSupported = mimeType.startsWith('image/') || mimeType === 'application/pdf';
-                
-                if (!isSupported) {
-                    showNotification('❌ Tipo file non supportato. Seleziona un\'immagine o PDF.', 'error');
-                    return;
-                }
-
-                // Show confirmation and analyze
-                showNotification(`📁 Analisi di "${fileName}" in corso...`, 'info');
-                analyzeExistingInvoice(fileId, currentPickerListId);
-            } else if (data.action === google.picker.Action.CANCEL) {
-                console.log('❌ Picker canceled');
-            }
-        }
-
-        // Prompt user to select a file from Drive (with Google Picker or manual input)
+        // Prompt user for Drive File ID for invoice analysis
         function promptDriveFileForInvoice(listId) {
             const modal = document.createElement('div');
             modal.id = 'driveFileModal';
@@ -5333,29 +5161,20 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                     <h2 style="margin: 0 0 20px 0; color: #333; display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 32px;">📁</span>
-                        Seleziona Fattura da Drive
+                        Analizza Fattura da Drive
                     </h2>
                     
-                    <div style="margin-bottom: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
-                        <strong style="color: #2e7d32;">✨ Nuovo! Seleziona direttamente da Drive</strong>
+                    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <strong style="color: #1565c0;">ℹ️ Come trovare il File ID</strong>
                         <p style="margin: 8px 0 0 0; color: #555; font-size: 14px;">
-                            Clicca il bottone qui sotto per aprire Google Drive e selezionare la fattura.
+                            1. Apri il file su Google Drive<br>
+                            2. Copia l'ID dall'URL: drive.google.com/file/d/<strong>FILE_ID</strong>/view
                         </p>
-                    </div>
-
-                    <button onclick="closeDriveFileModal(); loadDrivePicker('${listId}');" 
-                            style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <span style="font-size: 24px;">📁</span>
-                        Apri Google Drive
-                    </button>
-
-                    <div style="text-align: center; color: #999; margin: 15px 0; font-size: 14px;">
-                        oppure
                     </div>
 
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
-                            Inserisci manualmente File ID:
+                            File ID da Google Drive:
                         </label>
                         <input type="text" 
                                id="driveFileIdInput" 
@@ -5403,85 +5222,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     }
                 });
             }
-        }
-
-        // Fallback: Manual File ID input (if Picker fails)
-        function promptDriveFileForInvoiceManual(listId) {
-            const modal = document.createElement('div');
-            modal.id = 'driveFileModal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-            `;
-
-            modal.innerHTML = `
-                <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <h2 style="margin: 0 0 20px 0; color: #333; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 32px;">📁</span>
-                        Analizza Fattura da Drive
-                    </h2>
-                    
-                    <div style="margin-bottom: 20px; padding: 15px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
-                        <strong style="color: #e65100;">⚠️ Google Picker non disponibile</strong>
-                        <p style="margin: 8px 0 0 0; color: #555; font-size: 14px;">
-                            Inserisci manualmente l'ID del file da Google Drive.
-                        </p>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
-                            File ID da Drive:
-                        </label>
-                        <input type="text" 
-                               id="driveFileIdInput" 
-                               placeholder="es: 1abc...xyz"
-                               style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: monospace;">
-                        <small style="color: #666; font-size: 12px;">
-                            💡 Trova l'ID nell'URL del file: drive.google.com/file/d/<strong>FILE_ID</strong>/view
-                        </small>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                        <button onclick="closeDriveFileModal()" 
-                                style="padding: 12px 24px; background: #ccc; color: #333; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                            Annulla
-                        </button>
-                        <button onclick="processDriveFileAnalysis('${listId}')" 
-                                style="padding: 12px 24px; background: #4285f4; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                            🤖 Analizza
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            // Focus on input
-            setTimeout(() => {
-                document.getElementById('driveFileIdInput').focus();
-            }, 100);
-
-            // Close modal on background click
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeDriveFileModal();
-                }
-            });
-
-            // Allow Enter key to submit
-            document.getElementById('driveFileIdInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    processDriveFileAnalysis(listId);
-                }
-            });
         }
 
         // Close Drive file modal

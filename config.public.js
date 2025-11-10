@@ -31,10 +31,7 @@ window.APP_CONFIG = {
     expenseSheetId: '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M',
     maintenanceSheetId: '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4',
     driveOauthClientId: '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com',
-    driveUploadFolderId: '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM',
-    googleApiKey: 'AIzaSyCqF0sdLZCF0ASr_LWqN5VGV-psvXOLIoo',
-    googleClientId: '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com',
-    googleAppId: '552211122555'
+    driveUploadFolderId: '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM'
 };
 
 // Function to merge private config when it loads
