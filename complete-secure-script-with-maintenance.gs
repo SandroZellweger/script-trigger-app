@@ -228,6 +228,9 @@ function doGet(e) {
       case "analyzeInvoiceFromDriveJsonp":
         return analyzeInvoiceFromDriveJsonp(e.parameter);
         break;
+      case "getGoogleCredentialsJsonp":
+        return getGoogleCredentialsJsonp(e.parameter);
+        break;
       case "uploadInvoicePhotoDirectJsonp":
         return uploadInvoicePhotoDirectJsonp(e.parameter);
         break;
@@ -2987,6 +2990,54 @@ function analyzeInvoiceFromDriveJsonp(params) {
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+/*************************************************************
+ * GOOGLE API CREDENTIALS - Secure backend endpoint
+ * Provides Google Drive Picker credentials without exposing them in frontend
+ *************************************************************/
+
+// Get Google API credentials from Script Properties (secure)
+function getGoogleCredentials() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const clientId = scriptProperties.getProperty('GOOGLE_CLIENT_ID');
+    const apiKey = scriptProperties.getProperty('GOOGLE_API_KEY');
+    
+    if (!clientId || !apiKey) {
+      return {
+        success: false,
+        error: 'Google credentials not configured in Script Properties'
+      };
+    }
+    
+    // Extract App ID from Client ID (first part before hyphen)
+    const appId = clientId.split('-')[0];
+    
+    return {
+      success: true,
+      clientId: clientId,
+      apiKey: apiKey,
+      appId: appId
+    };
+  } catch (error) {
+    Logger.log('Error getting Google credentials: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrapper for getGoogleCredentials
+function getGoogleCredentialsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getGoogleCredentials();
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
   return ContentService
     .createTextOutput(jsonpResponse)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);

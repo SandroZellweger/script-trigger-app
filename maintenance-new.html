@@ -7,6 +7,10 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#667eea">
     
+    <!-- Google APIs for Drive Picker -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <!-- PDF Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -1645,7 +1649,191 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         let driveAccessToken = null;
         let pendingTokenPromise = null;
         let pendingTokenResolvers = { resolve: null, reject: null };
-    let driveAuthorized = false;
+        let driveAuthorized = false;
+        
+        // Google Drive Picker Configuration (loaded from backend)
+        let GOOGLE_CONFIG = null;
+        let pickerInited = false;
+        
+        // Load Google API credentials from backend (secure)
+        async function loadGoogleCredentials() {
+            if (GOOGLE_CONFIG) {
+                return true; // Already loaded
+            }
+            
+            try {
+                console.log('📡 Loading Google credentials from backend...');
+                
+                const response = await new Promise((resolve, reject) => {
+                    const callback = 'handleGoogleCreds_' + Date.now();
+                    const url = `${window.APP_CONFIG.scriptUrl}?function=getGoogleCredentialsJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callback}`;
+                    
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        resolve(response);
+                    };
+                    
+                    const script = document.createElement('script');
+                    script.src = url;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Failed to load Google credentials'));
+                    };
+                    document.body.appendChild(script);
+                    setTimeout(() => {
+                        if (script.parentNode) {
+                            script.remove();
+                        }
+                    }, 5000);
+                });
+                
+                if (response.success) {
+                    GOOGLE_CONFIG = {
+                        apiKey: response.apiKey,
+                        clientId: response.clientId,
+                        appId: response.appId
+                    };
+                    console.log('✅ Google credentials loaded successfully');
+                    console.log('🔑 Client ID configured:', GOOGLE_CONFIG.clientId.substring(0, 20) + '...');
+                    return true;
+                } else {
+                    console.error('❌ Failed to load Google credentials:', response.error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error loading Google credentials:', error);
+                return false;
+            }
+        }
+        
+        // Initialize Google Picker API
+        function initGooglePicker() {
+            if (!GOOGLE_CONFIG) {
+                console.warn('⚠️ Google credentials not loaded yet');
+                return;
+            }
+            
+            if (pickerInited) {
+                return; // Already initialized
+            }
+            
+            try {
+                gapi.load('picker', () => {
+                    console.log('✅ Google Picker API loaded');
+                    pickerInited = true;
+                });
+            } catch (error) {
+                console.error('❌ Error initializing Google Picker:', error);
+            }
+        }
+        
+        // Show Google Drive Picker for invoice selection
+        async function loadDrivePicker(listId) {
+            try {
+                // Ensure credentials are loaded
+                if (!GOOGLE_CONFIG) {
+                    console.log('🔄 Loading Google credentials...');
+                    const loaded = await loadGoogleCredentials();
+                    if (!loaded) {
+                        throw new Error('Failed to load Google credentials');
+                    }
+                    // Initialize picker after credentials loaded
+                    initGooglePicker();
+                    // Wait a bit for picker to load
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                if (!pickerInited) {
+                    throw new Error('Google Picker not initialized');
+                }
+                
+                console.log('🔐 Requesting Google Drive access...');
+                showNotification('🔐 Accesso a Google Drive...', 'info');
+                
+                // Use Google Identity Services for OAuth
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CONFIG.clientId,
+                    scope: 'https://www.googleapis.com/auth/drive.readonly',
+                    callback: (tokenResponse) => {
+                        if (tokenResponse.access_token) {
+                            console.log('✅ Access token obtained');
+                            showDrivePicker(tokenResponse.access_token, listId);
+                        } else {
+                            console.error('❌ No access token received');
+                            showNotification('❌ Autenticazione fallita', 'error');
+                        }
+                    }
+                });
+                
+                tokenClient.requestAccessToken();
+                
+            } catch (error) {
+                console.error('❌ Drive Picker error:', error);
+                showNotification('❌ Errore: ' + error.message, 'error');
+            }
+        }
+        
+        // Show Google Drive file picker
+        function showDrivePicker(accessToken, listId) {
+            if (!GOOGLE_CONFIG) {
+                console.error('❌ Google config not loaded');
+                return;
+            }
+            
+            try {
+                const docsView = new google.picker.DocsView(google.picker.ViewId.DOCS)
+                    .setIncludeFolders(true)
+                    .setMimeTypes('image/jpeg,image/png,image/jpg,image/gif,application/pdf');
+                
+                const picker = new google.picker.PickerBuilder()
+                    .setAppId(GOOGLE_CONFIG.appId)
+                    .setOAuthToken(accessToken)
+                    .addView(docsView)
+                    .addView(new google.picker.DocsUploadView())
+                    .setDeveloperKey(GOOGLE_CONFIG.apiKey)
+                    .setCallback((data) => handlePickerCallback(data, listId))
+                    .setTitle('Seleziona Fattura (Immagine o PDF)')
+                    .setSize(800, 600)
+                    .build();
+                
+                picker.setVisible(true);
+                console.log('✅ Drive Picker displayed');
+                
+            } catch (error) {
+                console.error('❌ Error showing picker:', error);
+                showNotification('❌ Errore apertura picker: ' + error.message, 'error');
+            }
+        }
+        
+        // Handle file selection from Drive Picker
+        function handlePickerCallback(data, listId) {
+            if (data.action === google.picker.Action.PICKED) {
+                const file = data.docs[0];
+                const fileId = file.id;
+                const fileName = file.name;
+                const mimeType = file.mimeType;
+                
+                console.log('📁 File selezionato:', fileName);
+                console.log('🆔 File ID:', fileId);
+                console.log('📄 Tipo:', mimeType);
+                
+                // Validate file type
+                const isImage = mimeType.startsWith('image/');
+                const isPdf = mimeType === 'application/pdf';
+                
+                if (!isImage && !isPdf) {
+                    showNotification('❌ Tipo file non supportato. Seleziona un\'immagine o PDF.', 'error');
+                    return;
+                }
+                
+                // Start analysis
+                showNotification(`📊 Analisi di "${fileName}" in corso...`, 'info');
+                analyzeExistingInvoice(fileId, listId);
+                
+            } else if (data.action === google.picker.Action.CANCEL) {
+                console.log('ℹ️ Picker chiuso dall\'utente');
+            }
+        }
         
         // Wait for config to load
         function waitForConfig() {
@@ -1679,6 +1867,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             // Display full name with code
             const displayName = adminCode ? `${adminUser} (${adminCode})` : adminUser;
             document.getElementById('reportedBy').value = displayName;
+
+            // Load Google credentials in background (non-blocking)
+            loadGoogleCredentials().then(success => {
+                if (success) {
+                    initGooglePicker();
+                }
+            }).catch(err => {
+                console.warn('⚠️ Google Drive Picker not available:', err);
+            });
 
             // Load vehicles
             loadVehicles();
@@ -4504,6 +4701,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 </button>
                                 <button onclick="uploadInvoiceForList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     📷 Carica Fattura
+                                </button>
+                                <button onclick="loadDrivePicker('${escapeHtml(list.listId)}')" style="background: #4285f4; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Seleziona una fattura già salvata su Google Drive">
+                                    📁 Seleziona da Drive
                                 </button>
                             </div>
                         </div>
