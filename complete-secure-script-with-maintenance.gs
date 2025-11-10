@@ -2855,7 +2855,6 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
       };
     } catch (parseError) {
       Logger.log('Error parsing AI response: ' + parseError);
-      Logger.log('Cleaned content attempted: ' + cleanContent);
       return {
         success: false,
         error: 'Invalid AI response format',
