@@ -237,6 +237,18 @@ function doGet(e) {
       case "autoCompleteIssuesFromInvoiceJsonp":
         return autoCompleteIssuesFromInvoiceJsonp(e.parameter);
         break;
+      case "findWorkshopJsonp":
+        return findWorkshopJsonp(e.parameter);
+        break;
+      case "createWorkshopJsonp":
+        return createWorkshopJsonp(e.parameter);
+        break;
+      case "getWorkshopHistoryJsonp":
+        return getWorkshopHistoryJsonp(e.parameter);
+        break;
+      case "archiveWorkshopListJsonp":
+        return archiveWorkshopListJsonp(e.parameter);
+        break;
       case "uploadInvoicePhotoDirectJsonp":
         return uploadInvoicePhotoDirectJsonp(e.parameter);
         break;
@@ -2393,10 +2405,15 @@ ${expectedWorks.map((w, i) => `${i + 1}. ${w}`).join('\n')}
 
 Estrai dalla fattura:
 1. Costo totale (includi valuta, es: "CHF 450.00")
-2. Lista completa dei lavori effettuati (come appaiono in fattura)
+2. Lista completa dei lavori effettuati CON COSTI SINGOLI
 3. Data della fattura (formato YYYY-MM-DD)
-4. Nome dell'officina/garage
+4. Nome ESATTO dell'officina/garage
 5. Numero fattura se presente
+6. Kilometraggio del veicolo se presente
+
+PER OGNI LAVORO estrai:
+- Descrizione esatta
+- Costo singolo (se disponibile, altrimenti null)
 
 Poi confronta i lavori fatturati con quelli preventivati e classifica:
 - worksCompleted: lavori preventivati che sono stati effettuati
@@ -2406,20 +2423,29 @@ Poi confronta i lavori fatturati con quelli preventivati e classifica:
 Rispondi SOLO con JSON valido nel seguente formato:
 {
   "invoiceData": {
-    "totalCost": "importo con valuta",
-    "invoiceDate": "YYYY-MM-DD",
-    "workshopName": "nome officina",
-    "invoiceNumber": "numero se presente o null",
-    "worksDone": ["lavoro1", "lavoro2", "..."]
+    "totalCost": "874.79 CHF",
+    "invoiceDate": "2025-06-30",
+    "workshopName": "Nome ESATTO Officina SA",
+    "invoiceNumber": "250254",
+    "vehicleKm": 45000,
+    "worksDone": [
+      {"description": "Cambio olio motore", "cost": "120.00 CHF"},
+      {"description": "Filtro olio", "cost": "45.00 CHF"}
+    ]
   },
   "comparison": {
-    "worksCompleted": ["lavori preventivati e completati"],
-    "worksAdded": ["lavori extra non preventivati"],
-    "worksMissing": ["lavori preventivati ma non effettuati"]
+    "worksCompleted": [
+      {"description": "Cambio olio", "cost": "120.00 CHF"}
+    ],
+    "worksAdded": [
+      {"description": "Servizio annuale", "cost": "250.00 CHF"}
+    ],
+    "worksMissing": ["Controllo freni", "Pulizia interna"]
   },
   "aiConfidence": 0.95
 }
 
+IMPORTANTE: worksDone, worksCompleted e worksAdded devono essere array di OGGETTI con {description, cost}.
 Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto dei lavori.`;
 
     // Call OpenAI API
@@ -2536,10 +2562,15 @@ ${expectedWorks.map((w, i) => `${i + 1}. ${w}`).join('\n')}
 
 Estrai dalla fattura:
 1. Costo totale (includi valuta, es: "CHF 450.00")
-2. Lista completa dei lavori effettuati (come appaiono in fattura)
+2. Lista completa dei lavori effettuati CON COSTI SINGOLI (come appaiono in fattura)
 3. Data della fattura (formato YYYY-MM-DD)
-4. Nome dell'officina/garage
+4. Nome ESATTO dell'officina/garage (come appare in fattura)
 5. Numero fattura se presente
+6. Kilometraggio del veicolo se presente
+
+PER OGNI LAVORO estrai:
+- Descrizione esatta
+- Costo singolo (se disponibile, altrimenti null)
 
 Poi confronta i lavori fatturati con quelli preventivati e classifica:
 - worksCompleted: lavori preventivati che sono stati effettuati
@@ -2549,20 +2580,29 @@ Poi confronta i lavori fatturati con quelli preventivati e classifica:
 Rispondi SOLO con JSON valido nel seguente formato:
 {
   "invoiceData": {
-    "totalCost": "importo con valuta",
-    "invoiceDate": "YYYY-MM-DD",
-    "workshopName": "nome officina",
-    "invoiceNumber": "numero se presente o null",
-    "worksDone": ["lavoro1", "lavoro2", "..."]
+    "totalCost": "874.79 CHF",
+    "invoiceDate": "2025-06-30",
+    "workshopName": "Nome ESATTO Officina SA",
+    "invoiceNumber": "250254",
+    "vehicleKm": 45000,
+    "worksDone": [
+      {"description": "Cambio olio motore", "cost": "120.00 CHF"},
+      {"description": "Filtro olio", "cost": "45.00 CHF"}
+    ]
   },
   "comparison": {
-    "worksCompleted": ["lavori preventivati e completati"],
-    "worksAdded": ["lavori extra non preventivati"],
-    "worksMissing": ["lavori preventivati ma non effettuati"]
+    "worksCompleted": [
+      {"description": "Cambio olio", "cost": "120.00 CHF"}
+    ],
+    "worksAdded": [
+      {"description": "Servizio annuale", "cost": "250.00 CHF"}
+    ],
+    "worksMissing": ["Controllo freni", "Pulizia interna"]
   },
   "aiConfidence": 0.95
 }
 
+IMPORTANTE: worksDone, worksCompleted e worksAdded devono essere array di OGGETTI con {description, cost}.
 Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto dei lavori.`;
 
     // Call OpenAI API with vision
@@ -2681,10 +2721,15 @@ ${expectedWorks.map((w, i) => `${i + 1}. ${w}`).join('\n')}
 
 Estrai dalla fattura:
 1. Costo totale (includi valuta, es: "CHF 450.00")
-2. Lista completa dei lavori effettuati (come appaiono in fattura)
+2. Lista completa dei lavori effettuati CON COSTI SINGOLI
 3. Data della fattura (formato YYYY-MM-DD)
-4. Nome dell'officina/garage
+4. Nome ESATTO dell'officina/garage
 5. Numero fattura se presente
+6. Kilometraggio del veicolo se presente
+
+PER OGNI LAVORO estrai:
+- Descrizione esatta
+- Costo singolo (se disponibile, altrimenti null)
 
 Poi confronta i lavori fatturati con quelli preventivati e classifica:
 - worksCompleted: lavori preventivati che sono stati effettuati
@@ -2694,19 +2739,29 @@ Poi confronta i lavori fatturati con quelli preventivati e classifica:
 Rispondi SOLO con JSON valido nel seguente formato:
 {
   "invoiceData": {
-    "totalCost": "importo con valuta",
-    "invoiceDate": "YYYY-MM-DD",
-    "workshopName": "nome officina",
-    "invoiceNumber": "numero se presente o null",
-    "worksDone": ["lavoro1", "lavoro2", "..."]
+    "totalCost": "874.79 CHF",
+    "invoiceDate": "2025-06-30",
+    "workshopName": "Nome ESATTO Officina SA",
+    "invoiceNumber": "250254",
+    "vehicleKm": 45000,
+    "worksDone": [
+      {"description": "Cambio olio motore", "cost": "120.00 CHF"},
+      {"description": "Filtro olio", "cost": "45.00 CHF"}
+    ]
   },
   "comparison": {
-    "worksCompleted": ["lavori preventivati e completati"],
-    "worksAdded": ["lavori extra non preventivati"],
-    "worksMissing": ["lavori preventivati ma non effettuati"]
+    "worksCompleted": [
+      {"description": "Cambio olio", "cost": "120.00 CHF"}
+    ],
+    "worksAdded": [
+      {"description": "Servizio annuale", "cost": "250.00 CHF"}
+    ],
+    "worksMissing": ["Controllo freni", "Pulizia interna"]
   },
   "aiConfidence": 0.95
 }
+
+IMPORTANTE: worksDone, worksCompleted e worksAdded devono essere array di OGGETTI con {description, cost}.
 
 Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto dei lavori.`;
 
@@ -3373,10 +3428,10 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
     
     if (!storicoSheet) {
       storicoSheet = ss.insertSheet('Storico Lavori');
-      const headerRow = storicoSheet.getRange(1, 1, 1, 11);
+      const headerRow = storicoSheet.getRange(1, 1, 1, 13);
       headerRow.setValues([[
-        'Data Lavoro', 'ID Veicolo', 'Nome Veicolo', 'Tipo Lavoro', 
-        'Descrizione', 'Costo CHF', 'Officina', 'N° Fattura', 'ID Lista', 'Link Fattura', 'Note'
+        'Data Lavoro', 'ID Veicolo', 'Nome Veicolo', 'Km Veicolo', 'Tipo Lavoro', 
+        'Descrizione', 'Costo CHF', 'Officina', 'ID Officina', 'N° Fattura', 'ID Lista', 'Link Fattura', 'Note'
       ]]);
       headerRow.setBackground('#28a745');
       headerRow.setFontColor('#ffffff');
@@ -3388,14 +3443,16 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
       storicoSheet.setColumnWidth(1, 120);  // Data
       storicoSheet.setColumnWidth(2, 100);  // ID Veicolo
       storicoSheet.setColumnWidth(3, 120);  // Nome Veicolo
-      storicoSheet.setColumnWidth(4, 130);  // Tipo Lavoro
-      storicoSheet.setColumnWidth(5, 400);  // Descrizione
-      storicoSheet.setColumnWidth(6, 100);  // Costo
-      storicoSheet.setColumnWidth(7, 150);  // Officina
-      storicoSheet.setColumnWidth(8, 100);  // N° Fattura
-      storicoSheet.setColumnWidth(9, 100);  // ID Lista
-      storicoSheet.setColumnWidth(10, 80);  // Link Fattura
-      storicoSheet.setColumnWidth(11, 250); // Note
+      storicoSheet.setColumnWidth(4, 100);  // Km Veicolo
+      storicoSheet.setColumnWidth(5, 130);  // Tipo Lavoro
+      storicoSheet.setColumnWidth(6, 350);  // Descrizione
+      storicoSheet.setColumnWidth(7, 100);  // Costo
+      storicoSheet.setColumnWidth(8, 150);  // Officina
+      storicoSheet.setColumnWidth(9, 120);  // ID Officina
+      storicoSheet.setColumnWidth(10, 100); // N° Fattura
+      storicoSheet.setColumnWidth(11, 100); // ID Lista
+      storicoSheet.setColumnWidth(12, 80);  // Link Fattura
+      storicoSheet.setColumnWidth(13, 200); // Note
     }
 
     const invoiceData = analysisData.invoiceData;
@@ -3404,25 +3461,48 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
     const workshopName = invoiceData.workshopName || listData[4] || 'N/D';
     const invoiceDate = invoiceData.invoiceDate || new Date().toISOString().split('T')[0];
     const invoiceNumber = invoiceData.invoiceNumber || 'N/D';
+    const vehicleKm = invoiceData.vehicleKm || null;
     
     Logger.log('Saving to Storico Lavori...');
     Logger.log('Vehicle: ' + vehicleName + ' (' + vehicleId + ')');
     Logger.log('Workshop: ' + workshopName);
     Logger.log('Invoice: ' + invoiceNumber);
+    Logger.log('Vehicle Km: ' + vehicleKm);
+    
+    // Find or create workshop in Anagrafica Officine
+    let workshopId = null;
+    const workshopResult = findWorkshop(workshopName);
+    if (workshopResult && workshopResult.found) {
+      workshopId = workshopResult.workshopId;
+      Logger.log('Found workshop: ' + workshopId);
+    } else {
+      // Create new workshop
+      const createResult = createWorkshop(workshopName);
+      if (createResult.success) {
+        workshopId = createResult.workshopId;
+        Logger.log('Created new workshop: ' + workshopId);
+      }
+    }
     
     let savedCount = 0;
     
     // Save completed works (lavori preventivati che sono stati fatti)
     if (analysisData.comparison.worksCompleted && analysisData.comparison.worksCompleted.length > 0) {
       analysisData.comparison.worksCompleted.forEach(work => {
+        // Handle both string and object formats
+        const workDesc = (typeof work === 'string') ? work : work.description;
+        const workCost = (typeof work === 'object' && work.cost) ? work.cost : '';
+        
         storicoSheet.appendRow([
           invoiceDate,
           vehicleId,
           vehicleName,
+          vehicleKm,
           '✅ Completato',
-          work,
-          '', // Costo singolo non disponibile
+          workDesc,
+          workCost,
           workshopName,
+          workshopId,
           invoiceNumber,
           listId,
           photoUrl,
@@ -3431,11 +3511,11 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
         
         // Format completed row
         const lastRow = storicoSheet.getLastRow();
-        const rowRange = storicoSheet.getRange(lastRow, 1, 1, 11);
+        const rowRange = storicoSheet.getRange(lastRow, 1, 1, 13);
         rowRange.setBackground('#d4edda');
         
         // Make photo URL clickable
-        const linkCell = storicoSheet.getRange(lastRow, 10);
+        const linkCell = storicoSheet.getRange(lastRow, 12);
         linkCell.setFormula('=HYPERLINK("' + photoUrl + '"; "📄 Vedi")');
         
         savedCount++;
@@ -3445,14 +3525,20 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
     // Save added works (lavori extra non preventivati)
     if (analysisData.comparison.worksAdded && analysisData.comparison.worksAdded.length > 0) {
       analysisData.comparison.worksAdded.forEach(work => {
+        // Handle both string and object formats
+        const workDesc = (typeof work === 'string') ? work : work.description;
+        const workCost = (typeof work === 'object' && work.cost) ? work.cost : '';
+        
         storicoSheet.appendRow([
           invoiceDate,
           vehicleId,
           vehicleName,
+          vehicleKm,
           '➕ Extra',
-          work,
-          '', // Costo singolo non disponibile
+          workDesc,
+          workCost,
           workshopName,
+          workshopId,
           invoiceNumber,
           listId,
           photoUrl,
@@ -3461,11 +3547,11 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
         
         // Format added row
         const lastRow = storicoSheet.getLastRow();
-        const rowRange = storicoSheet.getRange(lastRow, 1, 1, 11);
+        const rowRange = storicoSheet.getRange(lastRow, 1, 1, 13);
         rowRange.setBackground('#fff3cd');
         
         // Make photo URL clickable
-        const linkCell = storicoSheet.getRange(lastRow, 10);
+        const linkCell = storicoSheet.getRange(lastRow, 12);
         linkCell.setFormula('=HYPERLINK("' + photoUrl + '"; "📄 Vedi")');
         
         savedCount++;
@@ -3478,10 +3564,12 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
       invoiceDate,
       vehicleId,
       vehicleName,
+      vehicleKm,
       '💰 TOTALE FATTURA',
       savedCount + ' lavori effettuati',
       totalCostText,
       workshopName,
+      workshopId,
       invoiceNumber,
       listId,
       photoUrl,
@@ -3490,17 +3578,22 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
     
     // Format total row
     const lastRow = storicoSheet.getLastRow();
-    const totalRange = storicoSheet.getRange(lastRow, 1, 1, 11);
+    const totalRange = storicoSheet.getRange(lastRow, 1, 1, 13);
     totalRange.setBackground('#ffc107');
     totalRange.setFontWeight('bold');
     totalRange.setFontColor('#000000');
     
     // Make photo URL clickable in total row
-    const linkCell = storicoSheet.getRange(lastRow, 10);
+    const linkCell = storicoSheet.getRange(lastRow, 12);
     linkCell.setFormula('=HYPERLINK("' + photoUrl + '"; "📄 Vedi")');
     linkCell.setFontWeight('bold');
 
     Logger.log('Saved ' + savedCount + ' works to Storico Lavori');
+    
+    // Update workshop statistics
+    if (workshopId) {
+      updateWorkshopStats(workshopId, totalCostText, invoiceDate);
+    }
 
     return {
       success: true,
@@ -3658,6 +3751,414 @@ function autoCompleteIssuesFromInvoiceJsonp(params) {
     const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
     return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
+}
+
+/*************************************************************
+ * ANAGRAFICA OFFICINE - Workshop Database Management
+ * Create, match, and track workshops/garages
+ *************************************************************/
+
+// Create or get Anagrafica Officine sheet
+function getOrCreateWorkshopsSheet() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return null;
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let workshopsSheet = ss.getSheetByName('Anagrafica Officine');
+    
+    if (!workshopsSheet) {
+      // Create new sheet
+      workshopsSheet = ss.insertSheet('Anagrafica Officine');
+      
+      // Set headers
+      const headerRow = workshopsSheet.getRange(1, 1, 1, 10);
+      headerRow.setValues([[
+        'ID Officina', 'Nome', 'Nomi Alternativi', 'Indirizzo', 'Telefono', 
+        'Email', 'Note', 'Ultimo Intervento', 'Totale Fatture (CHF)', 'N° Interventi'
+      ]]);
+      
+      // Format headers
+      headerRow.setBackground('#17a2b8');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      workshopsSheet.setFrozenRows(1);
+      
+      // Set column widths
+      workshopsSheet.setColumnWidth(1, 120);  // ID
+      workshopsSheet.setColumnWidth(2, 200);  // Nome
+      workshopsSheet.setColumnWidth(3, 250);  // Nomi Alternativi
+      workshopsSheet.setColumnWidth(4, 300);  // Indirizzo
+      workshopsSheet.setColumnWidth(5, 120);  // Telefono
+      workshopsSheet.setColumnWidth(6, 200);  // Email
+      workshopsSheet.setColumnWidth(7, 250);  // Note
+      workshopsSheet.setColumnWidth(8, 120);  // Ultimo Intervento
+      workshopsSheet.setColumnWidth(9, 130);  // Totale Fatture
+      workshopsSheet.setColumnWidth(10, 120); // N° Interventi
+      
+      Logger.log('Created Anagrafica Officine sheet');
+    }
+    
+    return workshopsSheet;
+  } catch (error) {
+    Logger.log('Error in getOrCreateWorkshopsSheet: ' + error);
+    return null;
+  }
+}
+
+// Find workshop by name (fuzzy matching)
+function findWorkshop(workshopName) {
+  try {
+    const workshopsSheet = getOrCreateWorkshopsSheet();
+    if (!workshopsSheet) {
+      return null;
+    }
+    
+    const data = workshopsSheet.getDataRange().getValues();
+    const searchName = workshopName.toLowerCase().trim();
+    
+    Logger.log('Searching for workshop: ' + searchName);
+    
+    // Search through all workshops
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const workshopId = row[0];
+      const mainName = (row[1] || '').toString().toLowerCase();
+      const altNames = (row[2] || '').toString().toLowerCase();
+      
+      // Exact match on main name
+      if (mainName === searchName) {
+        Logger.log('Found exact match: ' + workshopId);
+        return {
+          found: true,
+          workshopId: workshopId,
+          workshopName: row[1],
+          row: i + 1
+        };
+      }
+      
+      // Check alternative names
+      if (altNames) {
+        const alternatives = altNames.split(',').map(n => n.trim());
+        for (let alt of alternatives) {
+          if (alt === searchName) {
+            Logger.log('Found match in alternatives: ' + workshopId);
+            return {
+              found: true,
+              workshopId: workshopId,
+              workshopName: row[1],
+              row: i + 1
+            };
+          }
+        }
+      }
+      
+      // Fuzzy match (contains)
+      if (searchName.length > 5 && mainName.includes(searchName)) {
+        Logger.log('Found fuzzy match: ' + workshopId);
+        return {
+          found: true,
+          workshopId: workshopId,
+          workshopName: row[1],
+          row: i + 1,
+          fuzzy: true
+        };
+      }
+    }
+    
+    Logger.log('No workshop found for: ' + searchName);
+    return {
+      found: false,
+      suggestedName: workshopName
+    };
+    
+  } catch (error) {
+    Logger.log('Error in findWorkshop: ' + error);
+    return null;
+  }
+}
+
+// Create new workshop entry
+function createWorkshop(workshopName, address, phone, email, notes) {
+  try {
+    const workshopsSheet = getOrCreateWorkshopsSheet();
+    if (!workshopsSheet) {
+      return { success: false, error: 'Cannot access Anagrafica Officine sheet' };
+    }
+    
+    // Generate workshop ID (W + timestamp)
+    const workshopId = 'W' + Date.now();
+    
+    // Add new row
+    workshopsSheet.appendRow([
+      workshopId,
+      workshopName,
+      '', // Nomi alternativi (vuoto inizialmente)
+      address || '',
+      phone || '',
+      email || '',
+      notes || '',
+      '', // Ultimo intervento
+      0,  // Totale fatture
+      0   // N° interventi
+    ]);
+    
+    Logger.log('Created new workshop: ' + workshopId + ' - ' + workshopName);
+    
+    return {
+      success: true,
+      workshopId: workshopId,
+      workshopName: workshopName
+    };
+    
+  } catch (error) {
+    Logger.log('Error in createWorkshop: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Update workshop statistics after invoice
+function updateWorkshopStats(workshopId, totalCost, interventionDate) {
+  try {
+    const workshopsSheet = getOrCreateWorkshopsSheet();
+    if (!workshopsSheet) {
+      return false;
+    }
+    
+    const data = workshopsSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === workshopId) {
+        const currentTotal = parseFloat(data[i][8]) || 0;
+        const currentCount = parseInt(data[i][9]) || 0;
+        
+        // Extract numeric value from totalCost string (e.g., "874.79 CHF" -> 874.79)
+        let costValue = 0;
+        if (totalCost) {
+          const match = totalCost.toString().match(/[\d.]+/);
+          if (match) {
+            costValue = parseFloat(match[0]);
+          }
+        }
+        
+        // Update stats
+        workshopsSheet.getRange(i + 1, 8).setValue(interventionDate); // Ultimo Intervento
+        workshopsSheet.getRange(i + 1, 9).setValue(currentTotal + costValue); // Totale Fatture
+        workshopsSheet.getRange(i + 1, 10).setValue(currentCount + 1); // N° Interventi
+        
+        Logger.log('Updated workshop stats for: ' + workshopId);
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    Logger.log('Error in updateWorkshopStats: ' + error);
+    return false;
+  }
+}
+
+// Get workshop history with interventions
+function getWorkshopHistory(workshopIdOrName) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID non configurato' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    
+    // Find workshop
+    let workshopData = null;
+    let workshopId = workshopIdOrName;
+    
+    if (!workshopIdOrName.startsWith('W')) {
+      // Search by name
+      const result = findWorkshop(workshopIdOrName);
+      if (result && result.found) {
+        workshopId = result.workshopId;
+      } else {
+        return { success: false, error: 'Officina non trovata' };
+      }
+    }
+    
+    // Get workshop info
+    const workshopsSheet = ss.getSheetByName('Anagrafica Officine');
+    if (workshopsSheet) {
+      const workshopsData = workshopsSheet.getDataRange().getValues();
+      for (let i = 1; i < workshopsData.length; i++) {
+        if (workshopsData[i][0] === workshopId) {
+          workshopData = {
+            id: workshopsData[i][0],
+            name: workshopsData[i][1],
+            address: workshopsData[i][3],
+            phone: workshopsData[i][4],
+            email: workshopsData[i][5],
+            lastIntervention: workshopsData[i][7],
+            totalAmount: workshopsData[i][8],
+            interventionCount: workshopsData[i][9]
+          };
+          break;
+        }
+      }
+    }
+    
+    if (!workshopData) {
+      return { success: false, error: 'Dati officina non trovati' };
+    }
+    
+    // Get interventions from Storico Lavori
+    const storicoSheet = ss.getSheetByName('Storico Lavori');
+    const interventions = [];
+    
+    if (storicoSheet) {
+      const storicoData = storicoSheet.getDataRange().getValues();
+      
+      for (let i = 1; i < storicoData.length; i++) {
+        const row = storicoData[i];
+        const rowWorkshop = row[6]; // Officina column
+        
+        // Match by workshop name or ID
+        if (rowWorkshop === workshopData.name || row[8] === workshopId) {
+          // Only add TOTALE rows (avoid duplicates)
+          if (row[3] === '💰 TOTALE FATTURA') {
+            interventions.push({
+              date: row[0],
+              vehicleId: row[1],
+              vehicleName: row[2],
+              description: row[4],
+              totalCost: row[5],
+              invoiceNumber: row[7],
+              listId: row[8],
+              photoUrl: row[9]
+            });
+          }
+        }
+      }
+    }
+    
+    // Sort by date (newest first)
+    interventions.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA;
+    });
+    
+    return {
+      success: true,
+      workshop: workshopData,
+      interventions: interventions,
+      interventionCount: interventions.length
+    };
+    
+  } catch (error) {
+    Logger.log('Error in getWorkshopHistory: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Archive workshop list (mark as completed)
+function archiveWorkshopList(listId) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID non configurato' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    
+    if (!workshopSheet) {
+      return { success: false, error: 'Sheet Liste Officina non trovato' };
+    }
+
+    const data = workshopSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === listId) {
+        // Update status column and completion date
+        const statusCol = 20; // Stato Lavoro (column U, index 20)
+        workshopSheet.getRange(i + 1, statusCol).setValue('Completato');
+        
+        // Add completion date if not already set
+        const completionDateCol = 22; // Data Completamento (column V, index 21)
+        if (!data[i][21]) {
+          workshopSheet.getRange(i + 1, completionDateCol).setValue(new Date());
+        }
+        
+        // Format row to indicate archived
+        const rowRange = workshopSheet.getRange(i + 1, 1, 1, workshopSheet.getLastColumn());
+        rowRange.setBackground('#e0e0e0'); // Gray background
+        
+        Logger.log('Archived workshop list: ' + listId);
+        
+        return {
+          success: true,
+          listId: listId,
+          message: 'Lista archiviata con successo'
+        };
+      }
+    }
+    
+    return { success: false, error: 'Lista non trovata' };
+    
+  } catch (error) {
+    Logger.log('Error in archiveWorkshopList: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrappers
+function findWorkshopJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const result = findWorkshop(params.workshopName);
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
+  return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function createWorkshopJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const result = createWorkshop(
+    params.workshopName,
+    params.address || '',
+    params.phone || '',
+    params.email || '',
+    params.notes || ''
+  );
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
+  return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function getWorkshopHistoryJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const result = getWorkshopHistory(params.workshopId || params.workshopName);
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
+  return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function archiveWorkshopListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const result = archiveWorkshopList(params.listId);
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
+  return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 /*************************************************************

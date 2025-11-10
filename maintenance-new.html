@@ -4765,6 +4765,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 <button onclick="loadDrivePicker('${escapeHtml(list.listId)}')" style="background: #4285f4; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Seleziona una fattura già salvata su Google Drive">
                                     📁 Seleziona da Drive
                                 </button>
+                                <button onclick="archiveWorkshopList('${escapeHtml(list.listId)}')" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Archivia questa lista (sposta in storico)">
+                                    📦 Sposta in Storico
+                                </button>
                             </div>
                         </div>
                         
@@ -5272,10 +5275,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
                         <h3 style="margin: 0 0 10px 0; color: #2e7d32;">📄 Dati Fattura</h3>
-                        <p style="margin: 5px 0;"><strong>Costo Totale:</strong> ${escapeHtml(inv.totalCost || 'N/D')}</p>
-                        <p style="margin: 5px 0;"><strong>Data:</strong> ${escapeHtml(inv.invoiceDate || 'N/D')}</p>
-                        <p style="margin: 5px 0;"><strong>Officina:</strong> ${escapeHtml(inv.workshopName || 'N/D')}</p>
-                        ${inv.invoiceNumber ? `<p style="margin: 5px 0;"><strong>Numero:</strong> ${escapeHtml(inv.invoiceNumber)}</p>` : ''}
+                        <p style="margin: 5px 0;"><strong>💰 Costo Totale:</strong> ${escapeHtml(inv.totalCost || 'N/D')}</p>
+                        <p style="margin: 5px 0;"><strong>📅 Data:</strong> ${escapeHtml(inv.invoiceDate || 'N/D')}</p>
+                        <p style="margin: 5px 0;"><strong>🏢 Officina:</strong> ${escapeHtml(inv.workshopName || 'N/D')}</p>
+                        ${inv.invoiceNumber ? `<p style="margin: 5px 0;"><strong>📄 Numero:</strong> ${escapeHtml(inv.invoiceNumber)}</p>` : ''}
+                        ${inv.vehicleKm ? `<p style="margin: 5px 0;"><strong>🚗 Kilometri:</strong> ${escapeHtml(inv.vehicleKm.toLocaleString())} km</p>` : ''}
+                        ${response.photoUrl ? `<p style="margin: 5px 0;"><a href="${response.photoUrl}" target="_blank" style="color: #2196f3; text-decoration: none;">📷 Vedi Foto Fattura</a></p>` : ''}
                     </div>
 
                     ${inv.worksDone && inv.worksDone.length > 0 ? `
@@ -5293,18 +5298,26 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             
                             ${comp.worksCompleted && comp.worksCompleted.length > 0 ? `
                                 <div style="margin-bottom: 10px;">
-                                    <strong style="color: #4caf50;">✅ Completati:</strong>
+                                    <strong style="color: #4caf50;">✅ Completati (${comp.worksCompleted.length}):</strong>
                                     <ul style="margin: 5px 0; padding-left: 20px;">
-                                        ${comp.worksCompleted.map(w => `<li style="color: #4caf50;">${escapeHtml(w)}</li>`).join('')}
+                                        ${comp.worksCompleted.map(w => {
+                                            const desc = (typeof w === 'string') ? w : w.description;
+                                            const cost = (typeof w === 'object' && w.cost) ? ` - <strong>${w.cost}</strong>` : '';
+                                            return `<li style="color: #4caf50;">${escapeHtml(desc)}${cost}</li>`;
+                                        }).join('')}
                                     </ul>
                                 </div>
                             ` : ''}
 
                             ${comp.worksAdded && comp.worksAdded.length > 0 ? `
                                 <div style="margin-bottom: 10px;">
-                                    <strong style="color: #ff9800;">➕ Aggiunti:</strong>
+                                    <strong style="color: #ff9800;">➕ Aggiunti (${comp.worksAdded.length}):</strong>
                                     <ul style="margin: 5px 0; padding-left: 20px;">
-                                        ${comp.worksAdded.map(w => `<li style="color: #ff9800;">${escapeHtml(w)}</li>`).join('')}
+                                        ${comp.worksAdded.map(w => {
+                                            const desc = (typeof w === 'string') ? w : w.description;
+                                            const cost = (typeof w === 'object' && w.cost) ? ` - <strong>${w.cost}</strong>` : '';
+                                            return `<li style="color: #ff9800;">${escapeHtml(desc)}${cost}</li>`;
+                                        }).join('')}
                                     </ul>
                                 </div>
                             ` : ''}
@@ -5511,6 +5524,195 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             } catch (error) {
                 console.error('Error in autoCompleteIssues:', error);
                 return { success: false, error: error.message };
+            }
+        }
+
+        // Archive workshop list (move to history)
+        async function archiveWorkshopList(listId) {
+            try {
+                if (!confirm('⚠️ Archiviare questa lista officina?\n\nQuesta azione cambierà lo stato in "Completato" e la lista non apparirà più tra quelle attive.')) {
+                    return;
+                }
+
+                showNotification('📦 Archiviazione in corso...', 'info');
+
+                const callback = 'archiveCallback_' + Date.now();
+                
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Archiviazione fallita'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=archiveWorkshopListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            reject(new Error('Timeout archiviazione'));
+                        }
+                    }, 15000);
+                });
+
+                showNotification('✅ Lista archiviata con successo!', 'success');
+                
+                // Reload lists
+                loadWorkshopLists();
+
+            } catch (error) {
+                console.error('Error archiving list:', error);
+                showNotification('❌ Errore: ' + error.message, 'error');
+            }
+        }
+
+        // Show workshop history with statistics
+        async function showWorkshopHistory(workshopName) {
+            try {
+                showNotification('📊 Caricamento storico officina...', 'info');
+
+                const callback = 'workshopHistoryCallback_' + Date.now();
+                
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Errore caricamento'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=getWorkshopHistoryJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&workshopName=${encodeURIComponent(workshopName)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            reject(new Error('Timeout'));
+                        }
+                    }, 15000);
+                });
+
+                // Create modal with history
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    overflow-y: auto;
+                `;
+
+                const workshop = result.workshop;
+                const interventions = result.interventions || [];
+
+                modal.innerHTML = `
+                    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h2 style="margin: 0; color: #333;">
+                                🏢 ${workshop.name}
+                            </h2>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove()" style="background: transparent; border: none; font-size: 24px; cursor: pointer; color: #999;">✕</button>
+                        </div>
+
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="margin: 0 0 15px 0; color: #555;">📊 Statistiche</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745;">
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Interventi Totali</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #28a745;">${workshop.interventionCount || 0}</div>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Totale Speso</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #ffc107;">${workshop.totalAmount || 0} CHF</div>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #17a2b8;">
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Ultimo Intervento</div>
+                                    <div style="font-size: 16px; font-weight: bold; color: #17a2b8;">${workshop.lastIntervention || 'N/D'}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 style="margin: 0 0 15px 0; color: #555;">📋 Storico Interventi</h3>
+                        
+                        ${interventions.length === 0 ? `
+                            <div style="text-align: center; padding: 40px; color: #999;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">📭</div>
+                                <p>Nessun intervento registrato</p>
+                            </div>
+                        ` : `
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                ${interventions.map(i => `
+                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 10px;">
+                                            <div style="flex: 1; min-width: 200px;">
+                                                <div style="font-weight: bold; color: #333; margin-bottom: 5px;">
+                                                    ${i.vehicleName} (${i.vehicleId})
+                                                </div>
+                                                <div style="font-size: 14px; color: #666;">
+                                                    📅 ${i.date} ${i.invoiceNumber ? '• 📄 ' + i.invoiceNumber : ''}
+                                                </div>
+                                                <div style="font-size: 14px; color: #888; margin-top: 5px;">
+                                                    ${i.description}
+                                                </div>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div style="font-size: 20px; font-weight: bold; color: #28a745;">
+                                                    ${i.totalCost}
+                                                </div>
+                                                ${i.photoUrl ? `
+                                                    <a href="${i.photoUrl}" target="_blank" style="font-size: 12px; color: #667eea; text-decoration: none;">
+                                                        📄 Vedi Fattura
+                                                    </a>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 14px;">
+                            ${workshop.address ? `<div>📍 ${workshop.address}</div>` : ''}
+                            ${workshop.phone ? `<div>📞 ${workshop.phone}</div>` : ''}
+                            ${workshop.email ? `<div>📧 ${workshop.email}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading workshop history:', error);
+                showNotification('❌ Errore: ' + error.message, 'error');
             }
         }
 
