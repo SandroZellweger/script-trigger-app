@@ -249,6 +249,9 @@ function doGet(e) {
       case "archiveWorkshopListJsonp":
         return archiveWorkshopListJsonp(e.parameter);
         break;
+      case "deleteMaintenanceReportJsonp":
+        return deleteMaintenanceReportJsonp(e.parameter);
+        break;
       case "uploadInvoicePhotoDirectJsonp":
         return uploadInvoicePhotoDirectJsonp(e.parameter);
         break;
@@ -5398,6 +5401,137 @@ function getMaintenanceHistory() {
 function getMaintenanceHistoryJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = getMaintenanceHistory();
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Delete maintenance report and all related data
+function deleteMaintenanceReport(reportId, deletePhotos) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const issuesSheet = ss.getSheetByName('Difetti e Riparazioni');
+    const historySheet = ss.getSheetByName('Storico Lavori');
+
+    if (!issuesSheet) {
+      return {
+        success: false,
+        error: 'Difetti e Riparazioni sheet not found'
+      };
+    }
+
+    let deletedIssues = 0;
+    let deletedHistory = 0;
+    let deletedPhotos = 0;
+    const photoUrls = [];
+
+    // Step 1: Find and collect photo URLs, then delete from "Difetti e Riparazioni"
+    const issuesData = issuesSheet.getDataRange().getValues();
+    const rowsToDelete = [];
+
+    for (let i = 1; i < issuesData.length; i++) {
+      const row = issuesData[i];
+      const rowReportId = row[0]; // Column A: ID Report
+
+      if (rowReportId.toString() === reportId.toString()) {
+        // Collect photo URL from column 21 (Foto Fattura)
+        if (row[20]) {
+          photoUrls.push(row[20]);
+        }
+        rowsToDelete.push(i + 1); // +1 because sheet rows are 1-indexed
+      }
+    }
+
+    // Delete rows from bottom to top to avoid index shifting
+    for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+      issuesSheet.deleteRow(rowsToDelete[i]);
+      deletedIssues++;
+    }
+
+    // Step 2: Delete from "Storico Lavori" by matching ID Lista
+    if (historySheet) {
+      const historyData = historySheet.getDataRange().getValues();
+      const historyRowsToDelete = [];
+
+      for (let i = 1; i < historyData.length; i++) {
+        const row = historyData[i];
+        const listId = row[8]; // Column I: ID Lista
+
+        if (listId && listId.toString() === reportId.toString()) {
+          historyRowsToDelete.push(i + 1);
+        }
+      }
+
+      // Delete rows from bottom to top
+      for (let i = historyRowsToDelete.length - 1; i >= 0; i--) {
+        historySheet.deleteRow(historyRowsToDelete[i]);
+        deletedHistory++;
+      }
+    }
+
+    // Step 3: Optionally delete photos from Google Drive
+    if (deletePhotos && photoUrls.length > 0) {
+      for (const url of photoUrls) {
+        try {
+          // Extract file ID from Drive URL
+          // URL format: https://drive.google.com/open?id=FILE_ID or https://drive.google.com/file/d/FILE_ID/...
+          let fileId = null;
+
+          if (url.includes('id=')) {
+            fileId = url.split('id=')[1].split('&')[0];
+          } else if (url.includes('/d/')) {
+            fileId = url.split('/d/')[1].split('/')[0];
+          }
+
+          if (fileId) {
+            const file = DriveApp.getFileById(fileId);
+            file.setTrashed(true); // Move to trash instead of permanent delete
+            deletedPhotos++;
+          }
+        } catch (photoError) {
+          // Continue if photo deletion fails (file might already be deleted)
+          Logger.log('Failed to delete photo: ' + photoError.toString());
+        }
+      }
+    }
+
+    return {
+      success: true,
+      deletedIssues: deletedIssues,
+      deletedHistory: deletedHistory,
+      deletedPhotos: deletedPhotos,
+      message: `Eliminati: ${deletedIssues} report, ${deletedHistory} lavori storico${deletePhotos ? ', ' + deletedPhotos + ' foto' : ''}`
+    };
+
+  } catch (error) {
+    Logger.log('Error deleting maintenance report: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrapper for deleteMaintenanceReport
+function deleteMaintenanceReportJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const reportId = params.reportId;
+  const deletePhotos = params.deletePhotos === 'true' || params.deletePhotos === true;
+
+  const response = deleteMaintenanceReport(reportId, deletePhotos);
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
