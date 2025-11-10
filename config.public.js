@@ -25,14 +25,18 @@ window.APP_CONFIG = {
     enableServiceWorker: true,
     cacheVersion: 'v2.0.1',
     
-    // IMPORTANT: Sensitive data loaded from separate config
-    // These will be set by config.private.js (not committed to git)
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbyWOIltUyV1N1uok9BUI0_jbreLVD16l38gbNOHlxgVq8IgeHNRe19Ge0lIlV2s_9Uo/exec',
-    authToken: 'mySecureVanApp_2025',
-    expenseSheetId: '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M',
-    maintenanceSheetId: '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4',
-    driveOauthClientId: '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com',
-    driveUploadFolderId: '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM'
+    // IMPORTANT: Sensitive data loaded from config.private.js
+    // These values will be overridden by PRIVATE_CONFIG (not committed to git)
+    // Placeholders only - DO NOT put real values here
+    scriptUrl: null,
+    authToken: null,
+    expenseSheetId: null,
+    maintenanceSheetId: null,
+    driveOauthClientId: null,
+    driveUploadFolderId: null,
+    googleApiKey: null,
+    googleClientId: null,
+    googleAppId: null
 };
 
 // Function to merge private config when it loads
@@ -53,19 +57,11 @@ mergePrivateConfig();
 setTimeout(() => {
     if (mergePrivateConfig()) {
         // Config merged successfully on retry
+        console.log('📋 Config ready - Script URL configured');
     } else {
-        // Private config not available (expected in production)
-        // Set production-safe defaults
-        if (!window.APP_CONFIG.scriptUrl) {
-            window.APP_CONFIG.scriptUrl = 'https://script.google.com/macros/s/AKfycbyWOIltUyV1N1uok9BUI0_jbreLVD16l38gbNOHlxgVq8IgeHNRe19Ge0lIlV2s_9Uo/exec';
-            window.APP_CONFIG.authToken = 'mySecureVanApp_2025';
-            window.APP_CONFIG.expenseSheetId = '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M';
-            window.APP_CONFIG.maintenanceSheetId = '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4';
-            window.APP_CONFIG.driveOauthClientId = '552211122555-ar7v9jb2b2gbs4o6nafph3b0599v9frj.apps.googleusercontent.com';
-            window.APP_CONFIG.driveUploadFolderId = '1fZcLxq0S_yIceB_qsA6DLUnj8lcq3HtM';
-            console.log('🏭 Production config applied (private config not available)');
-        }
-        console.log('📋 Config ready - Script URL:', window.APP_CONFIG.scriptUrl);
+        // Private config not available
+        console.warn('⚠️ PRIVATE_CONFIG not loaded - sensitive data missing!');
+        console.warn('⚠️ Create config.private.js with your credentials');
     }
 }, 100);
 

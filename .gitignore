@@ -11,6 +11,7 @@ node_modules/
 .env.production
 .env.development
 config.private.js
+config.google.js
 secrets.js
 
 # Google Apps Script files with sensitive data

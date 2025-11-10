@@ -1,26 +1,32 @@
-// Google Drive Picker Configuration
-// Add these to your config.public.js or create a new config file
+/**
+ * TEMPLATE FILE - Copy to config.private.js
+ * 
+ * This file shows the structure but should NOT contain real credentials.
+ * Add your real Google API credentials to config.private.js instead.
+ * 
+ * Google Drive Picker Configuration Guide:
+ * 
+ * 1. Get API Key:
+ *    - Go to: https://console.cloud.google.com/apis/credentials
+ *    - Click "CREATE CREDENTIALS" → "API key"
+ * 
+ * 2. Get OAuth Client ID:
+ *    - Same page, click "CREATE CREDENTIALS" → "OAuth client ID"
+ *    - Type: Web application
+ *    - Authorized JavaScript origins: http://localhost:8000, your domain
+ *    - Format: 123456789-abc...xyz.apps.googleusercontent.com
+ * 
+ * 3. Extract App ID:
+ *    - Take the first part before the hyphen from Client ID
+ *    - Example: if Client ID is "123456789-abc.apps.googleusercontent.com"
+ *    - App ID is: "123456789"
+ */
 
-window.GOOGLE_CONFIG = {
-    // Google OAuth 2.0 Client ID
-    // Get it from: https://console.cloud.google.com/apis/credentials
+// EXAMPLE STRUCTURE - DO NOT USE THESE VALUES
+// Add real values to config.private.js
+
+window.GOOGLE_CONFIG_EXAMPLE = {
+    googleApiKey: 'YOUR_API_KEY_HERE',
     googleClientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
-    
-    // Google API Key
-    // Get it from: https://console.cloud.google.com/apis/credentials
-    googleApiKey: 'YOUR_API_KEY',
-    
-    // Google App ID (first part of Client ID)
-    // Example: If Client ID is "123456789.apps.googleusercontent.com", App ID is "123456789"
     googleAppId: 'YOUR_APP_ID'
 };
-
-// Merge with existing PUBLIC_CONFIG if it exists
-if (window.PUBLIC_CONFIG) {
-    window.PUBLIC_CONFIG = {
-        ...window.PUBLIC_CONFIG,
-        ...window.GOOGLE_CONFIG
-    };
-} else {
-    window.PUBLIC_CONFIG = window.GOOGLE_CONFIG;
-}
