@@ -231,6 +231,12 @@ function doGet(e) {
       case "getGoogleCredentialsJsonp":
         return getGoogleCredentialsJsonp(e.parameter);
         break;
+      case "saveInvoiceToHistoryJsonp":
+        return saveInvoiceToHistoryJsonp(e.parameter);
+        break;
+      case "autoCompleteIssuesFromInvoiceJsonp":
+        return autoCompleteIssuesFromInvoiceJsonp(e.parameter);
+        break;
       case "uploadInvoicePhotoDirectJsonp":
         return uploadInvoicePhotoDirectJsonp(e.parameter);
         break;
@@ -3323,6 +3329,335 @@ function analyzeInvoiceFromDriveJsonp(params) {
   return ContentService
     .createTextOutput(jsonpResponse)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+/*************************************************************
+ * SAVE INVOICE ANALYSIS TO STORICO LAVORI
+ * Saves analyzed invoice works to tracking sheet
+ *************************************************************/
+
+// Save invoice works to Storico Lavori sheet
+function saveInvoiceToHistory(listId, analysisData, photoUrl) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return { success: false, error: 'MAINTENANCE_SHEET_ID non configurato' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    
+    // Get workshop list data
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    if (!workshopSheet) {
+      return { success: false, error: 'Sheet Liste Officina non trovato' };
+    }
+    
+    const workshopData = workshopSheet.getDataRange().getValues();
+    
+    let listData = null;
+    for (let i = 1; i < workshopData.length; i++) {
+      if (workshopData[i][0] === listId) {
+        listData = workshopData[i];
+        break;
+      }
+    }
+    
+    if (!listData) {
+      return { success: false, error: 'Lista non trovata' };
+    }
+
+    // Create or get Storico Lavori sheet
+    let storicoSheet = ss.getSheetByName('Storico Lavori');
+    
+    if (!storicoSheet) {
+      storicoSheet = ss.insertSheet('Storico Lavori');
+      const headerRow = storicoSheet.getRange(1, 1, 1, 11);
+      headerRow.setValues([[
+        'Data Lavoro', 'ID Veicolo', 'Nome Veicolo', 'Tipo Lavoro', 
+        'Descrizione', 'Costo CHF', 'Officina', 'N° Fattura', 'ID Lista', 'Link Fattura', 'Note'
+      ]]);
+      headerRow.setBackground('#28a745');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      storicoSheet.setFrozenRows(1);
+      
+      // Set column widths
+      storicoSheet.setColumnWidth(1, 120);  // Data
+      storicoSheet.setColumnWidth(2, 100);  // ID Veicolo
+      storicoSheet.setColumnWidth(3, 120);  // Nome Veicolo
+      storicoSheet.setColumnWidth(4, 130);  // Tipo Lavoro
+      storicoSheet.setColumnWidth(5, 400);  // Descrizione
+      storicoSheet.setColumnWidth(6, 100);  // Costo
+      storicoSheet.setColumnWidth(7, 150);  // Officina
+      storicoSheet.setColumnWidth(8, 100);  // N° Fattura
+      storicoSheet.setColumnWidth(9, 100);  // ID Lista
+      storicoSheet.setColumnWidth(10, 80);  // Link Fattura
+      storicoSheet.setColumnWidth(11, 250); // Note
+    }
+
+    const invoiceData = analysisData.invoiceData;
+    const vehicleId = listData[2];
+    const vehicleName = listData[3];
+    const workshopName = invoiceData.workshopName || listData[4] || 'N/D';
+    const invoiceDate = invoiceData.invoiceDate || new Date().toISOString().split('T')[0];
+    const invoiceNumber = invoiceData.invoiceNumber || 'N/D';
+    
+    Logger.log('Saving to Storico Lavori...');
+    Logger.log('Vehicle: ' + vehicleName + ' (' + vehicleId + ')');
+    Logger.log('Workshop: ' + workshopName);
+    Logger.log('Invoice: ' + invoiceNumber);
+    
+    let savedCount = 0;
+    
+    // Save completed works (lavori preventivati che sono stati fatti)
+    if (analysisData.comparison.worksCompleted && analysisData.comparison.worksCompleted.length > 0) {
+      analysisData.comparison.worksCompleted.forEach(work => {
+        storicoSheet.appendRow([
+          invoiceDate,
+          vehicleId,
+          vehicleName,
+          '✅ Completato',
+          work,
+          '', // Costo singolo non disponibile
+          workshopName,
+          invoiceNumber,
+          listId,
+          photoUrl,
+          'Lavoro preventivato completato'
+        ]);
+        
+        // Format completed row
+        const lastRow = storicoSheet.getLastRow();
+        const rowRange = storicoSheet.getRange(lastRow, 1, 1, 11);
+        rowRange.setBackground('#d4edda');
+        
+        // Make photo URL clickable
+        const linkCell = storicoSheet.getRange(lastRow, 10);
+        linkCell.setFormula('=HYPERLINK("' + photoUrl + '"; "📄 Vedi")');
+        
+        savedCount++;
+      });
+    }
+    
+    // Save added works (lavori extra non preventivati)
+    if (analysisData.comparison.worksAdded && analysisData.comparison.worksAdded.length > 0) {
+      analysisData.comparison.worksAdded.forEach(work => {
+        storicoSheet.appendRow([
+          invoiceDate,
+          vehicleId,
+          vehicleName,
+          '➕ Extra',
+          work,
+          '', // Costo singolo non disponibile
+          workshopName,
+          invoiceNumber,
+          listId,
+          photoUrl,
+          'Lavoro aggiuntivo non preventivato'
+        ]);
+        
+        // Format added row
+        const lastRow = storicoSheet.getLastRow();
+        const rowRange = storicoSheet.getRange(lastRow, 1, 1, 11);
+        rowRange.setBackground('#fff3cd');
+        
+        // Make photo URL clickable
+        const linkCell = storicoSheet.getRange(lastRow, 10);
+        linkCell.setFormula('=HYPERLINK("' + photoUrl + '"; "📄 Vedi")');
+        
+        savedCount++;
+      });
+    }
+    
+    // Add total cost row (summary)
+    const totalCostText = invoiceData.totalCost || 'N/D';
+    storicoSheet.appendRow([
+      invoiceDate,
+      vehicleId,
+      vehicleName,
+      '💰 TOTALE FATTURA',
+      savedCount + ' lavori effettuati',
+      totalCostText,
+      workshopName,
+      invoiceNumber,
+      listId,
+      photoUrl,
+      'Riepilogo fattura'
+    ]);
+    
+    // Format total row
+    const lastRow = storicoSheet.getLastRow();
+    const totalRange = storicoSheet.getRange(lastRow, 1, 1, 11);
+    totalRange.setBackground('#ffc107');
+    totalRange.setFontWeight('bold');
+    totalRange.setFontColor('#000000');
+    
+    // Make photo URL clickable in total row
+    const linkCell = storicoSheet.getRange(lastRow, 10);
+    linkCell.setFormula('=HYPERLINK("' + photoUrl + '"; "📄 Vedi")');
+    linkCell.setFontWeight('bold');
+
+    Logger.log('Saved ' + savedCount + ' works to Storico Lavori');
+
+    return {
+      success: true,
+      savedWorks: savedCount,
+      totalCost: totalCostText,
+      sheetName: 'Storico Lavori'
+    };
+
+  } catch (error) {
+    Logger.log('Error in saveInvoiceToHistory: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Auto-complete issues based on invoice analysis
+function autoCompleteIssuesFromInvoice(listId, analysisData) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+    
+    const ss = SpreadsheetApp.openById(sheetId);
+    const difettiSheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    if (!difettiSheet) {
+      Logger.log('Sheet Difetti e Riparazioni not found');
+      return { success: false, error: 'Sheet non trovato' };
+    }
+
+    const data = difettiSheet.getDataRange().getValues();
+    let completedCount = 0;
+    let missingCount = 0;
+    const now = new Date();
+    
+    // Get completed works from analysis
+    const completedWorks = analysisData.comparison.worksCompleted || [];
+    const missingWorks = analysisData.comparison.worksMissing || [];
+
+    Logger.log('Auto-completing issues for listId: ' + listId);
+    Logger.log('Completed works: ' + completedWorks.length);
+    Logger.log('Missing works: ' + missingWorks.length);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const issueListId = row[20]; // ID Lista Officina (column U, index 20)
+      
+      if (issueListId === listId) {
+        const issueDesc = (row[6] || '').toString().toLowerCase(); // Descrizione Problema
+        
+        // Check if this issue was completed
+        let wasCompleted = false;
+        for (let j = 0; j < completedWorks.length; j++) {
+          const work = completedWorks[j].toLowerCase();
+          // Check if issue description contains key words from completed work
+          const keywords = work.split(' ').filter(w => w.length > 3);
+          const matchCount = keywords.filter(kw => issueDesc.includes(kw)).length;
+          
+          if (matchCount >= 2 || (keywords.length === 1 && issueDesc.includes(keywords[0]))) {
+            wasCompleted = true;
+            break;
+          }
+        }
+        
+        if (wasCompleted) {
+          // Mark as completed
+          difettiSheet.getRange(i + 1, 10).setValue(true); // Completato checkbox
+          difettiSheet.getRange(i + 1, 11).setValue(now);  // Data Completamento
+          difettiSheet.getRange(i + 1, 20).setValue('Completato'); // Stato Lavoro
+          
+          const statusCell = difettiSheet.getRange(i + 1, 9); // Stato
+          statusCell.setValue('✅ Completato');
+          statusCell.setBackground('#c8e6c9');
+          
+          completedCount++;
+          Logger.log('✅ Issue completed: ' + issueDesc);
+        } else {
+          // Check if missing
+          let wasMissing = false;
+          for (let k = 0; k < missingWorks.length; k++) {
+            const work = missingWorks[k].toLowerCase();
+            const keywords = work.split(' ').filter(w => w.length > 3);
+            const matchCount = keywords.filter(kw => issueDesc.includes(kw)).length;
+            
+            if (matchCount >= 2 || (keywords.length === 1 && issueDesc.includes(keywords[0]))) {
+              wasMissing = true;
+              break;
+            }
+          }
+          
+          if (wasMissing) {
+            // Add warning to description
+            const currentDesc = row[6];
+            const warningText = '\n⚠️ NON FATTO - Verificare con officina';
+            
+            if (!currentDesc.includes('⚠️ NON FATTO')) {
+              difettiSheet.getRange(i + 1, 7).setValue(currentDesc + warningText);
+              
+              const statusCell = difettiSheet.getRange(i + 1, 9);
+              statusCell.setValue('⚠️ Non Completato');
+              statusCell.setBackground('#ffccbc');
+              
+              missingCount++;
+              Logger.log('⚠️ Issue missing: ' + issueDesc);
+            }
+          }
+        }
+      }
+    }
+
+    Logger.log('Completed: ' + completedCount + ', Missing: ' + missingCount);
+
+    return {
+      success: true,
+      completedCount: completedCount,
+      missingCount: missingCount
+    };
+
+  } catch (error) {
+    Logger.log('Error in autoCompleteIssuesFromInvoice: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrappers
+function saveInvoiceToHistoryJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  try {
+    const analysisData = JSON.parse(params.analysisData);
+    const response = saveInvoiceToHistory(params.listId, analysisData, params.photoUrl);
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    const errorResponse = { success: false, error: error.toString() };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
+    return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+function autoCompleteIssuesFromInvoiceJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  try {
+    const analysisData = JSON.parse(params.analysisData);
+    const response = autoCompleteIssuesFromInvoice(params.listId, analysisData);
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+    return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    const errorResponse = { success: false, error: error.toString() };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
+    return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
 }
 
 /*************************************************************

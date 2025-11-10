@@ -5393,6 +5393,39 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     showInvoiceAnalysisResults(result);
                 }
 
+                // Save to Storico Lavori and auto-complete issues
+                if (result.success && result.analysis) {
+                    console.log('💾 Salvataggio lavori in Storico Lavori...');
+                    
+                    try {
+                        // Save works to history
+                        const saveResult = await saveInvoiceToHistory(listId, result.analysis, result.photoUrl);
+                        
+                        if (saveResult.success) {
+                            console.log(`✅ Salvati ${saveResult.savedWorks} lavori in Storico Lavori`);
+                            showNotification(`💾 ${saveResult.savedWorks} lavori salvati in Storico Lavori`, 'success');
+                        } else {
+                            console.warn('⚠️ Errore salvataggio:', saveResult.error);
+                        }
+                        
+                        // Auto-complete related issues
+                        const completeResult = await autoCompleteIssues(listId, result.analysis);
+                        
+                        if (completeResult.success) {
+                            console.log(`✅ Auto-completati ${completeResult.completedCount} problemi`);
+                            if (completeResult.completedCount > 0) {
+                                showNotification(`✅ ${completeResult.completedCount} problemi completati automaticamente`, 'success');
+                            }
+                            if (completeResult.missingCount > 0) {
+                                showNotification(`⚠️ ${completeResult.missingCount} lavori non completati - verificare`, 'warning');
+                            }
+                        }
+                    } catch (saveError) {
+                        console.error('Errore durante salvataggio:', saveError);
+                        showNotification('⚠️ Analisi OK ma errore nel salvataggio dati', 'warning');
+                    }
+                }
+
                 // Reload workshop lists to show updated data
                 loadWorkshopLists();
 
@@ -5402,6 +5435,82 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 console.error('❌ Errore analisi:', error);
                 showNotification('❌ Errore: ' + error.message, 'error');
                 throw error;
+            }
+        }
+
+        // Save invoice analysis to Storico Lavori
+        async function saveInvoiceToHistory(listId, analysisData, photoUrl) {
+            try {
+                const callback = 'saveHistoryCallback_' + Date.now();
+                
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Salvataggio fallito'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=saveInvoiceToHistoryJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&analysisData=${encodeURIComponent(JSON.stringify(analysisData))}&photoUrl=${encodeURIComponent(photoUrl)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            reject(new Error('Timeout salvataggio'));
+                        }
+                    }, 30000);
+                });
+
+                return result;
+            } catch (error) {
+                console.error('Error in saveInvoiceToHistory:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Auto-complete issues based on invoice analysis
+        async function autoCompleteIssues(listId, analysisData) {
+            try {
+                const callback = 'completeIssuesCallback_' + Date.now();
+                
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Auto-completamento fallito'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=autoCompleteIssuesFromInvoiceJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&analysisData=${encodeURIComponent(JSON.stringify(analysisData))}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            reject(new Error('Timeout auto-completamento'));
+                        }
+                    }, 30000);
+                });
+
+                return result;
+            } catch (error) {
+                console.error('Error in autoCompleteIssues:', error);
+                return { success: false, error: error.message };
             }
         }
 
