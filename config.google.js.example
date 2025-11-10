@@ -1,0 +1,26 @@
+// Google Drive Picker Configuration
+// Add these to your config.public.js or create a new config file
+
+window.GOOGLE_CONFIG = {
+    // Google OAuth 2.0 Client ID
+    // Get it from: https://console.cloud.google.com/apis/credentials
+    googleClientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+    
+    // Google API Key
+    // Get it from: https://console.cloud.google.com/apis/credentials
+    googleApiKey: 'YOUR_API_KEY',
+    
+    // Google App ID (first part of Client ID)
+    // Example: If Client ID is "123456789.apps.googleusercontent.com", App ID is "123456789"
+    googleAppId: 'YOUR_APP_ID'
+};
+
+// Merge with existing PUBLIC_CONFIG if it exists
+if (window.PUBLIC_CONFIG) {
+    window.PUBLIC_CONFIG = {
+        ...window.PUBLIC_CONFIG,
+        ...window.GOOGLE_CONFIG
+    };
+} else {
+    window.PUBLIC_CONFIG = window.GOOGLE_CONFIG;
+}
