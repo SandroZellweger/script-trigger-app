@@ -3654,7 +3654,11 @@ function autoCompleteIssuesFromInvoice(listId, analysisData) {
         // Check if this issue was completed
         let wasCompleted = false;
         for (let j = 0; j < completedWorks.length; j++) {
-          const work = completedWorks[j].toLowerCase();
+          // Handle both string and object formats
+          const workItem = completedWorks[j];
+          const workDesc = typeof workItem === 'string' ? workItem : (workItem.description || '').toString();
+          const work = workDesc.toLowerCase();
+          
           // Check if issue description contains key words from completed work
           const keywords = work.split(' ').filter(w => w.length > 3);
           const matchCount = keywords.filter(kw => issueDesc.includes(kw)).length;
@@ -3681,7 +3685,10 @@ function autoCompleteIssuesFromInvoice(listId, analysisData) {
           // Check if missing
           let wasMissing = false;
           for (let k = 0; k < missingWorks.length; k++) {
-            const work = missingWorks[k].toLowerCase();
+            // Handle both string and object formats
+            const workItem = missingWorks[k];
+            const workDesc = typeof workItem === 'string' ? workItem : (workItem.description || '').toString();
+            const work = workDesc.toLowerCase();
             const keywords = work.split(' ').filter(w => w.length > 3);
             const matchCount = keywords.filter(kw => issueDesc.includes(kw)).length;
             
