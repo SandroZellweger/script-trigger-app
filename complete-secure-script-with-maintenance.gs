@@ -2507,6 +2507,120 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
   }
 }
 
+// Analyze invoice using extracted text (for PDFs)
+function analyzeInvoiceTextWithAI(invoiceText, expectedWorks) {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
+    }
+
+    // Construct prompt for text analysis
+    const prompt = `Analizza il testo di questa fattura di officina meccanica ed estrai le seguenti informazioni in formato JSON.
+
+TESTO FATTURA:
+${invoiceText}
+
+LAVORI PREVENTIVATI ORIGINALI:
+${expectedWorks.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+Estrai dalla fattura:
+1. Costo totale (includi valuta, es: "CHF 450.00")
+2. Lista completa dei lavori effettuati (come appaiono in fattura)
+3. Data della fattura (formato YYYY-MM-DD)
+4. Nome dell'officina/garage
+5. Numero fattura se presente
+
+Poi confronta i lavori fatturati con quelli preventivati e classifica:
+- worksCompleted: lavori preventivati che sono stati effettuati
+- worksAdded: lavori effettuati ma NON preventivati
+- worksMissing: lavori preventivati ma NON effettuati
+
+Rispondi SOLO con JSON valido nel seguente formato:
+{
+  "invoiceData": {
+    "totalCost": "importo con valuta",
+    "invoiceDate": "YYYY-MM-DD",
+    "workshopName": "nome officina",
+    "invoiceNumber": "numero se presente o null",
+    "worksDone": ["lavoro1", "lavoro2", "..."]
+  },
+  "comparison": {
+    "worksCompleted": ["lavori preventivati e completati"],
+    "worksAdded": ["lavori extra non preventivati"],
+    "worksMissing": ["lavori preventivati ma non effettuati"]
+  },
+  "aiConfidence": 0.95
+}
+
+Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto dei lavori.`;
+
+    // Call OpenAI API with text-only model (cheaper and faster for text)
+    const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: 'gpt-4o-mini', // Use mini for text-only analysis (cheaper)
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.2,
+        response_format: { type: 'json_object' }
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+    
+    if (result.error) {
+      Logger.log('OpenAI API error: ' + JSON.stringify(result.error));
+      return {
+        success: false,
+        error: 'OpenAI API error: ' + JSON.stringify(result.error)
+      };
+    }
+
+    const content = result.choices[0].message.content;
+    Logger.log('AI Response (text): ' + content);
+
+    try {
+      const analysis = JSON.parse(content);
+      
+      return {
+        success: true,
+        analysis: analysis,
+        rawResponse: content
+      };
+    } catch (parseError) {
+      Logger.log('Error parsing AI response: ' + parseError);
+      return {
+        success: false,
+        error: 'Invalid AI response format',
+        rawResponse: content
+      };
+    }
+
+  } catch (error) {
+    Logger.log('Error in analyzeInvoiceTextWithAI: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
 function uploadAndAnalyzeInvoiceJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = uploadAndAnalyzeInvoice(params.fileName, params.photoData, params.listId);
@@ -2904,18 +3018,63 @@ function analyzeInvoiceFromDrive(fileId, listId) {
 
     Logger.log('Expected works (' + expectedWorks.length + '): ' + JSON.stringify(expectedWorks));
 
-    // For PDF files, we need to convert first page to image or use PDF analysis
-    let analysisUrl = photoUrl;
+    // For PDF files, extract text instead of using image
+    let analysisResult;
     
     if (isPDF) {
-      Logger.log('PDF detected - using direct URL for analysis');
-      // OpenAI Vision API can handle PDF URLs directly in some cases
-      // Or we can extract text and analyze as text
-      // For now, we'll pass the URL and let the AI handle it
+      Logger.log('PDF detected - extracting text for analysis');
+      
+      try {
+        // Get PDF content as blob
+        const pdfBlob = file.getBlob();
+        
+        // Try to extract text from PDF using Google's built-in parser
+        let pdfText = '';
+        try {
+          // Convert PDF to Google Doc temporarily to extract text
+          const tempDoc = Drive.Files.insert(
+            {
+              title: 'temp_pdf_extract',
+              mimeType: 'application/vnd.google-apps.document'
+            },
+            pdfBlob,
+            {
+              convert: true
+            }
+          );
+          
+          const docFile = DriveApp.getFileById(tempDoc.id);
+          const docContent = DocumentApp.openById(tempDoc.id);
+          pdfText = docContent.getBody().getText();
+          
+          // Delete temporary doc
+          Drive.Files.remove(tempDoc.id);
+          
+          Logger.log('PDF text extracted successfully (' + pdfText.length + ' chars)');
+        } catch (extractError) {
+          Logger.log('PDF text extraction failed: ' + extractError);
+          pdfText = '';
+        }
+        
+        // Analyze with text-based AI if we got text
+        if (pdfText.length > 50) {
+          analysisResult = analyzeInvoiceTextWithAI(pdfText, expectedWorks);
+        } else {
+          // Fallback: try with image URL (might work for simple PDFs)
+          analysisResult = analyzeInvoiceWithAI(photoUrl, expectedWorks);
+        }
+        
+      } catch (pdfError) {
+        Logger.log('PDF processing error: ' + pdfError);
+        return {
+          success: false,
+          error: 'Errore elaborazione PDF: ' + pdfError.toString()
+        };
+      }
+    } else {
+      // Image file - use standard image analysis
+      analysisResult = analyzeInvoiceWithAI(photoUrl, expectedWorks);
     }
-
-    // Analyze invoice with AI
-    const analysisResult = analyzeInvoiceWithAI(analysisUrl, expectedWorks);
 
     if (!analysisResult.success) {
       // Save file URL even if analysis fails
