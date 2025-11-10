@@ -2513,18 +2513,32 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
     // Parse JSON from AI response
     let analysis;
     try {
-      // Remove markdown code blocks if present
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        analysis = JSON.parse(aiResponse);
+      // Clean the response: remove markdown code blocks and extra text
+      let cleanContent = aiResponse.trim();
+      
+      // Remove markdown code blocks
+      cleanContent = cleanContent.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
+      
+      // Remove common prefixes like "Ecco il JSON:" or "Here is the JSON:"
+      cleanContent = cleanContent.replace(/^(Ecco il JSON:|Here is the JSON:|JSON:|Risposta:|Response:)\s*/i, '');
+      
+      // Find JSON object - look for first { and last }
+      const startIndex = cleanContent.indexOf('{');
+      const lastIndex = cleanContent.lastIndexOf('}');
+      
+      if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
+        cleanContent = cleanContent.substring(startIndex, lastIndex + 1);
       }
+      
+      Logger.log('Cleaned content: ' + cleanContent);
+      
+      analysis = JSON.parse(cleanContent);
     } catch (e) {
       Logger.log('Error parsing AI response: ' + e);
       return {
         success: false,
-        error: 'Impossibile interpretare la risposta AI: ' + aiResponse
+        error: 'Invalid AI response format',
+        rawResponse: aiResponse
       };
     }
 
@@ -2807,7 +2821,32 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
     Logger.log('AI Response (text): ' + content);
 
     try {
-      const analysis = JSON.parse(content);
+      // Clean the response - remove markdown code blocks if present
+      let cleanContent = content.trim();
+      
+      // Remove markdown code blocks (```json ... ```)
+      if (cleanContent.startsWith('```')) {
+        const lines = cleanContent.split('\n');
+        // Remove first line if it starts with ```
+        if (lines[0].trim().startsWith('```')) {
+          lines.shift();
+        }
+        // Remove last line if it starts with ```
+        if (lines.length > 0 && lines[lines.length - 1].trim().startsWith('```')) {
+          lines.pop();
+        }
+        cleanContent = lines.join('\n').trim();
+      }
+      
+      // Try to find JSON if there's extra text before/after
+      let jsonStart = cleanContent.indexOf('{');
+      let jsonEnd = cleanContent.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      const analysis = JSON.parse(cleanContent);
       
       return {
         success: true,
@@ -2816,6 +2855,7 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
       };
     } catch (parseError) {
       Logger.log('Error parsing AI response: ' + parseError);
+      Logger.log('Cleaned content attempted: ' + cleanContent);
       return {
         success: false,
         error: 'Invalid AI response format',
