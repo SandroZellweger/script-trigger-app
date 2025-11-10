@@ -26,7 +26,7 @@ window.APP_CONFIG = {
     cacheVersion: 'v2.0.1',
     
     // Production defaults (overridden by config.private.js if present)
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbyJCH8cgts7kruOp8k68eGLrBXo_Hp6cYy1Sp2QM6giAE9_vcIqGW53fgUTi4DTbBke/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbz-CMOtjv5UNCugT528cXVnIbHnqsfC_CqVQA7BLGwsLiUm7_eBeTvaLZFIhNXjDOOz/exec',
     authToken: 'mySecureVanApp_2025',
     expenseSheetId: '1gcsmRTRMIIXsRmMx7l_43NVknJQCb9o-NB80O4WtX4M',
     maintenanceSheetId: '1ZhsCurWBPQ7oYCZL7NXCF6E8VoXLlSg8YLw6BdxCjx4',

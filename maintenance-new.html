@@ -5546,10 +5546,16 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     };
 
                     const script = document.createElement('script');
-                    script.src = `${window.APP_CONFIG.scriptUrl}?function=analyzeInvoiceFromDriveJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileId=${encodeURIComponent(fileId)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
-                    script.onerror = () => {
+                    const requestUrl = `${window.APP_CONFIG.scriptUrl}?function=analyzeInvoiceFromDriveJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileId=${encodeURIComponent(fileId)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
+                    
+                    console.log('📡 Request URL:', requestUrl);
+                    
+                    script.src = requestUrl;
+                    script.onerror = (error) => {
+                        console.error('❌ Script load error:', error);
+                        console.error('Failed URL:', requestUrl);
                         delete window[callback];
-                        reject(new Error('Errore connessione analisi'));
+                        reject(new Error('Errore connessione analisi - verificare deployment Google Apps Script'));
                     };
                     document.body.appendChild(script);
 
