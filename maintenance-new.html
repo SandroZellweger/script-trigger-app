@@ -5351,14 +5351,18 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         <p style="margin: 5px 0;"><strong>🏢 Officina:</strong> ${escapeHtml(inv.workshopName || 'N/D')}</p>
                         ${inv.invoiceNumber ? `<p style="margin: 5px 0;"><strong>📄 Numero:</strong> ${escapeHtml(inv.invoiceNumber)}</p>` : ''}
                         ${inv.vehicleKm ? `<p style="margin: 5px 0;"><strong>🚗 Kilometri:</strong> ${escapeHtml(inv.vehicleKm.toLocaleString())} km</p>` : ''}
-                        ${response.photoUrl ? `<p style="margin: 5px 0;"><a href="${response.photoUrl}" target="_blank" style="color: #2196f3; text-decoration: none;">�️ Fattura</a></p>` : `<p style="margin: 5px 0;"><span style="color: #999; cursor: not-allowed;">👁️ Fattura (non disponibile)</span></p>`}
+                        ${response.photoUrl ? `<p style="margin: 5px 0;"><a href="${response.photoUrl}" target="_blank" style="color: #2196f3; text-decoration: none;">👁️ Fattura</a></p>` : `<p style="margin: 5px 0;"><span style="color: #999; cursor: not-allowed;">👁️ Fattura (non disponibile)</span></p>`}
                     </div>
 
                     ${inv.worksDone && inv.worksDone.length > 0 ? `
                         <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                             <h3 style="margin: 0 0 10px 0; color: #333;">🔧 Lavori Effettuati</h3>
                             <ul style="margin: 0; padding-left: 20px;">
-                                ${inv.worksDone.map(work => `<li>${escapeHtml(work)}</li>`).join('')}
+                                ${inv.worksDone.map(work => {
+                                    const desc = (typeof work === 'string') ? work : (work.description || work.name || 'Lavoro senza descrizione');
+                                    const cost = (typeof work === 'object' && work.cost) ? ` - <strong>${work.cost}</strong>` : '';
+                                    return `<li>${escapeHtml(desc)}${cost}</li>`;
+                                }).join('')}
                             </ul>
                         </div>
                     ` : ''}
@@ -7920,3 +7924,4 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
 </body>
 </html>
+
