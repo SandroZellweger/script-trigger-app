@@ -1624,7 +1624,18 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         </div>
     </div>
 
-    <script src="config.private.js"></script>
+    <script>
+        // Try to load config.private.js silently (only exists locally, not on GitHub Pages)
+        (function() {
+            var script = document.createElement('script');
+            script.src = 'config.private.js';
+            script.onerror = function() {
+                console.log('ℹ️ Running in production mode (config.private.js not found)');
+                console.log('ℹ️ This is expected on GitHub Pages');
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
     <script src="config.public.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
