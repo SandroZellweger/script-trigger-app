@@ -4815,6 +4815,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     listCard.style.borderLeft = '4px solid #17a2b8';
                     
                     const dataCreazione = list.dataCreazione ? new Date(list.dataCreazione).toLocaleDateString('it-CH') : 'N/D';
+                    const invoiceDate = (list.invoiceAnalysis && list.invoiceAnalysis.invoiceData && list.invoiceAnalysis.invoiceData.invoiceDate) ? list.invoiceAnalysis.invoiceData.invoiceDate : '';
+                    const invoicePhotoUrl = list.invoicePhotoUrl || '';
                     
                     listCard.innerHTML = `
                         <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
@@ -4939,7 +4941,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #9c27b0;">
                                 <h4 style="margin: 0 0 10px 0; color: #7b1fa2; display: flex; align-items: center; gap: 8px;">
                                     <span>🤖 Analisi Fattura AI</span>
-                                    ${list.invoicePhotoUrl ? `<a href="${escapeHtml(list.invoicePhotoUrl)}" target="_blank" style="background: #9c27b0; color: white; padding: 4px 10px; border-radius: 6px; text-decoration: none; font-size: 12px; margin-left: auto;">📷 Vedi Foto</a>` : ''}
+                                    <span style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+                                        ${invoicePhotoUrl ? `<a href="${escapeHtml(invoicePhotoUrl)}" target="_blank" style="background: #9c27b0; color: white; padding: 4px 10px; border-radius: 6px; text-decoration: none; font-size: 12px;">📄 Vedi Fattura</a>` : ''}
+                                        ${invoiceDate ? `<button onclick="deleteInvoiceAnalysis('${escapeHtml(list.listId)}', '${escapeHtml(invoiceDate)}', '${escapeHtml(invoicePhotoUrl)}')" style="background: #d32f2f; color: white; padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px;">🗑️ Elimina Analisi</button>` : ''}
+                                    </span>
                                 </h4>
                                 
                                 ${list.invoiceAnalysis.invoiceData ? `
