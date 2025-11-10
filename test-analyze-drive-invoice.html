@@ -145,10 +145,11 @@
         <p class="subtitle">Testa l'analisi AI di fatture (immagini e PDF) già caricate su Google Drive</p>
 
         <div class="info-box">
-            <strong>✨ Nuova Funzionalità!</strong>
+            <strong>🧪 Test PDF Analysis Fix</strong>
             <p style="margin: 8px 0 0 0;">
-                Questa funzione analizza fatture già esistenti su Drive senza doverle ricaricare.
-                Supporta sia <strong>immagini</strong> (JPG, PNG) che <strong>PDF</strong>.
+                Testing the fix for "Invalid AI response format" error in PDF invoice analysis.
+                This PDF file (<code>1zT5ifrrvystcCX514GCWn3p-qWDi3g0O</code>) was previously failing.
+                The fix improves JSON parsing to handle markdown formatting and AI response variations.
             </p>
         </div>
 
@@ -174,12 +175,12 @@
             <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
                 File ID da Drive:
             </label>
-            <input type="text" id="fileIdInput" placeholder="es: 1abc...xyz">
+            <input type="text" id="fileIdInput" placeholder="es: 1abc...xyz" value="1zT5ifrrvystcCX514GCWn3p-qWDi3g0O">
             
             <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
                 Lista Officina ID:
             </label>
-            <input type="text" id="listIdInput" placeholder="es: WORKSHOP_20251109_001" value="WORKSHOP_20251109_001">
+            <input type="text" id="listIdInput" placeholder="es: WORKSHOP_20251109_001" value="WORK_20251110_1762797552426">
             
             <button id="analyzeBtn" onclick="testAnalyzeFromDrive()">
                 🤖 Analizza Fattura
@@ -216,23 +217,12 @@
                 const script1 = document.createElement('script');
                 script1.src = 'config.public.js';
                 script1.onload = () => {
-                    if (window.PUBLIC_CONFIG) {
-                        APP_CONFIG.scriptUrl = window.PUBLIC_CONFIG.scriptUrl;
+                    if (window.APP_CONFIG) {
+                        APP_CONFIG.scriptUrl = window.APP_CONFIG.scriptUrl;
+                        APP_CONFIG.authToken = window.APP_CONFIG.authToken;
                         log('✅ Public config caricato', 'success');
-                        
-                        const script2 = document.createElement('script');
-                        script2.src = 'config.private.js';
-                        script2.onload = () => {
-                            if (window.PRIVATE_CONFIG) {
-                                APP_CONFIG.authToken = window.PRIVATE_CONFIG.authToken;
-                                log('✅ Private config caricato', 'success');
-                                resolve();
-                            } else {
-                                reject('Private config non trovato');
-                            }
-                        };
-                        script2.onerror = () => reject('Errore caricamento config.private.js');
-                        document.head.appendChild(script2);
+                        log('🔗 Script URL: ' + APP_CONFIG.scriptUrl, 'info');
+                        resolve();
                     } else {
                         reject('Public config non trovato');
                     }

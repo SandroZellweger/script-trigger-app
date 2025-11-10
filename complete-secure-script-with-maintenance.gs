@@ -2465,13 +2465,29 @@ function normalizeAiJsonString(raw) {
 
   let normalized = raw.trim();
 
+  // Remove common prefixes that AI might add
+  const prefixes = [
+    /^Here is the JSON:/i,
+    /^JSON:/i,
+    /^Risposta:/i,
+    /^Response:/i,
+    /^Ecco il JSON:/i
+  ];
+
+  for (const prefix of prefixes) {
+    normalized = normalized.replace(prefix, '').trim();
+  }
+
   if (normalized.startsWith('```')) {
     const firstFenceEnd = normalized.indexOf('\n');
     if (firstFenceEnd !== -1) {
+      // Skip the opening fence line (``` or ```json or ```JSON etc.)
       normalized = normalized.substring(firstFenceEnd + 1);
     } else {
+      // Fallback: just remove the ```
       normalized = normalized.substring(3);
     }
+    // Remove the closing fence if present
     const lastFenceIndex = normalized.lastIndexOf('```');
     if (lastFenceIndex !== -1) {
       normalized = normalized.substring(0, lastFenceIndex);
