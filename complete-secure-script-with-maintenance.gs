@@ -2424,7 +2424,7 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'user',
