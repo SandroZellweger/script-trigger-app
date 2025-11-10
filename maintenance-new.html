@@ -5351,7 +5351,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         <p style="margin: 5px 0;"><strong>🏢 Officina:</strong> ${escapeHtml(inv.workshopName || 'N/D')}</p>
                         ${inv.invoiceNumber ? `<p style="margin: 5px 0;"><strong>📄 Numero:</strong> ${escapeHtml(inv.invoiceNumber)}</p>` : ''}
                         ${inv.vehicleKm ? `<p style="margin: 5px 0;"><strong>🚗 Kilometri:</strong> ${escapeHtml(inv.vehicleKm.toLocaleString())} km</p>` : ''}
-                        ${response.photoUrl ? `<p style="margin: 5px 0;"><a href="${response.photoUrl}" target="_blank" style="color: #2196f3; text-decoration: none;">📷 Vedi Foto Fattura</a></p>` : ''}
+                        ${response.photoUrl ? `<p style="margin: 5px 0;"><a href="${response.photoUrl}" target="_blank" style="color: #2196f3; text-decoration: none;">�️ Fattura</a></p>` : `<p style="margin: 5px 0;"><span style="color: #999; cursor: not-allowed;">👁️ Fattura (non disponibile)</span></p>`}
                     </div>
 
                     ${inv.worksDone && inv.worksDone.length > 0 ? `
@@ -5372,7 +5372,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                     <strong style="color: #4caf50;">✅ Completati (${comp.worksCompleted.length}):</strong>
                                     <ul style="margin: 5px 0; padding-left: 20px;">
                                         ${comp.worksCompleted.map(w => {
-                                            const desc = (typeof w === 'string') ? w : w.description;
+                                            const desc = (typeof w === 'string') ? w : (w.description || w.name || 'Lavoro senza descrizione');
                                             const cost = (typeof w === 'object' && w.cost) ? ` - <strong>${w.cost}</strong>` : '';
                                             return `<li style="color: #4caf50;">${escapeHtml(desc)}${cost}</li>`;
                                         }).join('')}
@@ -5385,7 +5385,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                     <strong style="color: #ff9800;">➕ Aggiunti (${comp.worksAdded.length}):</strong>
                                     <ul style="margin: 5px 0; padding-left: 20px;">
                                         ${comp.worksAdded.map(w => {
-                                            const desc = (typeof w === 'string') ? w : w.description;
+                                            const desc = (typeof w === 'string') ? w : (w.description || w.name || 'Lavoro senza descrizione');
                                             const cost = (typeof w === 'object' && w.cost) ? ` - <strong>${w.cost}</strong>` : '';
                                             return `<li style="color: #ff9800;">${escapeHtml(desc)}${cost}</li>`;
                                         }).join('')}
@@ -5397,7 +5397,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 <div style="margin-bottom: 10px;">
                                     <strong style="color: #f44336;">❌ Mancanti:</strong>
                                     <ul style="margin: 5px 0; padding-left: 20px;">
-                                        ${comp.worksMissing.map(w => `<li style="color: #f44336;">${escapeHtml(w)}</li>`).join('')}
+                                        ${comp.worksMissing.map(w => {
+                                            const desc = (typeof w === 'string') ? w : (w.description || w.name || 'Lavoro senza descrizione');
+                                            return `<li style="color: #f44336;">${escapeHtml(desc)}</li>`;
+                                        }).join('')}
                                     </ul>
                                 </div>
                             ` : ''}
@@ -5405,12 +5408,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     ` : ''}
 
                     <div style="display: flex; justify-content: space-between; gap: 10px;">
-                        ${response.listId && inv.invoiceDate ? `
-                            <button onclick="deleteInvoiceAnalysis('${response.listId}', '${inv.invoiceDate}', '${response.photoUrl || ''}')" 
-                                    style="padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                                🗑️ Elimina
-                            </button>
-                        ` : ''}
+                        <button onclick="deleteInvoiceAnalysis('${response.listId}', '${inv.invoiceDate}', '${response.photoUrl || ''}')" 
+                                style="padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            🗑️ Elimina
+                        </button>
                         <button onclick="this.closest('div').parentElement.parentElement.remove()" 
                                 style="padding: 12px 24px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; margin-left: auto;">
                             OK, Capito
