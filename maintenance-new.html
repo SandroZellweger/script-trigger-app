@@ -5591,59 +5591,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 console.log('✅ Analisi completata:', result);
 
                 // Update progress to saving phase
-                updateInvoiceAnalysisProgress('💾 Salvataggio risultati (può richiedere tempo per fatture complesse)...', 80);
+                updateInvoiceAnalysisProgress('💾 Salvataggio risultati (preparazione selezione officina)...', 80);
 
-                // Show success notification
-                showNotification(`✅ Fattura ${result.fileType} analizzata con successo!`, 'success');
+                // Show workshop selection modal instead of saving directly
+                showWorkshopSelectionModal(result.analysis, result.photoUrl, listId);
 
-                // Show analysis results
-                if (result.analysis) {
-                    showInvoiceAnalysisResults(result);
-                }
-
-                // Save to Storico Lavori and auto-complete issues
-                if (result.success && result.analysis) {
-                    console.log('💾 Salvataggio lavori in Storico Lavori...');
-
-                    try {
-                        // Save works to history
-                        const saveResult = await saveInvoiceToHistory(listId, result.analysis, result.photoUrl);
-
-                        if (saveResult.success) {
-                            console.log(`✅ Salvati ${saveResult.savedWorks} lavori in Storico Lavori`);
-                            showNotification(`💾 ${saveResult.savedWorks} lavori salvati in Storico Lavori`, 'success');
-                        } else {
-                            console.warn('⚠️ Errore salvataggio:', saveResult.error);
-                        }
-
-                        // Auto-complete related issues
-                        const completeResult = await autoCompleteIssues(listId, result.analysis);
-
-                        if (completeResult.success) {
-                            console.log(`✅ Auto-completati ${completeResult.completedCount} problemi`);
-                            if (completeResult.completedCount > 0) {
-                                showNotification(`✅ ${completeResult.completedCount} problemi completati automaticamente`, 'success');
-                            }
-                            if (completeResult.missingCount > 0) {
-                                showNotification(`⚠️ ${completeResult.missingCount} lavori non completati - verificare`, 'warning');
-                            }
-                        }
-                    } catch (saveError) {
-                        console.error('Errore durante salvataggio:', saveError);
-                        showNotification('⚠️ Analisi OK ma errore nel salvataggio dati', 'warning');
-                    }
-                }
-
-                // Complete progress
-                updateInvoiceAnalysisProgress('✅ Analisi completata!', 100);
-
-                // Hide progress modal after a short delay
+                // Hide progress modal (the workshop selection will handle the rest)
                 setTimeout(() => {
                     hideInvoiceAnalysisProgress();
-                }, 1500);
-
-                // Reload workshop lists to show updated data
-                loadWorkshopLists();
+                }, 500);
 
                 return result;
 
@@ -7208,6 +7164,301 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             script.src = url;
             document.body.appendChild(script);
         }
+
+        // ===== WORKSHOP SELECTION MODAL FUNCTIONS =====
+
+        let selectedWorkshop = null;
+        let workshopAnalysisData = null;
+        let workshopPhotoUrl = null;
+        let workshopListId = null;
+
+        // Show workshop selection modal
+        function showWorkshopSelectionModal(analysisData, photoUrl, listId) {
+            workshopAnalysisData = analysisData;
+            workshopPhotoUrl = photoUrl;
+            workshopListId = listId;
+            selectedWorkshop = null;
+
+            // Load workshops
+            loadWorkshopsForSelection();
+
+            // Show modal
+            document.getElementById('workshopSelectionModal').style.display = 'flex';
+        }
+
+        // Close workshop selection modal
+        function closeWorkshopSelectionModal() {
+            document.getElementById('workshopSelectionModal').style.display = 'none';
+            selectedWorkshop = null;
+            workshopAnalysisData = null;
+            workshopPhotoUrl = null;
+            workshopListId = null;
+        }
+
+        // Load workshops for selection
+        async function loadWorkshopsForSelection() {
+            const workshopList = document.getElementById('workshopList');
+            workshopList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 24px; margin-bottom: 10px;">⏳</div>Caricamento officine...</div>';
+
+            try {
+                const callback = 'loadWorkshopsCallback_' + Date.now();
+
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Errore caricamento'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=getAllWorkshopsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+                });
+
+                const workshops = result.workshops || [];
+
+                if (workshops.length === 0) {
+                    workshopList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 48px; margin-bottom: 10px;">🏭</div><p>Nessuna officina trovata.<br>Aggiungine una nuova qui sotto.</p></div>';
+                    return;
+                }
+
+                workshopList.innerHTML = '';
+
+                workshops.forEach(workshop => {
+                    const item = document.createElement('div');
+                    item.className = 'workshop-item';
+                    item.onclick = () => selectWorkshop(workshop);
+
+                    item.innerHTML = `
+                        <div class="workshop-radio"></div>
+                        <div class="workshop-info">
+                            <h4>${escapeHtml(workshop.name)}</h4>
+                            <p>
+                                ${workshop.address ? '📍 ' + escapeHtml(workshop.address) : ''}
+                                ${workshop.phone ? '📞 ' + escapeHtml(workshop.phone) : ''}
+                                ${workshop.email ? '📧 ' + escapeHtml(workshop.email) : ''}
+                            </p>
+                        </div>
+                    `;
+
+                    workshopList.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error('Error loading workshops:', error);
+                workshopList.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><div style="font-size: 48px; margin-bottom: 10px;">❌</div><p>Errore caricamento officine</p></div>';
+            }
+        }
+
+        // Select workshop
+        function selectWorkshop(workshop) {
+            selectedWorkshop = workshop;
+
+            // Update UI
+            const items = document.querySelectorAll('.workshop-item');
+            items.forEach(item => {
+                item.classList.remove('selected');
+                const radio = item.querySelector('.workshop-radio');
+                radio.classList.remove('selected');
+            });
+
+            // Highlight selected
+            event.currentTarget.classList.add('selected');
+            const radio = event.currentTarget.querySelector('.workshop-radio');
+            radio.classList.add('selected');
+
+            // Enable confirm button
+            document.getElementById('confirmWorkshopBtn').disabled = false;
+        }
+
+        // Toggle add workshop form
+        function toggleAddWorkshopForm() {
+            const form = document.getElementById('addWorkshopForm');
+            const btn = document.querySelector('.add-workshop-btn');
+
+            if (form.style.display === 'block') {
+                form.style.display = 'none';
+                btn.innerHTML = '➕ Aggiungi Nuova Officina';
+            } else {
+                form.style.display = 'block';
+                btn.innerHTML = '➖ Nascondi Form';
+                document.getElementById('newWorkshopName').focus();
+            }
+        }
+
+        // Cancel add workshop
+        function cancelAddWorkshop() {
+            document.getElementById('addWorkshopForm').style.display = 'none';
+            document.querySelector('.add-workshop-btn').innerHTML = '➕ Aggiungi Nuova Officina';
+            document.getElementById('newWorkshopName').value = '';
+            document.getElementById('newWorkshopAddress').value = '';
+            document.getElementById('newWorkshopPhone').value = '';
+            document.getElementById('newWorkshopEmail').value = '';
+        }
+
+        // Save new workshop
+        async function saveNewWorkshop() {
+            const name = document.getElementById('newWorkshopName').value.trim();
+            const address = document.getElementById('newWorkshopAddress').value.trim();
+            const phone = document.getElementById('newWorkshopPhone').value.trim();
+            const email = document.getElementById('newWorkshopEmail').value.trim();
+
+            if (!name) {
+                alert('Il nome dell\'officina è obbligatorio');
+                document.getElementById('newWorkshopName').focus();
+                return;
+            }
+
+            try {
+                const workshopData = {
+                    name: name,
+                    address: address,
+                    phone: phone,
+                    email: email,
+                    notes: 'Aggiunto durante analisi fattura'
+                };
+
+                const callback = 'saveWorkshopCallback_' + Date.now();
+
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Errore salvataggio'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=createWorkshopJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&workshopData=${encodeURIComponent(JSON.stringify(workshopData))}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+                });
+
+                showNotification('✅ Officina aggiunta con successo!', 'success');
+
+                // Select the newly created workshop
+                selectedWorkshop = workshopData;
+
+                // Close form and confirm selection
+                cancelAddWorkshop();
+                confirmWorkshopSelection();
+
+            } catch (error) {
+                console.error('Error saving workshop:', error);
+                showNotification('❌ Errore: ' + error.message, 'error');
+            }
+        }
+
+        // Confirm workshop selection and proceed with saving
+        async function confirmWorkshopSelection() {
+            if (!selectedWorkshop) {
+                alert('Seleziona un\'officina prima di continuare');
+                return;
+            }
+
+            // Close modal
+            closeWorkshopSelectionModal();
+
+            // Update progress to saving phase
+            updateInvoiceAnalysisProgress('💾 Salvataggio risultati con officina selezionata...', 80);
+
+            try {
+                // Save to Storico Lavori with selected workshop
+                console.log('💾 Salvataggio lavori in Storico Lavori per officina:', selectedWorkshop.name);
+
+                const saveResult = await saveInvoiceToHistoryWithWorkshop(workshopListId, workshopAnalysisData, workshopPhotoUrl, selectedWorkshop);
+
+                if (saveResult.success) {
+                    console.log(`✅ Salvati ${saveResult.savedWorks} lavori in Storico Lavori`);
+                    showNotification(`💾 ${saveResult.savedWorks} lavori salvati per ${selectedWorkshop.name}`, 'success');
+                } else {
+                    console.warn('⚠️ Errore salvataggio:', saveResult.error);
+                }
+
+                // Auto-complete related issues
+                const completeResult = await autoCompleteIssues(workshopListId, workshopAnalysisData);
+
+                if (completeResult.success) {
+                    console.log(`✅ Auto-completati ${completeResult.completedCount} problemi`);
+                    if (completeResult.completedCount > 0) {
+                        showNotification(`✅ ${completeResult.completedCount} problemi completati automaticamente`, 'success');
+                    }
+                    if (completeResult.missingCount > 0) {
+                        showNotification(`⚠️ ${completeResult.missingCount} lavori non completati - verificare`, 'warning');
+                    }
+                }
+
+                // Complete progress
+                updateInvoiceAnalysisProgress('✅ Analisi completata con officina selezionata!', 100);
+
+                // Hide progress modal after a short delay
+                setTimeout(() => {
+                    hideInvoiceAnalysisProgress();
+                }, 1500);
+
+                // Reload workshop lists to show updated data
+                loadWorkshopLists();
+
+            } catch (saveError) {
+                console.error('Errore durante salvataggio:', saveError);
+                showNotification('⚠️ Analisi OK ma errore nel salvataggio dati', 'warning');
+                hideInvoiceAnalysisProgress();
+            }
+        }
+
+        // Save invoice analysis to history with selected workshop
+        async function saveInvoiceToHistoryWithWorkshop(listId, analysisData, photoUrl, workshop) {
+            try {
+                const callback = 'saveHistoryWorkshopCallback_' + Date.now();
+
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Salvataggio fallito'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=saveInvoiceToHistoryJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&listId=${encodeURIComponent(listId)}&analysisData=${encodeURIComponent(JSON.stringify(analysisData))}&photoUrl=${encodeURIComponent(photoUrl)}&workshopName=${encodeURIComponent(workshop.name)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            // Remove script element from DOM to prevent further execution
+                            if (script.parentNode) {
+                                document.body.removeChild(script);
+                            }
+                            reject(new Error('Timeout salvataggio'));
+                        }
+                    }, 60000); // Increased timeout to 60 seconds for complex invoice data
+                });
+
+                return result;
+            } catch (error) {
+                console.error('Error in saveInvoiceToHistoryWithWorkshop:', error);
+                return { success: false, error: error.message };
+            }
+        }
     </script>
 
     <!-- Edit Issue Modal -->
@@ -8106,7 +8357,263 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             font-size: 14px;
             margin-bottom: 15px;
         }
+
+        /* Workshop Selection Modal Styles */
+        .workshop-selection-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(2px);
+        }
+
+        .workshop-selection-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .workshop-selection-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .workshop-selection-header h2 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .workshop-selection-header p {
+            margin: 0;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .workshop-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .workshop-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .workshop-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .workshop-item.selected {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .workshop-item:last-child {
+            border-bottom: none;
+        }
+
+        .workshop-radio {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .workshop-radio.selected::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 8px;
+            height: 8px;
+            background: #2196f3;
+            border-radius: 50%;
+        }
+
+        .workshop-info h4 {
+            margin: 0 0 4px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .workshop-info p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .add-workshop-section {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #fafafa;
+        }
+
+        .add-workshop-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .add-workshop-btn:hover {
+            background: #218838;
+        }
+
+        .add-workshop-form {
+            display: none;
+            margin-top: 15px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .add-workshop-form .form-group {
+            margin-bottom: 15px;
+        }
+
+        .add-workshop-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .add-workshop-form input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .workshop-selection-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .workshop-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .workshop-btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .workshop-btn-cancel:hover {
+            background: #5a6268;
+        }
+
+        .workshop-btn-confirm {
+            background: #007bff;
+            color: white;
+        }
+
+        .workshop-btn-confirm:hover {
+            background: #0056b3;
+        }
+
+        .workshop-btn-confirm:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
     </style>
+
+    <!-- Workshop Selection Modal -->
+    <div id="workshopSelectionModal" class="workshop-selection-overlay" style="display: none;">
+        <div class="workshop-selection-modal">
+            <div class="workshop-selection-header">
+                <h2>🏢 Seleziona Officina</h2>
+                <p>Scegli l'officina dove verranno eseguiti i lavori della fattura</p>
+            </div>
+
+            <div class="workshop-list" id="workshopList">
+                <!-- Workshops will be loaded here -->
+            </div>
+
+            <div class="add-workshop-section">
+                <p style="margin: 0 0 15px 0; color: #666;">Non trovi l'officina che cerchi?</p>
+                <button class="add-workshop-btn" onclick="toggleAddWorkshopForm()">
+                    ➕ Aggiungi Nuova Officina
+                </button>
+
+                <div class="add-workshop-form" id="addWorkshopForm">
+                    <div class="form-group">
+                        <label for="newWorkshopName">Nome Officina *</label>
+                        <input type="text" id="newWorkshopName" placeholder="es. Autofficina Rossi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newWorkshopAddress">Indirizzo</label>
+                        <input type="text" id="newWorkshopAddress" placeholder="Via Roma 123, Milano">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="newWorkshopPhone">Telefono</label>
+                            <input type="tel" id="newWorkshopPhone" placeholder="+39 123 456 7890">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="newWorkshopEmail">Email</label>
+                            <input type="email" id="newWorkshopEmail" placeholder="info@officina.it">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="button" onclick="cancelAddWorkshop()" style="flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Annulla</button>
+                        <button type="button" onclick="saveNewWorkshop()" style="flex: 1; padding: 10px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">💾 Salva Officina</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workshop-selection-actions">
+                <button class="workshop-btn workshop-btn-cancel" onclick="closeWorkshopSelectionModal()">Annulla</button>
+                <button class="workshop-btn workshop-btn-confirm" id="confirmWorkshopBtn" onclick="confirmWorkshopSelection()" disabled>Conferma Selezione</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

@@ -3641,7 +3641,7 @@ function parseCostValue(costString) {
   return match ? parseFloat(match[0]) : costString;
 }
 
-function saveInvoiceToHistory(listId, analysisData, photoUrl) {
+function saveInvoiceToHistory(listId, analysisData, photoUrl, workshopName) {
   try {
     const scriptProperties = PropertiesService.getScriptProperties();
     const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
@@ -3707,26 +3707,27 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
     const invoiceData = analysisData.invoiceData;
     const vehicleId = listData[2];
     const vehicleName = listData[3];
-    const workshopName = invoiceData.workshopName || listData[4] || 'N/D';
+    // Use provided workshopName if available, otherwise fall back to existing logic
+    const finalWorkshopName = workshopName || invoiceData.workshopName || listData[4] || 'N/D';
     const invoiceDate = invoiceData.invoiceDate || new Date().toISOString().split('T')[0];
     const invoiceNumber = invoiceData.invoiceNumber || 'N/D';
     const vehicleKm = invoiceData.vehicleKm || null;
     
     Logger.log('Saving to Storico Lavori...');
     Logger.log('Vehicle: ' + vehicleName + ' (' + vehicleId + ')');
-    Logger.log('Workshop: ' + workshopName);
+    Logger.log('Workshop: ' + finalWorkshopName);
     Logger.log('Invoice: ' + invoiceNumber);
     Logger.log('Vehicle Km: ' + vehicleKm);
     
     // Find or create workshop in Anagrafica Officine
     let workshopId = null;
-    const workshopResult = findWorkshop(workshopName);
+    const workshopResult = findWorkshop(finalWorkshopName);
     if (workshopResult && workshopResult.found) {
       workshopId = workshopResult.workshopId;
       Logger.log('Found workshop: ' + workshopId);
     } else {
       // Create new workshop
-      const createResult = createWorkshop(workshopName);
+      const createResult = createWorkshop(finalWorkshopName);
       if (createResult.success) {
         workshopId = createResult.workshopId;
         Logger.log('Created new workshop: ' + workshopId);
@@ -3751,7 +3752,7 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
           '✅ Completato',
           workDesc,
           workCost,
-          workshopName,
+          finalWorkshopName,
           workshopId,
           invoiceNumber,
           listId,
@@ -3788,7 +3789,7 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
           '➕ Extra',
           workDesc,
           workCost,
-          workshopName,
+          finalWorkshopName,
           workshopId,
           invoiceNumber,
           listId,
@@ -3819,7 +3820,7 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
       '💰 TOTALE FATTURA',
       savedCount + ' lavori effettuati',
       totalCostText,
-      workshopName,
+      finalWorkshopName,
       workshopId,
       invoiceNumber,
       listId,
@@ -3986,7 +3987,7 @@ function saveInvoiceToHistoryJsonp(params) {
   
   try {
     const analysisData = JSON.parse(params.analysisData);
-    const response = saveInvoiceToHistory(params.listId, analysisData, params.photoUrl);
+    const response = saveInvoiceToHistory(params.listId, analysisData, params.photoUrl, params.workshopName);
     const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
     return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
   } catch (error) {
@@ -4415,6 +4416,71 @@ function getWorkshopHistoryJsonp(params) {
 function archiveWorkshopListJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const result = archiveWorkshopList(params.listId);
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
+  return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Get all workshops for selection modal
+function getAllWorkshops() {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID;
+
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Anagrafica Officine');
+
+    if (!sheet) {
+      return {
+        success: false,
+        error: 'Anagrafica Officine sheet not found'
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const workshops = [];
+
+    // Skip header row (i = 1)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      // Check if workshop name exists (column B - index 1)
+      if (row[1] && row[1].toString().trim()) {
+        workshops.push({
+          name: row[1].toString().trim(),      // Nome (column B)
+          address: row[3] ? row[3].toString().trim() : '',  // Indirizzo (column D)
+          phone: row[4] ? row[4].toString().trim() : '',    // Telefono (column E)
+          email: row[5] ? row[5].toString().trim() : '',    // Email (column F)
+          notes: row[6] ? row[6].toString().trim() : ''     // Note (column G)
+        });
+      }
+    }
+
+    return {
+      success: true,
+      workshops: workshops,
+      total: workshops.length,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error getting all workshops: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrapper for getAllWorkshops
+function getAllWorkshopsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const result = getAllWorkshops();
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
   return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
