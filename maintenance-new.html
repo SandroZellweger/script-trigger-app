@@ -5536,6 +5536,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 console.log('File ID:', fileId);
                 console.log('List ID:', listId);
 
+                // Show progress modal
+                showInvoiceAnalysisProgress();
+
                 // Show loading notification
                 showNotification('🤖 Analisi fattura in corso...', 'info');
 
@@ -5558,9 +5561,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     const script = document.createElement('script');
                     const requestUrl = `${window.APP_CONFIG.scriptUrl}?function=analyzeInvoiceFromDriveJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileId=${encodeURIComponent(fileId)}&listId=${encodeURIComponent(listId)}&callback=${callback}&_=${Date.now()}`;
-                    
+
                     console.log('📡 Request URL:', requestUrl);
-                    
+
+                    // Update progress to file loading
+                    setTimeout(() => updateInvoiceAnalysisProgress('📁 Caricamento file da Drive...', 25, 2), 500);
+
                     script.src = requestUrl;
                     script.onerror = (error) => {
                         console.error('❌ Script load error:', error);
@@ -5569,6 +5575,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         reject(new Error('Errore connessione analisi - verificare deployment Google Apps Script'));
                     };
                     document.body.appendChild(script);
+
+                    // Update progress to AI analysis
+                    setTimeout(() => updateInvoiceAnalysisProgress('🤖 Analisi con AI in corso...', 50, 3), 2000);
 
                     // Timeout after 60 seconds
                     setTimeout(() => {
@@ -5581,6 +5590,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 console.log('✅ Analisi completata:', result);
 
+                // Update progress to saving phase
+                updateInvoiceAnalysisProgress('💾 Salvataggio risultati...', 80);
+
                 // Show success notification
                 showNotification(`✅ Fattura ${result.fileType} analizzata con successo!`, 'success');
 
@@ -5592,21 +5604,21 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 // Save to Storico Lavori and auto-complete issues
                 if (result.success && result.analysis) {
                     console.log('💾 Salvataggio lavori in Storico Lavori...');
-                    
+
                     try {
                         // Save works to history
                         const saveResult = await saveInvoiceToHistory(listId, result.analysis, result.photoUrl);
-                        
+
                         if (saveResult.success) {
                             console.log(`✅ Salvati ${saveResult.savedWorks} lavori in Storico Lavori`);
                             showNotification(`💾 ${saveResult.savedWorks} lavori salvati in Storico Lavori`, 'success');
                         } else {
                             console.warn('⚠️ Errore salvataggio:', saveResult.error);
                         }
-                        
+
                         // Auto-complete related issues
                         const completeResult = await autoCompleteIssues(listId, result.analysis);
-                        
+
                         if (completeResult.success) {
                             console.log(`✅ Auto-completati ${completeResult.completedCount} problemi`);
                             if (completeResult.completedCount > 0) {
@@ -5622,6 +5634,14 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     }
                 }
 
+                // Complete progress
+                updateInvoiceAnalysisProgress('✅ Analisi completata!', 100);
+
+                // Hide progress modal after a short delay
+                setTimeout(() => {
+                    hideInvoiceAnalysisProgress();
+                }, 1500);
+
                 // Reload workshop lists to show updated data
                 loadWorkshopLists();
 
@@ -5630,11 +5650,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             } catch (error) {
                 console.error('❌ Errore analisi:', error);
                 showNotification('❌ Errore: ' + error.message, 'error');
+
+                // Hide progress modal on error
+                hideInvoiceAnalysisProgress();
+
                 throw error;
             }
-        }
-
-        // Save invoice analysis to Storico Lavori
+        }        // Save invoice analysis to Storico Lavori
         async function saveInvoiceToHistory(listId, analysisData, photoUrl) {
             try {
                 const callback = 'saveHistoryCallback_' + Date.now();
@@ -6010,6 +6032,140 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 await analyzeExistingInvoice(fileId, listId);
             } catch (error) {
                 console.error('Error in processDriveFileAnalysis:', error);
+            }
+        }
+
+        // Show invoice analysis progress modal
+        function showInvoiceAnalysisProgress() {
+            // Remove any existing progress modal
+            const existingModal = document.getElementById('invoiceAnalysisProgressModal');
+            if (existingModal) {
+                document.body.removeChild(existingModal);
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'invoiceAnalysisProgressModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(2px);
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 16px; padding: 40px; max-width: 500px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.3); text-align: center;">
+                    <div style="margin-bottom: 30px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
+                        <h2 style="margin: 0 0 10px 0; color: #333; font-size: 24px;">Analisi Fattura in Corso</h2>
+                        <p id="progressText" style="margin: 0; color: #666; font-size: 16px;">⏳ Preparazione analisi...</p>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <div style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
+                            <div id="progressBar" style="width: 10%; height: 100%; background: linear-gradient(90deg, #4285f4, #34a853); border-radius: 4px; transition: width 0.3s ease;"></div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 14px; color: #888;">
+                            <span id="progressPercent">10%</span> completato
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; color: #555;">
+                        <div id="step1" style="display: flex; align-items: center; gap: 10px; opacity: 1;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #4285f4; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✓</div>
+                            <span>Preparazione analisi</span>
+                        </div>
+                        <div id="step2" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Caricamento file da Drive</span>
+                        </div>
+                        <div id="step3" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Analisi con AI</span>
+                        </div>
+                        <div id="step4" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Salvataggio risultati</span>
+                        </div>
+                        <div id="step5" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Completamento</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Update invoice analysis progress
+        function updateInvoiceAnalysisProgress(text, percent, step = null) {
+            const modal = document.getElementById('invoiceAnalysisProgressModal');
+            if (!modal) return;
+
+            const progressText = modal.querySelector('#progressText');
+            const progressBar = modal.querySelector('#progressBar');
+            const progressPercent = modal.querySelector('#progressPercent');
+
+            if (progressText) progressText.textContent = text;
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (progressPercent) progressPercent.textContent = percent + '%';
+
+            // Update step indicators
+            if (step) {
+                for (let i = 1; i <= 5; i++) {
+                    const stepEl = modal.querySelector('#step' + i);
+                    if (stepEl) {
+                        if (i < step) {
+                            stepEl.style.opacity = '1';
+                            const circle = stepEl.querySelector('div');
+                            if (circle) {
+                                circle.style.background = '#34a853';
+                                circle.style.border = 'none';
+                                circle.innerHTML = '✓';
+                                circle.style.color = 'white';
+                            }
+                        } else if (i === step) {
+                            stepEl.style.opacity = '1';
+                            const circle = stepEl.querySelector('div');
+                            if (circle) {
+                                circle.style.background = '#4285f4';
+                                circle.style.border = 'none';
+                                circle.innerHTML = '⟳';
+                                circle.style.color = 'white';
+                                circle.style.animation = 'spin 1s linear infinite';
+                            }
+                        } else {
+                            stepEl.style.opacity = '0.4';
+                            const circle = stepEl.querySelector('div');
+                            if (circle) {
+                                circle.style.background = 'white';
+                                circle.style.border = '2px solid #e0e0e0';
+                                circle.innerHTML = '';
+                                circle.style.animation = 'none';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Hide invoice analysis progress modal
+        function hideInvoiceAnalysisProgress() {
+            const modal = document.getElementById('invoiceAnalysisProgressModal');
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        document.body.removeChild(modal);
+                    }
+                }, 300);
             }
         }
 

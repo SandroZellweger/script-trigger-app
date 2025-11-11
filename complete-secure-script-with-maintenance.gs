@@ -2511,7 +2511,12 @@ function normalizeAiJsonString(raw) {
 function parseAiJsonMessage(message, contextLabel) {
   try {
     if (!message) {
-      Logger.log(contextLabel + ' - Empty AI message.');
+      Logger.log(contextLabel + ' - Empty AI message object.');
+      return { success: false, error: 'Invalid AI response format' };
+    }
+
+    if (!message.content && !message.parsed) {
+      Logger.log(contextLabel + ' - AI message has no content or parsed data.');
       return { success: false, error: 'Invalid AI response format' };
     }
 
@@ -2530,12 +2535,17 @@ function parseAiJsonMessage(message, contextLabel) {
     }
 
     const rawContent = getAiMessageContentString(message);
+    Logger.log(contextLabel + ' - Raw AI content length: ' + (rawContent ? rawContent.length : 0));
+
     const cleaned = normalizeAiJsonString(rawContent);
 
     if (!cleaned) {
-      Logger.log(contextLabel + ' - No JSON content found. Raw snippet: ' + truncateForLog(rawContent));
+      Logger.log(contextLabel + ' - No JSON content found after normalization. Raw snippet: ' + truncateForLog(rawContent));
       return { success: false, error: 'Invalid AI response format', raw: rawContent };
     }
+
+    Logger.log(contextLabel + ' - Cleaned content length: ' + cleaned.length);
+    Logger.log(contextLabel + ' - Cleaned content starts with: ' + cleaned.substring(0, 100));
 
     const attempts = [];
     attempts.push(cleaned);
@@ -2564,10 +2574,13 @@ function parseAiJsonMessage(message, contextLabel) {
       }
     });
 
+    Logger.log(contextLabel + ' - Will try ' + uniqueAttempts.length + ' parsing attempts');
+
     for (var i = 0; i < uniqueAttempts.length; i++) {
       var attempt = uniqueAttempts[i];
       try {
         var parsed = JSON.parse(attempt);
+        Logger.log(contextLabel + ' - JSON parse succeeded on attempt ' + (i + 1));
         return {
           success: true,
           data: parsed,
@@ -2575,11 +2588,11 @@ function parseAiJsonMessage(message, contextLabel) {
           cleaned: attempt
         };
       } catch (parseError) {
-        Logger.log(contextLabel + ' - JSON parse failed: ' + parseError + '. Attempt snippet: ' + truncateForLog(attempt));
+        Logger.log(contextLabel + ' - JSON parse failed on attempt ' + (i + 1) + ': ' + parseError + '. Attempt snippet: ' + truncateForLog(attempt));
       }
     }
 
-    Logger.log(contextLabel + ' - All parse attempts failed. Raw snippet: ' + truncateForLog(rawContent));
+    Logger.log(contextLabel + ' - All ' + uniqueAttempts.length + ' parse attempts failed. Raw snippet: ' + truncateForLog(rawContent));
     return {
       success: false,
       error: 'Invalid AI response format',
@@ -2861,42 +2874,23 @@ Se qualche informazione non è leggibile, usa null. Sii preciso nel confronto de
     const content = result.choices[0].message.content;
     Logger.log('AI Response (image): ' + content);
 
-    try {
-      // Clean the response: remove markdown code blocks and extra text
-      let cleanContent = content.trim();
-      
-      // Remove markdown code blocks
-      cleanContent = cleanContent.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
-      
-      // Remove common prefixes like "Ecco il JSON:" or "Here is the JSON:"
-      cleanContent = cleanContent.replace(/^(Ecco il JSON:|Here is the JSON:|JSON:|Risposta:|Response:)\s*/i, '');
-      
-      // Find JSON object - look for first { and last }
-      const startIndex = cleanContent.indexOf('{');
-      const lastIndex = cleanContent.lastIndexOf('}');
-      
-      if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
-        cleanContent = cleanContent.substring(startIndex, lastIndex + 1);
-      }
-      
-      Logger.log('Cleaned content: ' + cleanContent);
-      
-      const analysis = JSON.parse(cleanContent);
-      
-      return {
-        success: true,
-        analysis: analysis,
-        rawResponse: content
-      };
-    } catch (parseError) {
-      Logger.log('Error parsing AI response: ' + parseError);
-      Logger.log('Raw content was: ' + content);
+    // Use the robust JSON parsing helper instead of manual parsing
+    const aiMessage = result.choices[0].message;
+    const parseOutcome = parseAiJsonMessage(aiMessage, 'analyzeInvoiceImageWithAI');
+
+    if (!parseOutcome.success) {
+      const fallbackRaw = parseOutcome.raw || content;
+      Logger.log('analyzeInvoiceImageWithAI - parse failure. Raw snippet: ' + truncateForLog(fallbackRaw));
       return {
         success: false,
-        error: 'Invalid AI response format',
-        rawResponse: content
+        error: parseOutcome.error || 'Invalid AI response format',
+        rawResponse: fallbackRaw
       };
     }
+
+    Logger.log('analyzeInvoiceImageWithAI - raw AI snippet: ' + truncateForLog(parseOutcome.raw || ''));
+
+    const analysis = parseOutcome.data;
 
   } catch (error) {
     Logger.log('Error in analyzeInvoiceImageWithAI: ' + error);
@@ -3546,15 +3540,48 @@ function analyzeInvoiceFromDrive(fileId, listId) {
     workshopSheet.getRange(listRow + 1, 18).setValue('Success'); // Stato Analisi
 
     // Update total cost if available
-    if (analysisResult.analysis && 
-        analysisResult.analysis.invoiceData && 
+    if (analysisResult.analysis &&
+        analysisResult.analysis.invoiceData &&
         analysisResult.analysis.invoiceData.totalCost) {
-      const totalCost = analysisResult.analysis.invoiceData.totalCost;
-      workshopSheet.getRange(listRow + 1, 10).setValue(totalCost); // Costo Finale
-      Logger.log('Total cost updated: ' + totalCost);
-    }
+      const totalCostString = analysisResult.analysis.invoiceData.totalCost;
+      // Extract numeric value from string like "874.79 CHF"
+      const numericMatch = totalCostString.toString().match(/[\d.,]+/);
+      const totalCost = numericMatch ? parseFloat(numericMatch[0].replace(',', '.')) : 0;
 
-    return {
+      workshopSheet.getRange(listRow + 1, 10).setValue(totalCost); // Costo Finale
+      Logger.log('Total cost updated: ' + totalCost + ' (from: ' + totalCostString + ')');
+
+      // Verify total matches sum of works in Storico Lavori
+      try {
+        let storicoSheet = ss.getSheetByName('Storico Lavori');
+        if (storicoSheet) {
+          const storicoData = storicoSheet.getDataRange().getValues();
+          let calculatedTotal = 0;
+
+          // Sum all costs for this listId
+          for (let i = 1; i < storicoData.length; i++) {
+            const row = storicoData[i];
+            if (row[10] === listId && row[6] && row[4] !== '💰 TOTALE FATTURA') { // ID Lista column (11), Costo column (7), skip total rows
+              const costString = row[6].toString();
+              const costMatch = costString.match(/[\d.,]+/);
+              if (costMatch) {
+                const costValue = parseFloat(costMatch[0].replace(',', '.'));
+                calculatedTotal += costValue;
+              }
+            }
+          }
+
+          const difference = Math.abs(totalCost - calculatedTotal);
+          if (difference > 0.01) { // Allow small rounding differences
+            Logger.log('WARNING: Total mismatch! AI total: ' + totalCost + ', Calculated total: ' + calculatedTotal + ', Difference: ' + difference);
+          } else {
+            Logger.log('Total verification passed: ' + totalCost + ' matches calculated total');
+          }
+        }
+      } catch (verifyError) {
+        Logger.log('Error verifying total: ' + verifyError);
+      }
+    }    return {
       success: true,
       photoUrl: photoUrl,
       analysis: analysisResult.analysis,
@@ -5818,8 +5845,8 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
 
     for (let i = 1; i < historyData.length; i++) {
       const row = historyData[i];
-      const rowListId = row[8]; // Column I: ID Lista
-      const rowDate = row[2]; // Column C: Data Fattura
+      const rowListId = row[10]; // Column K: ID Lista (corretto da 8)
+      const rowDate = row[0];   // Column A: Data Lavoro (corretto da 2)
 
       // Convert row date to string for comparison
       let rowDateStr = '';
@@ -5859,6 +5886,29 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
 
     Logger.log('Deleted ' + deletedRows + ' rows');
 
+    // Clear invoice analysis data from workshop list sheet
+    Logger.log('Clearing invoice analysis data from workshop list...');
+    const workshopResult = getOrCreateWorkshopListsSheet();
+    if (workshopResult.success) {
+      const workshopSheet = workshopResult.sheet;
+      const workshopData = workshopSheet.getDataRange().getValues();
+      
+      for (let i = 1; i < workshopData.length; i++) {
+        if (workshopData[i][0] === listId) {
+          Logger.log('Found workshop list row ' + (i + 1) + ' for listId: ' + listId);
+          
+          // Clear invoice analysis fields
+          workshopSheet.getRange(i + 1, 15).setValue(''); // Foto Fattura URL
+          workshopSheet.getRange(i + 1, 16).setValue(''); // Analisi Fattura (JSON)
+          workshopSheet.getRange(i + 1, 17).setValue(''); // Data Upload Fattura
+          workshopSheet.getRange(i + 1, 18).setValue(''); // Stato Analisi
+          
+          Logger.log('Cleared invoice analysis data from workshop list');
+          break;
+        }
+      }
+    }
+
     // Optionally delete photo from Google Drive
     let photoDeleted = false;
     if (deletePhoto && photoUrl) {
@@ -5891,7 +5941,7 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
       success: true,
       deletedRows: deletedRows,
       photoDeleted: photoDeleted,
-      message: `Eliminati ${deletedRows} lavori dallo storico${photoDeleted ? ' e foto' : ''}`
+      message: `Eliminati ${deletedRows} lavori dallo storico e dati analisi fattura${photoDeleted ? ' e foto' : ''}`
     };
 
     Logger.log('deleteInvoiceFromHistory result: ' + JSON.stringify(result));
