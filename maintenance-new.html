@@ -4961,7 +4961,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                             <div style="margin-bottom: 8px;">
                                                 <strong style="color: #4caf50;">✅ Completati (${list.invoiceAnalysis.comparison.worksCompleted.length}):</strong>
                                                 <ul style="margin: 4px 0; padding-left: 20px; font-size: 13px;">
-                                                    ${list.invoiceAnalysis.comparison.worksCompleted.map(w => `<li style="color: #666;">${escapeHtml(w)}</li>`).join('')}
+                                                    ${list.invoiceAnalysis.comparison.worksCompleted.map(w => {
+                                                        const desc = (typeof w === 'string') ? w : (w.description || w.name || 'Lavoro senza descrizione');
+                                                        const cost = (typeof w === 'object' && w.cost) ? ` - <strong>${w.cost}</strong>` : '';
+                                                        return `<li style="color: #666;">${escapeHtml(desc)}${cost}</li>`;
+                                                    }).join('')}
                                                 </ul>
                                             </div>
                                         ` : ''}
@@ -4969,7 +4973,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                             <div style="margin-bottom: 8px;">
                                                 <strong style="color: #ff9800;">➕ Aggiunti (${list.invoiceAnalysis.comparison.worksAdded.length}):</strong>
                                                 <ul style="margin: 4px 0; padding-left: 20px; font-size: 13px;">
-                                                    ${list.invoiceAnalysis.comparison.worksAdded.map(w => `<li style="color: #666;">${escapeHtml(w)}</li>`).join('')}
+                                                    ${list.invoiceAnalysis.comparison.worksAdded.map(w => {
+                                                        const desc = (typeof w === 'string') ? w : (w.description || w.name || 'Lavoro senza descrizione');
+                                                        const cost = (typeof w === 'object' && w.cost) ? ` - <strong>${w.cost}</strong>` : '';
+                                                        return `<li style="color: #666;">${escapeHtml(desc)}${cost}</li>`;
+                                                    }).join('')}
                                                 </ul>
                                             </div>
                                         ` : ''}
@@ -4977,7 +4985,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                             <div>
                                                 <strong style="color: #f44336;">❌ Mancanti (${list.invoiceAnalysis.comparison.worksMissing.length}):</strong>
                                                 <ul style="margin: 4px 0; padding-left: 20px; font-size: 13px;">
-                                                    ${list.invoiceAnalysis.comparison.worksMissing.map(w => `<li style="color: #666;">${escapeHtml(w)}</li>`).join('')}
+                                                    ${list.invoiceAnalysis.comparison.worksMissing.map(w => {
+                                                        const desc = (typeof w === 'string') ? w : (w.description || w.name || 'Lavoro senza descrizione');
+                                                        return `<li style="color: #f44336;">${escapeHtml(desc)}</li>`;
+                                                    }).join('')}
                                                 </ul>
                                             </div>
                                         ` : ''}
