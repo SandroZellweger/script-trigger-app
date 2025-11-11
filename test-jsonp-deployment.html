@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test JSONP Request</title>
+</head>
+<body>
+    <h1>Testing JSONP Request to Google Apps Script</h1>
+    <div id="result"></div>
+
+    <script>
+        // Test JSONP request
+        function testJsonp() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing JSONP request...';
+
+            const callbackName = 'testCallback' + Date.now();
+
+            window[callbackName] = function(data) {
+                resultDiv.innerHTML = '<h2>✅ SUCCESS!</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                document.head.removeChild(script);
+                delete window[callbackName];
+            };
+
+            const script = document.createElement('script');
+            script.src = 'https://script.google.com/macros/s/AKfycbz-CMOtjv5UNCugT528cXVnIbHnqsfC_CqVQA7BLGwsLiUm7_eBeTvaLZFIhNXjDOOz/exec?function=pingJsonp&callback=' + callbackName;
+
+            script.onerror = function() {
+                resultDiv.innerHTML = '<h2>❌ FAILED!</h2><p>JSONP request failed - script not found or not accessible</p>';
+                document.head.removeChild(script);
+                delete window[callbackName];
+            };
+
+            document.head.appendChild(script);
+        }
+
+        // Run test on page load
+        testJsonp();
+    </script>
+</body>
+</html></content>
+<parameter name="filePath">c:\Users\sandr\Scritp-trigger-app\script-trigger-app\test-jsonp-deployment.html
