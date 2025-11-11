@@ -5762,10 +5762,13 @@ function deleteMaintenanceReportJsonp(params) {
 // Delete invoice analysis from Storico Lavori
 function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
   try {
+    Logger.log('deleteInvoiceFromHistory called with: listId=' + listId + ', invoiceDate=' + invoiceDate + ', deletePhoto=' + deletePhoto);
+
     const scriptProperties = PropertiesService.getScriptProperties();
     const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
 
     if (!sheetId) {
+      Logger.log('ERROR: Maintenance sheet ID not configured');
       return {
         success: false,
         error: 'Maintenance sheet ID not configured'
@@ -5776,6 +5779,7 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
     const historySheet = ss.getSheetByName('Storico Lavori');
 
     if (!historySheet) {
+      Logger.log('ERROR: Storico Lavori sheet not found');
       return {
         success: false,
         error: 'Storico Lavori sheet not found'
@@ -5784,14 +5788,33 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
 
     let deletedRows = 0;
     let photoUrl = null;
-
-    // Find and delete all rows matching listId and invoiceDate
-    const historyData = historySheet.getDataRange().getValues();
     const rowsToDelete = [];
 
+    // Helper function to parse Italian date format (DD/MM/YYYY)
+    function parseItalianDate(dateStr) {
+      if (!dateStr) return null;
+      const str = dateStr.toString().trim();
+      const parts = str.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // JS months are 0-based
+        const year = parseInt(parts[2]);
+        if (day > 0 && day <= 31 && month >= 0 && month <= 11 && year > 2000 && year < 2100) {
+          return new Date(year, month, day);
+        }
+      }
+      // Fallback to standard parsing
+      return new Date(str);
+    }
+
     // Parse the invoice date for comparison
-    const targetDate = new Date(invoiceDate);
+    const targetDate = parseItalianDate(invoiceDate);
     const targetDateStr = Utilities.formatDate(targetDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    Logger.log('Target date: ' + targetDateStr + ' (from: ' + invoiceDate + ')');
+
+    // Find and collect rows to delete
+    const historyData = historySheet.getDataRange().getValues();
+    Logger.log('Storico Lavori has ' + historyData.length + ' rows');
 
     for (let i = 1; i < historyData.length; i++) {
       const row = historyData[i];
@@ -5804,15 +5827,19 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
         rowDateStr = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
       } else if (rowDate) {
         try {
-          const parsedDate = new Date(rowDate);
+          const parsedDate = parseItalianDate(rowDate);
           rowDateStr = Utilities.formatDate(parsedDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
         } catch (e) {
           // Skip if date parsing fails
+          Logger.log('Failed to parse date in row ' + (i+1) + ': ' + rowDate);
           continue;
         }
       }
 
+      Logger.log('Row ' + (i+1) + ': listId=' + rowListId + ', date=' + rowDateStr + ', target=' + targetDateStr);
+
       if (rowListId && rowListId.toString() === listId.toString() && rowDateStr === targetDateStr) {
+        Logger.log('Found matching row ' + (i+1) + ' for deletion');
         // Collect photo URL if exists (from TOTALE row, usually)
         if (row[12] && !photoUrl) { // Column M: Link Foto
           photoUrl = row[12];
@@ -5821,15 +5848,21 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
       }
     }
 
+    Logger.log('Found ' + rowsToDelete.length + ' rows to delete');
+
     // Delete rows from bottom to top to avoid index shifting
     for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+      Logger.log('Deleting row ' + rowsToDelete[i]);
       historySheet.deleteRow(rowsToDelete[i]);
       deletedRows++;
     }
 
+    Logger.log('Deleted ' + deletedRows + ' rows');
+
     // Optionally delete photo from Google Drive
     let photoDeleted = false;
     if (deletePhoto && photoUrl) {
+      Logger.log('Attempting to delete photo: ' + photoUrl);
       try {
         // Extract file ID from Drive URL
         let fileId = null;
@@ -5841,21 +5874,28 @@ function deleteInvoiceFromHistory(listId, invoiceDate, deletePhoto) {
         }
 
         if (fileId) {
+          Logger.log('Deleting file ID: ' + fileId);
           const file = DriveApp.getFileById(fileId);
           file.setTrashed(true);
           photoDeleted = true;
+          Logger.log('Photo deleted successfully');
+        } else {
+          Logger.log('Could not extract file ID from URL: ' + photoUrl);
         }
       } catch (photoError) {
         Logger.log('Failed to delete photo: ' + photoError.toString());
       }
     }
 
-    return {
+    const result = {
       success: true,
       deletedRows: deletedRows,
       photoDeleted: photoDeleted,
       message: `Eliminati ${deletedRows} lavori dallo storico${photoDeleted ? ' e foto' : ''}`
     };
+
+    Logger.log('deleteInvoiceFromHistory result: ' + JSON.stringify(result));
+    return result;
 
   } catch (error) {
     Logger.log('Error deleting invoice from history: ' + error.toString());
