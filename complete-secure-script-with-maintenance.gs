@@ -3634,6 +3634,13 @@ function analyzeInvoiceFromDriveJsonp(params) {
  *************************************************************/
 
 // Save invoice works to Storico Lavori sheet
+// Helper function to parse numeric cost from cost string (e.g., "210.00 CHF" -> 210.00)
+function parseCostValue(costString) {
+  if (!costString) return '';
+  const match = costString.toString().match(/[\d.]+/);
+  return match ? parseFloat(match[0]) : costString;
+}
+
 function saveInvoiceToHistory(listId, analysisData, photoUrl) {
   try {
     const scriptProperties = PropertiesService.getScriptProperties();
@@ -3733,7 +3740,8 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
       analysisData.comparison.worksCompleted.forEach(work => {
         // Handle both string and object formats
         const workDesc = (typeof work === 'string') ? work : work.description;
-        const workCost = (typeof work === 'object' && work.cost) ? work.cost : '';
+        const workCostRaw = (typeof work === 'object' && work.cost) ? work.cost : '';
+        const workCost = parseCostValue(workCostRaw);
         
         storicoSheet.appendRow([
           invoiceDate,
@@ -3769,7 +3777,8 @@ function saveInvoiceToHistory(listId, analysisData, photoUrl) {
       analysisData.comparison.worksAdded.forEach(work => {
         // Handle both string and object formats
         const workDesc = (typeof work === 'string') ? work : work.description;
-        const workCost = (typeof work === 'object' && work.cost) ? work.cost : '';
+        const workCostRaw = (typeof work === 'object' && work.cost) ? work.cost : '';
+        const workCost = parseCostValue(workCostRaw);
         
         storicoSheet.appendRow([
           invoiceDate,
