@@ -3216,7 +3216,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 selectedDamages: [],
                 serviceWorks: [],
                 extraWorks: [],
-                damageNotes: {}
+                damageNotes: {},
+                selectedGarage: null
             };
 
             photoBase64Cache.clear();
@@ -4162,6 +4163,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 authToken: window.APP_CONFIG?.authToken ? '***' + window.APP_CONFIG.authToken.slice(-4) : 'missing'
             });
 
+            // Validate that garage is selected
+            if (!pdfWizardData.selectedGarage) {
+                alert('❌ Seleziona un\'officina prima di generare il PDF.\n\nTorna al Passo 5 per scegliere l\'officina.');
+                showWizardStep(5); // Force user to step 5
+                return;
+            }
+
             const { jsPDF } = window.jspdf;
             
             if (!jsPDF) {
@@ -4551,7 +4559,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 // Check if should send to workshop
                 const sendToWorkshop = document.getElementById('sendToWorkshopCheckbox')?.checked;
                 
-                if (sendToWorkshop && pdfWizardData.selectedDamages.length > 0) {
+                if (sendToWorkshop && (pdfWizardData.selectedDamages.length > 0 || pdfWizardData.serviceWorks.length > 0 || pdfWizardData.extraWorks.length > 0)) {
                     generateBtn.textContent = '📤 Invio in officina...';
                     
                     // Prepare issue identifiers from checkbox data attributes
