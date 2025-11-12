@@ -1963,11 +1963,22 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
         // Switch tabs
         function switchTab(tabName) {
+            // Remove active class from all tabs and content
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            event.target.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
+            // Add active class to the clicked tab button (find by onclick attribute)
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(`'${tabName}'`)) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Show the selected tab content
+            const tabContent = document.getElementById(tabName);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
 
             if (tabName === 'active-reports') {
                 loadActiveReports();
@@ -4208,14 +4219,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 // Update progress: Preparazione PDF
                 updatePDFGenerationProgress('📄 Preparazione struttura PDF...', 10, 1);
-
-                const doc = new jsPDF();
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pageHeight = doc.internal.pageSize.getHeight();
-                let yPos = 20;
-
-                // Set font to Helvetica for better compatibility
-                doc.setFont('helvetica', 'normal');
 
                 // Header with company info on left, garage on right
                 doc.setFillColor(102, 126, 234);
