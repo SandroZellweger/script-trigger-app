@@ -7301,6 +7301,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             document.getElementById('newWorkshopAddress').value = '';
             document.getElementById('newWorkshopPhone').value = '';
             document.getElementById('newWorkshopEmail').value = '';
+            
+            // Clear Google Places search
+            document.getElementById('placesSearchInput').value = '';
+            document.getElementById('placesSearchResults').style.display = 'none';
+            document.getElementById('placesSearchStatus').style.display = 'none';
         }
 
         // Save new workshop
@@ -7358,6 +7363,143 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             } catch (error) {
                 console.error('Error saving workshop:', error);
                 showNotification('❌ Errore: ' + error.message, 'error');
+            }
+        }
+
+        // Search garages using Google Places API
+        async function searchGaragesOnline() {
+            const query = document.getElementById('placesSearchInput').value.trim();
+            if (!query) {
+                showPlacesSearchStatus('Inserisci un termine di ricerca', 'error');
+                return;
+            }
+
+            const searchBtn = document.getElementById('placesSearchBtn');
+            const originalText = searchBtn.innerHTML;
+            searchBtn.innerHTML = '⏳ Cercando...';
+            searchBtn.disabled = true;
+
+            try {
+                showPlacesSearchStatus('🔍 Ricerca in corso...', 'info');
+                
+                const callback = 'searchGaragesCallback_' + Date.now();
+
+                const result = await new Promise((resolve, reject) => {
+                    window[callback] = function(response) {
+                        delete window[callback];
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(new Error(response.error || 'Errore ricerca'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${window.APP_CONFIG.scriptUrl}?function=searchGaragesOnlineJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&query=${encodeURIComponent(query)}&callback=${callback}&_=${Date.now()}`;
+                    script.onerror = () => {
+                        delete window[callback];
+                        reject(new Error('Errore connessione'));
+                    };
+                    document.body.appendChild(script);
+
+                    setTimeout(() => {
+                        if (window[callback]) {
+                            delete window[callback];
+                            document.body.removeChild(script);
+                            reject(new Error('Timeout ricerca'));
+                        }
+                    }, 30000);
+                });
+
+                displayPlacesSearchResults(result.garages || []);
+
+            } catch (error) {
+                console.error('Error searching garages:', error);
+                showPlacesSearchStatus('❌ Errore ricerca: ' + error.message, 'error');
+                displayPlacesSearchResults([]);
+            } finally {
+                searchBtn.innerHTML = originalText;
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Display Google Places search results
+        function displayPlacesSearchResults(garages) {
+            const resultsContainer = document.getElementById('placesSearchResults');
+            const statusContainer = document.getElementById('placesSearchStatus');
+
+            if (!garages || garages.length === 0) {
+                resultsContainer.style.display = 'none';
+                showPlacesSearchStatus('Nessuna officina trovata. Prova con termini diversi.', 'warning');
+                return;
+            }
+
+            resultsContainer.innerHTML = '';
+            resultsContainer.style.display = 'block';
+
+            garages.forEach(garage => {
+                const item = document.createElement('div');
+                item.className = 'places-result-item';
+                item.onclick = () => selectPlacesResult(garage);
+                
+                item.innerHTML = `
+                    <div class="places-result-header">
+                        <h5>${escapeHtml(garage.name)}</h5>
+                        <div class="places-result-rating">
+                            ${garage.rating && garage.rating !== 'N/A' ? `⭐ ${garage.rating}` : ''}
+                            ${garage.totalRatings ? ` (${garage.totalRatings} recensioni)` : ''}
+                        </div>
+                    </div>
+                    <div class="places-result-details">
+                        <p class="places-address">📍 ${escapeHtml(garage.address)}</p>
+                        ${garage.isOpen !== null ? (garage.isOpen ? '<span class="places-status-open">🟢 Aperto</span>' : '<span class="places-status-closed">🔴 Chiuso</span>') : ''}
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(item);
+            });
+
+            showPlacesSearchStatus(`✅ Trovate ${garages.length} officine. Clicca su una per selezionarla.`, 'success');
+        }
+
+        // Select a Google Places result and populate the form
+        function selectPlacesResult(garage) {
+            // Clear any previous selection
+            document.querySelectorAll('.places-result-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Highlight selected item
+            event.currentTarget.classList.add('selected');
+            
+            // Populate form fields with basic info from nearbysearch
+            document.getElementById('newWorkshopName').value = garage.name || '';
+            document.getElementById('newWorkshopAddress').value = garage.address || '';
+            document.getElementById('newWorkshopPhone').value = ''; // Phone not available in nearbysearch
+            document.getElementById('newWorkshopEmail').value = ''; // Email not available
+            
+            // If we have a placeId, we could fetch detailed info, but for now we'll use basic info
+            // and let the user fill in additional details manually
+            
+            // Scroll to form
+            document.getElementById('newWorkshopName').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('newWorkshopName').focus();
+            
+            showPlacesSearchStatus('✅ Dati inseriti nel form. Aggiungi telefono/email se conosci e salva.', 'success');
+        }
+
+        // Show status message for Places search
+        function showPlacesSearchStatus(message, type) {
+            const statusContainer = document.getElementById('placesSearchStatus');
+            statusContainer.textContent = message;
+            statusContainer.className = `places-status-${type}`;
+            statusContainer.style.display = 'block';
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusContainer.style.display = 'none';
+                }, 5000);
             }
         }
 
@@ -8562,6 +8704,104 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             background: #ccc;
             cursor: not-allowed;
         }
+
+        /* Google Places Search Styles */
+        .places-search-section h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .places-result-item {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .places-result-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .places-result-item.selected {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .places-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .places-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .places-result-header h5 {
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+            flex: 1;
+        }
+
+        .places-result-rating {
+            color: #666;
+            font-size: 14px;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .places-result-details p {
+            margin: 2px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .places-address {
+            color: #333 !important;
+        }
+
+        .places-phone {
+            color: #28a745 !important;
+        }
+
+        .places-website a {
+            color: #007bff !important;
+            text-decoration: none;
+        }
+
+        .places-website a:hover {
+            text-decoration: underline;
+        }
+
+        .places-status-open {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .places-status-closed {
+            color: #dc3545;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .places-status-info {
+            color: #17a2b8;
+        }
+
+        .places-status-success {
+            color: #28a745;
+        }
+
+        .places-status-warning {
+            color: #ffc107;
+        }
+
+        .places-status-error {
+            color: #dc3545;
+        }
     </style>
 
     <!-- Workshop Selection Modal -->
@@ -8583,6 +8823,29 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 </button>
 
                 <div class="add-workshop-form" id="addWorkshopForm">
+                    <!-- Google Places Search Section -->
+                    <div class="places-search-section" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                        <h4 style="margin: 0 0 10px 0; color: #333;">🔍 Cerca Officina Online</h4>
+                        <p style="margin: 0 0 15px 0; font-size: 14px; color: #666;">Cerca officine meccaniche reali usando Google Places API</p>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <input type="text" id="placesSearchInput" placeholder="Cerca officina (es. 'officina meccanica Milano')" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onkeypress="if(event.key === 'Enter') searchGaragesOnline()">
+                            <button type="button" onclick="searchGaragesOnline()" id="placesSearchBtn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                🔍 Cerca
+                            </button>
+                        </div>
+                        
+                        <div id="placesSearchResults" style="display: none; max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px;">
+                            <!-- Search results will be populated here -->
+                        </div>
+                        
+                        <div id="placesSearchStatus" style="margin-top: 10px; font-size: 14px; display: none;"></div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 10px 0; color: #333;">📝 Oppure Inserisci Manualmente</h4>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="newWorkshopName">Nome Officina *</label>
                         <input type="text" id="newWorkshopName" placeholder="es. Autofficina Rossi" required>
