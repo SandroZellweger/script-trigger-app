@@ -5244,10 +5244,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 initGooglePicker();
             }
             
-            // Hide modal temporarily to show picker on top
+            // Hide modal temporarily to show picker on top (use visibility to avoid focus issues)
             const modal = document.getElementById('standaloneInvoiceModal');
             if (modal) {
-                modal.style.display = 'none';
+                modal.style.visibility = 'hidden';
+                modal.style.pointerEvents = 'none';
             }
             
             // Get Drive access token
@@ -5258,7 +5259,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 console.error('Error with Drive picker:', error);
                 // Restore modal on error
                 if (modal) {
-                    modal.style.display = 'flex';
+                    modal.style.visibility = 'visible';
+                    modal.style.pointerEvents = 'auto';
                 }
                 alert('Errore nell\'apertura di Google Drive. Riprova.');
             }
@@ -5299,7 +5301,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             // Always restore modal visibility
             const modal = document.getElementById('standaloneInvoiceModal');
             if (modal) {
-                modal.style.display = 'flex';
+                modal.style.visibility = 'visible';
+                modal.style.pointerEvents = 'auto';
             }
             
             if (data.action === google.picker.Action.PICKED) {
