@@ -5298,11 +5298,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         }
         
         function handleStandaloneInvoicePickerCallback(data) {
-            // Always restore modal visibility
-            const modal = document.getElementById('standaloneInvoiceModal');
-            if (modal) {
-                modal.style.visibility = 'visible';
-                modal.style.pointerEvents = 'auto';
+            console.log('📋 Picker callback:', data.action);
+            
+            // Only restore modal when picker is actually closing (not when loading)
+            if (data.action === google.picker.Action.PICKED || data.action === google.picker.Action.CANCEL) {
+                const modal = document.getElementById('standaloneInvoiceModal');
+                if (modal) {
+                    modal.style.visibility = 'visible';
+                    modal.style.pointerEvents = 'auto';
+                }
             }
             
             if (data.action === google.picker.Action.PICKED) {
