@@ -4633,11 +4633,20 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             // Now upload PDF to Drive using POST-style approach
                             generateBtn.textContent = '☁️ Caricamento PDF su Drive...';
                             
+                            // Update progress: Upload to Drive
+                            updatePDFGenerationProgress('☁️ Caricamento PDF su Drive...', 70, 4);
+                            
                             // Upload PDF using fetch with POST
                             uploadMaintenancePDFViaPost(fileName, pdfBase64, listId)
                                 .then(uploadResponse => {
+                                    // Update progress: Finalizing
+                                    updatePDFGenerationProgress('✅ Finalizzazione...', 100, 5);
+                                    
                                     generateBtn.textContent = originalText;
                                     generateBtn.disabled = false;
+                                    
+                                    // Hide progress modal BEFORE showing alert
+                                    hidePDFGenerationProgress();
                                     
                                     if (uploadResponse.success) {
                                         alert(`✅ PDF generato, caricato su Drive e veicolo inviato in officina!\n\nLista: ${listId}\nProblemi aggiornati: ${response.issuesUpdated}\nPDF disponibile online`);
