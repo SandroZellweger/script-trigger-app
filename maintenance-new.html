@@ -5230,10 +5230,24 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             standaloneInvoiceData.vehicleId = vehicleSelect.value;
             standaloneInvoiceData.vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].dataset.vehicleName;
             
-            // Use existing Drive Picker
+            // Load Google credentials first if not loaded
+            if (!GOOGLE_CONFIG) {
+                const loaded = await loadGoogleCredentials();
+                if (!loaded) {
+                    alert('❌ Impossibile caricare le credenziali Google Drive');
+                    return;
+                }
+            }
+            
+            // Initialize picker if needed
+            if (!pickerInited) {
+                initGooglePicker();
+            }
+            
+            // Get Drive access token
             try {
-                await ensureDriveToken();
-                showDrivePickerForStandaloneInvoice(driveAccessToken);
+                const token = await ensureDriveToken();
+                showDrivePickerForStandaloneInvoice(token);
             } catch (error) {
                 console.error('Error with Drive picker:', error);
                 alert('Errore nell\'apertura di Google Drive. Riprova.');
@@ -5241,13 +5255,34 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         }
         
         function showDrivePickerForStandaloneInvoice(accessToken) {
-            const picker = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.DOCS)
-                .setOAuthToken(accessToken)
-                .setDeveloperKey(window.PRIVATE_CONFIG?.driveApiKey || window.APP_CONFIG?.driveApiKey)
-                .setCallback((data) => handleStandaloneInvoicePickerCallback(data))
-                .build();
-            picker.setVisible(true);
+            if (!GOOGLE_CONFIG) {
+                console.error('❌ GOOGLE_CONFIG not loaded');
+                alert('Configurazione Google Drive non caricata. Ricarica la pagina.');
+                return;
+            }
+            
+            try {
+                const docsView = new google.picker.DocsView(google.picker.ViewId.DOCS)
+                    .setIncludeFolders(true)
+                    .setMimeTypes('image/jpeg,image/png,image/jpg,image/gif,application/pdf');
+                
+                const picker = new google.picker.PickerBuilder()
+                    .setAppId(GOOGLE_CONFIG.appId)
+                    .setOAuthToken(accessToken)
+                    .addView(docsView)
+                    .addView(new google.picker.DocsUploadView())
+                    .setDeveloperKey(GOOGLE_CONFIG.apiKey)
+                    .setCallback((data) => handleStandaloneInvoicePickerCallback(data))
+                    .setTitle('Seleziona Fattura')
+                    .setSize(800, 600)
+                    .build();
+                
+                picker.setVisible(true);
+                console.log('✅ Standalone Invoice Drive Picker displayed');
+            } catch (error) {
+                console.error('❌ Error showing picker:', error);
+                alert('Errore apertura Drive Picker: ' + error.message);
+            }
         }
         
         function handleStandaloneInvoicePickerCallback(data) {
