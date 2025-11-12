@@ -4901,94 +4901,108 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                     <strong>🏪 Officina:</strong> ${escapeHtml(list.workshopName || 'Non specificata')}
                                 </p>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                ${list.pdfUrl ? `<a href="${escapeHtml(list.pdfUrl)}" target="_blank" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; text-decoration: none; cursor: pointer; font-size: 14px;">📄 Vedi PDF</a>` : ''}
-                                <button onclick="regenerateWorkshopPDF('${escapeHtml(list.listId)}')" style="background: #764ba2; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                                    🔄 Genera Nuovo PDF
+                            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="regenerateWorkshopPDF('${escapeHtml(list.listId)}')" 
+                                        style="background: white; color: #667eea; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#667eea'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Rigenera PDF">
+                                    🔄 PDF
                                 </button>
-                                <button onclick="uploadInvoiceForList('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                                    📷 Carica Fattura
+                                <button onclick="loadDrivePicker('${escapeHtml(list.listId)}')" 
+                                        style="background: white; color: #4285f4; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#4285f4'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Seleziona fattura da Drive">
+                                    📁 Fattura
                                 </button>
-                                <button onclick="loadDrivePicker('${escapeHtml(list.listId)}')" style="background: #4285f4; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Seleziona una fattura già salvata su Google Drive">
-                                    📁 Seleziona da Drive
-                                </button>
-                                <button onclick="archiveWorkshopList('${escapeHtml(list.listId)}')" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Archivia questa lista (sposta in storico)">
-                                    📦 Sposta in Storico
+                                <button onclick="archiveWorkshopList('${escapeHtml(list.listId)}')" 
+                                        style="background: white; color: #6c757d; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#6c757d'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Archivia questa lista">
+                                    📦 Archivia
                                 </button>
                             </div>
                         </div>
                         
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #dc3545;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #333;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
-                                <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                                    ➕ Aggiungi Problema
+                                <h4 style="margin: 0; color: #495057;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
+                                <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: transparent; color: #dc3545; border: 1px solid #dc3545; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#dc3545'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#dc3545'">
+                                    +
                                 </button>
                             </div>
                             <div id="issues-${escapeHtml(list.listId)}" style="display: flex; flex-direction: column; gap: 8px;">
                                 ${list.issues.map((issue, idx) => `
-                                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                        <div style="flex: 1; min-width: 200px;">
-                                            <input type="checkbox" ${issue.completato ? 'checked' : ''} disabled style="margin-right: 8px;">
-                                            <strong>${escapeHtml(issue.category)}:</strong> ${escapeHtml(issue.description)}
-                                            <span style="margin-left: 10px; color: #999; font-size: 13px;">(${escapeHtml(issue.urgency)})</span>
+                                    <div style="background: white; padding: 10px 12px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                        <div style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" ${issue.completato ? 'checked' : ''} disabled style="margin: 0;">
+                                            <div>
+                                                <strong style="color: #495057;">${escapeHtml(issue.category)}:</strong> 
+                                                <span style="color: #6c757d;">${escapeHtml(issue.description)}</span>
+                                                <span style="margin-left: 8px; color: #adb5bd; font-size: 12px;">${escapeHtml(issue.urgency)}</span>
+                                            </div>
                                         </div>
                                         <button onclick="removeIssueFromWorkshop('${escapeHtml(list.listId)}', '${escapeHtml(issue.reportId)}', ${issue.issueNumber})" 
-                                                style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                                            ↩️ Rimetti in Attivi
+                                                style="background: transparent; color: #ff9800; border: 1px solid #ff9800; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; transition: all 0.2s;" 
+                                                onmouseover="this.style.background='#ff9800'; this.style.color='white'" 
+                                                onmouseout="this.style.background='transparent'; this.style.color='#ff9800'"
+                                                title="Rimetti in Report Attivi">
+                                            ↩️
                                         </button>
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
                         
-                        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        ${list.serviceWorks && list.serviceWorks.length > 0 ? `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #28a745;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #2e7d32;">⚙️ Lavori Tagliando (${list.serviceWorks ? list.serviceWorks.length : 0})</h4>
-                                <button onclick="addServiceWorkToList('${escapeHtml(list.listId)}')" style="background: #2e7d32; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                                    ➕ Aggiungi
+                                <h4 style="margin: 0; color: #495057;">⚙️ Lavori Tagliando (${list.serviceWorks.length})</h4>
+                                <button onclick="addServiceWorkToList('${escapeHtml(list.listId)}')" style="background: transparent; color: #28a745; border: 1px solid #28a745; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#28a745'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#28a745'">
+                                    +
                                 </button>
                             </div>
-                            ${list.serviceWorks && list.serviceWorks.length > 0 ? `
-                                <div style="display: flex; flex-direction: column; gap: 6px;">
-                                    ${list.serviceWorks.map((work, idx) => `
-                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #c8e6c9; display: flex; justify-content: space-between; align-items: center;">
-                                            <div>
-                                                <input type="checkbox" disabled style="margin-right: 8px;">
-                                                ${escapeHtml(work)}
-                                            </div>
-                                            <button onclick="removeServiceWork('${escapeHtml(list.listId)}', ${idx})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                                                🗑️
-                                            </button>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                ${list.serviceWorks.map((work, idx) => `
+                                    <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" disabled style="margin: 0;">
+                                            <span>${escapeHtml(work)}</span>
                                         </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<p style="color: #666; font-size: 14px; margin: 10px 0;">Nessun lavoro di tagliando</p>'}
+                                        <button onclick="removeServiceWork('${escapeHtml(list.listId)}', ${idx})" style="background: transparent; color: #dc3545; border: none; padding: 4px; cursor: pointer; font-size: 16px;" title="Rimuovi">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
+                        ` : ''}
                         
-                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        ${list.extraWorks && list.extraWorks.length > 0 ? `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #ff9800;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #e65100;">✨ Lavori Extra (${list.extraWorks ? list.extraWorks.length : 0})</h4>
-                                <button onclick="addExtraWorkToList('${escapeHtml(list.listId)}')" style="background: #e65100; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                                    ➕ Aggiungi
+                                <h4 style="margin: 0; color: #495057;">✨ Lavori Extra (${list.extraWorks.length})</h4>
+                                <button onclick="addExtraWorkToList('${escapeHtml(list.listId)}')" style="background: transparent; color: #ff9800; border: 1px solid #ff9800; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#ff9800'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#ff9800'">
+                                    +
                                 </button>
                             </div>
-                            ${list.extraWorks && list.extraWorks.length > 0 ? `
-                                <div style="display: flex; flex-direction: column; gap: 6px;">
-                                    ${list.extraWorks.map((work, idx) => `
-                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #ffe0b2; display: flex; justify-content: space-between; align-items: center;">
-                                            <div>
-                                                <input type="checkbox" disabled style="margin-right: 8px;">
-                                                ${escapeHtml(work)}
-                                            </div>
-                                            <button onclick="removeExtraWork('${escapeHtml(list.listId)}', ${idx})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                                                🗑️
-                                            </button>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                ${list.extraWorks.map((work, idx) => `
+                                    <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" disabled style="margin: 0;">
+                                            <span>${escapeHtml(work)}</span>
                                         </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<p style="color: #666; font-size: 14px; margin: 10px 0;">Nessun lavoro extra</p>'}
+                                        <button onclick="removeExtraWork('${escapeHtml(list.listId)}', ${idx})" style="background: transparent; color: #dc3545; border: none; padding: 4px; cursor: pointer; font-size: 16px;" title="Rimuovi">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
+                        ` : ''}
                         
                         ${list.pdfHistory && list.pdfHistory.length > 0 ? `
                             <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
