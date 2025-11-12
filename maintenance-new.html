@@ -4585,8 +4585,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 // Save PDF locally
                 generateBtn.textContent = '💾 Salvataggio PDF...';
-                const timestamp = new Date().toISOString().split('T')[0] + '_' + new Date().getTime();
-                const fileName = `Lista_Manutenzione_${pdfWizardData.vehicleName.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+                // Create short filename: N07_RenaultTrafic_121125.pdf
+                const now = new Date();
+                const shortDate = now.toLocaleDateString('it-CH', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\./g, '');
+                const cleanVehicleName = pdfWizardData.vehicleName.replace(/\s+/g, '');
+                const fileName = `${cleanVehicleName}_${shortDate}.pdf`;
                 
                 // Save to user's computer
                 doc.save(fileName);
@@ -4926,22 +4929,22 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             </div>
                         </div>
                         
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #dc3545;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #495057;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 2px solid #dc3545;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #495057; font-size: 13px;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
                                 <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: transparent; color: #dc3545; border: 1px solid #dc3545; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#dc3545'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#dc3545'">
                                     +
                                 </button>
                             </div>
-                            <div id="issues-${escapeHtml(list.listId)}" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div id="issues-${escapeHtml(list.listId)}" style="display: flex; flex-direction: column; gap: 6px;">
                                 ${list.issues.map((issue, idx) => `
-                                    <div style="background: white; padding: 10px 12px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                        <div style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 8px;">
+                                    <div style="background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                        <div style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 6px;">
                                             <input type="checkbox" ${issue.completato ? 'checked' : ''} disabled style="margin: 0;">
-                                            <div>
+                                            <div style="font-size: 13px;">
                                                 <strong style="color: #495057;">${escapeHtml(issue.category)}:</strong> 
                                                 <span style="color: #6c757d;">${escapeHtml(issue.description)}</span>
-                                                <span style="margin-left: 8px; color: #adb5bd; font-size: 12px;">${escapeHtml(issue.urgency)}</span>
+                                                <span style="margin-left: 6px; color: #adb5bd; font-size: 11px;">${escapeHtml(issue.urgency)}</span>
                                             </div>
                                         </div>
                                         <button onclick="removeIssueFromWorkshop('${escapeHtml(list.listId)}', '${escapeHtml(issue.reportId)}', ${issue.issueNumber})" 
@@ -4957,17 +4960,17 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         </div>
                         
                         ${list.serviceWorks && list.serviceWorks.length > 0 ? `
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #28a745;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #495057;">⚙️ Lavori Tagliando (${list.serviceWorks.length})</h4>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 2px solid #28a745;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #495057; font-size: 13px;">⚙️ Lavori Tagliando (${list.serviceWorks.length})</h4>
                                 <button onclick="addServiceWorkToList('${escapeHtml(list.listId)}')" style="background: transparent; color: #28a745; border: 1px solid #28a745; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#28a745'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#28a745'">
                                     +
                                 </button>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
                                 ${list.serviceWorks.map((work, idx) => `
-                                    <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="background: white; padding: 6px 10px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
                                             <input type="checkbox" disabled style="margin: 0;">
                                             <span>${escapeHtml(work)}</span>
                                         </div>
@@ -4981,17 +4984,17 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         ` : ''}
                         
                         ${list.extraWorks && list.extraWorks.length > 0 ? `
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #ff9800;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #495057;">✨ Lavori Extra (${list.extraWorks.length})</h4>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 2px solid #ff9800;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #495057; font-size: 13px;">✨ Lavori Extra (${list.extraWorks.length})</h4>
                                 <button onclick="addExtraWorkToList('${escapeHtml(list.listId)}')" style="background: transparent; color: #ff9800; border: 1px solid #ff9800; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#ff9800'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#ff9800'">
                                     +
                                 </button>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
                                 ${list.extraWorks.map((work, idx) => `
-                                    <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="background: white; padding: 6px 10px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
                                             <input type="checkbox" disabled style="margin: 0;">
                                             <span>${escapeHtml(work)}</span>
                                         </div>
@@ -5005,19 +5008,19 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         ` : ''}
                         
                         ${list.pdfHistory && list.pdfHistory.length > 0 ? `
-                            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <h4 style="margin: 0 0 10px 0; color: #1976d2;">📑 Storico PDF (${list.pdfHistory.length})</h4>
-                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 2px solid #2196f3;">
+                                <h4 style="margin: 0 0 8px 0; color: #1976d2; font-size: 13px;">📑 Storico PDF (${list.pdfHistory.length})</h4>
+                                <div style="display: flex; flex-direction: column; gap: 5px;">
                                     ${list.pdfHistory.map((pdf, idx) => {
                                         const date = new Date(pdf.timestamp);
                                         const formattedDate = date.toLocaleDateString('it-CH', {year: '2-digit', month: '2-digit', day: '2-digit'}) + ' - ' + date.toLocaleTimeString('it-CH', {hour: '2-digit', minute: '2-digit'});
                                         return `
-                                        <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                            <span style="color: #333; font-size: 14px;">
+                                        <div style="background: white; padding: 6px 10px; border-radius: 4px; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                                            <span style="color: #333; font-size: 12px;">
                                                 <strong>${formattedDate}</strong>
                                             </span>
-                                            <a href="${escapeHtml(pdf.url)}" target="_blank" style="background: #2196f3; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">
-                                                📥 Scarica PDF
+                                            <a href="${escapeHtml(pdf.url)}" target="_blank" style="background: #2196f3; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px;">
+                                                📥 Scarica
                                             </a>
                                         </div>
                                     `}).join('')}
@@ -6386,8 +6389,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     const doc = new jsPDF();
                     
                     // Generate PDF content (simplified version - copy logic from generateMaintenancePDF)
-                    const timestamp = Date.now();
-                    const fileName = `Lista_Manutenzione_${list.vehicleName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}_${timestamp}.pdf`;
+                    // Create short filename: N07_RenaultTrafic_121125.pdf
+                    const now = new Date();
+                    const shortDate = now.toLocaleDateString('it-CH', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\./g, '');
+                    const cleanVehicleName = list.vehicleName.replace(/\s+/g, '');
+                    const fileName = `${cleanVehicleName}_${shortDate}.pdf`;
                     
                     // Header
                     doc.setFillColor(102, 126, 234);
