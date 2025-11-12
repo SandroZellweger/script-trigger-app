@@ -730,6 +730,17 @@
             }
         }
 
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+
         .wizard-buttons {
             display: flex;
             justify-content: space-between;
@@ -4178,11 +4189,25 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             }
 
             try {
+                // Show PDF generation progress modal
+                showPDFGenerationProgress();
+
                 // Show loading message
                 const generateBtn = document.getElementById('wizardGenerateBtn');
                 const originalText = generateBtn.textContent;
                 generateBtn.disabled = true;
                 generateBtn.textContent = '⏳ Caricamento foto e generazione PDF...';
+
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                let yPos = 20;
+
+                // Set font to Helvetica for better compatibility
+                doc.setFont('helvetica', 'normal');
+
+                // Update progress: Preparazione PDF
+                updatePDFGenerationProgress('📄 Preparazione struttura PDF...', 10, 1);
 
                 const doc = new jsPDF();
                 const pageWidth = doc.internal.pageSize.getWidth();
@@ -4312,6 +4337,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 // ===== LAVORI DA FARE =====
 
+                // Update progress: Caricamento foto danni
+                updatePDFGenerationProgress('📸 Caricamento foto danni...', 20, 2);
+
                 // Damages section
                 if (pdfWizardData.selectedDamages.length > 0) {
                     doc.setFontSize(14);
@@ -4408,6 +4436,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                                 generateBtn.textContent = `⏳ Caricamento foto ${photoIdx + 1}/${photos.length} del danno ${i + 1}...`;
 
+                                // Update progress for photo loading
+                                const photoProgress = 20 + Math.round((photoIdx + 1) / photos.length * 30); // 20-50% for photo loading
+                                updatePDFGenerationProgress(`📸 Caricamento foto ${photoIdx + 1}/${photos.length} del danno ${i + 1}...`, photoProgress, 2);
+
                                 const imageData = await loadDamagePhoto(currentPhoto.id, currentPhoto.url);
 
                                 if (imageData) {
@@ -4478,6 +4510,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     yPos += 5;
                 }
+
+                // Update progress: Aggiunta lavori
+                updatePDFGenerationProgress('🔧 Aggiunta lavori di manutenzione...', 60, 3);
 
                 // Service works section
                 if (pdfWizardData.serviceWorks.length > 0) {
@@ -4612,12 +4647,20 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 .catch(error => {
                                     generateBtn.textContent = originalText;
                                     generateBtn.disabled = false;
+                                    
+                                    // Hide progress modal on error
+                                    hidePDFGenerationProgress();
+                                    
                                     alert('✅ Lista creata ma errore nel caricamento PDF su Drive: ' + error.message);
                                     closeMaintenancePdfWizard();
                                 });
                         } else {
                             generateBtn.textContent = originalText;
                             generateBtn.disabled = false;
+                            
+                            // Hide progress modal on error
+                            hidePDFGenerationProgress();
+                            
                             alert('✅ PDF generato ma errore nell\'invio in officina: ' + response.error);
                             closeMaintenancePdfWizard();
                         }
@@ -4630,6 +4673,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     script.onerror = () => {
                         generateBtn.textContent = originalText;
                         generateBtn.disabled = false;
+                        
+                        // Hide progress modal on error
+                        hidePDFGenerationProgress();
+                        
                         alert('✅ PDF generato ma errore di connessione per l\'invio in officina');
                         closeMaintenancePdfWizard();
                         delete window[callback];
@@ -4639,6 +4686,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     // Just PDF generation, no workshop send
                     generateBtn.textContent = originalText;
                     generateBtn.disabled = false;
+                    
+                    // Hide progress modal
+                    hidePDFGenerationProgress();
+                    
                     alert('✅ PDF generato con successo con foto incluse!');
                     closeMaintenancePdfWizard();
                 }
@@ -4650,6 +4701,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 const generateBtn = document.getElementById('wizardGenerateBtn');
                 generateBtn.textContent = '📄 Genera PDF';
                 generateBtn.disabled = false;
+                
+                // Hide progress modal on error
+                hidePDFGenerationProgress();
                 
                 alert('Errore durante la generazione del PDF: ' + error.message);
             }
@@ -6131,6 +6185,140 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         // Hide invoice analysis progress modal
         function hideInvoiceAnalysisProgress() {
             const modal = document.getElementById('invoiceAnalysisProgressModal');
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        document.body.removeChild(modal);
+                    }
+                }, 300);
+            }
+        }
+
+        // Show PDF generation progress modal
+        function showPDFGenerationProgress() {
+            // Remove any existing progress modal
+            const existingModal = document.getElementById('pdfGenerationProgressModal');
+            if (existingModal) {
+                document.body.removeChild(existingModal);
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'pdfGenerationProgressModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(2px);
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 16px; padding: 40px; max-width: 500px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.3); text-align: center;">
+                    <div style="margin-bottom: 30px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                        <h2 style="margin: 0 0 10px 0; color: #333; font-size: 24px;">Generazione PDF in Corso</h2>
+                        <p id="pdfProgressText" style="margin: 0; color: #666; font-size: 16px;">⏳ Preparazione struttura PDF...</p>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <div style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
+                            <div id="pdfProgressBar" style="width: 10%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.3s ease;"></div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 14px; color: #888;">
+                            <span id="pdfProgressPercent">10%</span> completato
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; color: #555;">
+                        <div id="pdfStep1" style="display: flex; align-items: center; gap: 10px; opacity: 1;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: #667eea; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✓</div>
+                            <span>Preparazione struttura PDF</span>
+                        </div>
+                        <div id="pdfStep2" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Caricamento foto danni</span>
+                        </div>
+                        <div id="pdfStep3" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Aggiunta lavori manutenzione</span>
+                        </div>
+                        <div id="pdfStep4" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Salvataggio PDF</span>
+                        </div>
+                        <div id="pdfStep5" style="display: flex; align-items: center; gap: 10px; opacity: 0.4;">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e0e0e0; background: white;"></div>
+                            <span>Caricamento su Drive</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Update PDF generation progress
+        function updatePDFGenerationProgress(text, percent, step = null) {
+            const modal = document.getElementById('pdfGenerationProgressModal');
+            if (!modal) return;
+
+            const progressText = modal.querySelector('#pdfProgressText');
+            const progressBar = modal.querySelector('#pdfProgressBar');
+            const progressPercent = modal.querySelector('#pdfProgressPercent');
+
+            if (progressText) progressText.textContent = text;
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (progressPercent) progressPercent.textContent = percent + '%';
+
+            // Update step indicators
+            if (step) {
+                for (let i = 1; i <= 5; i++) {
+                    const stepEl = modal.querySelector('#pdfStep' + i);
+                    if (stepEl) {
+                        if (i < step) {
+                            stepEl.style.opacity = '1';
+                            const circle = stepEl.querySelector('div');
+                            if (circle) {
+                                circle.style.background = '#34a853';
+                                circle.style.border = 'none';
+                                circle.innerHTML = '✓';
+                                circle.style.color = 'white';
+                            }
+                        } else if (i === step) {
+                            stepEl.style.opacity = '1';
+                            const circle = stepEl.querySelector('div');
+                            if (circle) {
+                                circle.style.background = '#667eea';
+                                circle.style.border = 'none';
+                                circle.innerHTML = '⟳';
+                                circle.style.color = 'white';
+                                circle.style.animation = 'spin 1s linear infinite';
+                            }
+                        } else {
+                            stepEl.style.opacity = '0.4';
+                            const circle = stepEl.querySelector('div');
+                            if (circle) {
+                                circle.style.background = 'white';
+                                circle.style.border = '2px solid #e0e0e0';
+                                circle.innerHTML = '';
+                                circle.style.animation = 'none';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Hide PDF generation progress modal
+        function hidePDFGenerationProgress() {
+            const modal = document.getElementById('pdfGenerationProgressModal');
             if (modal) {
                 modal.style.animation = 'fadeOut 0.3s ease-out';
                 setTimeout(() => {
