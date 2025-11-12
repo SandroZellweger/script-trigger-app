@@ -4919,12 +4919,26 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                         title="Seleziona fattura da Drive">
                                     📁 Fattura
                                 </button>
+                                <button onclick="completeWorkshopListFull('${escapeHtml(list.listId)}')" 
+                                        style="background: white; color: #28a745; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#28a745'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Completa tutti i lavori">
+                                    ✅ Completa
+                                </button>
                                 <button onclick="archiveWorkshopList('${escapeHtml(list.listId)}')" 
                                         style="background: white; color: #6c757d; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
                                         onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#6c757d'" 
                                         onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
                                         title="Archivia questa lista">
                                     📦 Archivia
+                                </button>
+                                <button onclick="deleteWorkshopListFull('${escapeHtml(list.listId)}')" 
+                                        style="background: white; color: #dc3545; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#dc3545'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Elimina questa lista">
+                                    🗑️ Elimina
                                 </button>
                             </div>
                         </div>
@@ -5087,15 +5101,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 ` : ''}
                             </div>
                         ` : ''}
-                        
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button onclick="completeWorkshopListFull('${escapeHtml(list.listId)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                                ✅ Completa Tutto
-                            </button>
-                            <button onclick="deleteWorkshopListFull('${escapeHtml(list.listId)}')" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
-                                🗑️ Elimina Lista
-                            </button>
-                        </div>
                     `;
                     
                     container.appendChild(listCard);
