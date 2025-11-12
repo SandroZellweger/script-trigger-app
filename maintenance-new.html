@@ -2919,32 +2919,47 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
 
             return `
-                <div class="report-card">
-                    <div class="report-header">
-                        <div>
-                            <div class="vehicle-name">${report.vehicleName}</div>
-                            <div class="report-date">📅 ${new Date(report.reportDate).toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric'})} - 👤 ${report.reportedBy}</div>
+                <div class="report-card" style="padding: 12px; margin-bottom: 12px;">
+                    <div class="report-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div class="vehicle-name" style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">${report.vehicleName}</div>
+                            <div class="report-date" style="font-size: 12px; color: #666;">📅 ${new Date(report.reportDate).toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric'})} - 👤 ${report.reportedBy}</div>
                         </div>
-                        <span class="urgency-badge urgency-${urgencyClass}">${urgencyLabels[urgencyClass] || urgencyClass}</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <span class="urgency-badge urgency-${urgencyClass}" style="font-size: 11px; padding: 3px 8px; border-radius: 10px;">${urgencyLabels[urgencyClass] || urgencyClass}</span>
+                            <button onclick="deleteMaintenanceReport('${report.reportId}')" 
+                                    style="background: white; color: #dc3545; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
+                                    onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#dc3545'" 
+                                    onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                    title="Elimina report">
+                                🗑️
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" style="width: ${progress}%"></div>
+                    <div class="progress-bar-container" style="background: #e0e0e0; border-radius: 10px; height: 6px; margin: 8px 0;">
+                        <div class="progress-bar" style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 10px; transition: width 0.3s;"></div>
                     </div>
-                    <p class="progress-text">${completedCount}/${totalCount} problemi risolti</p>
+                    <p class="progress-text" style="font-size: 12px; color: #666; margin: 8px 0;">${completedCount}/${totalCount} problemi risolti</p>
 
-                    <ul class="issue-list">
+                    <ul class="issue-list" style="list-style: none; padding: 0; margin: 0;">
                         ${report.issues.map((issue, index) => `
-                            <li class="issue-list-item">
-                                <input type="checkbox" class="issue-checkbox" 
+                            <li class="issue-list-item" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: ${issue.completed ? '#f5f5f5' : '#fff'}; border-left: 2px solid ${issue.urgency === 'critical' ? '#f44336' : issue.urgency === 'high' ? '#ff9800' : issue.urgency === 'medium' ? '#ffc107' : '#4caf50'}; margin-bottom: 6px; border-radius: 4px; transition: all 0.2s;">
+                                <input type="checkbox" class="issue-checkbox" style="cursor: pointer; width: 18px; height: 18px; flex-shrink: 0;"
                                     ${issue.completed ? 'checked' : ''} 
                                     onchange="toggleIssueStatus('${report.reportId}', ${issue.issueNumber}, this.checked)">
-                                <div class="issue-content">
-                                    <div class="issue-category">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</div>
-                                    <div class="issue-description">${issue.description}</div>
-                                    <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 11px; padding: 4px 10px;">${urgencyLabels[issue.urgency] || issue.urgency}</span>
+                                <div class="issue-content" style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px;">
+                                        <span style="font-weight: 600; color: #333;">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</span>
+                                        <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 11px; padding: 2px 6px; border-radius: 8px;">${urgencyLabels[issue.urgency] || issue.urgency}</span>
+                                    </div>
+                                    <div class="issue-description" style="font-size: 13px; color: #555; margin-top: 2px; ${issue.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${issue.description}</div>
                                 </div>
-                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.reportId}', ${issue.issueNumber})" title="Modifica danno">
+                                <button class="edit-issue-btn" onclick="openEditIssueModal('${report.reportId}', ${issue.issueNumber})" 
+                                        style="background: white; border: 1px solid #dee2e6; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;"
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#667eea'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Modifica danno">
                                     ✏️
                                 </button>
                             </li>
@@ -2952,24 +2967,17 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     </ul>
 
                     ${report.photos && report.photos.length > 0 ? `
-                        <div style="margin-top: 20px;">
-                            <strong style="display: block; margin-bottom: 10px;">📸 Foto Allegate:</strong>
-                            <div class="photo-preview">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+                            <strong style="display: block; margin-bottom: 8px; font-size: 13px; color: #666;">📸 Foto Allegate (${report.photos.length}):</strong>
+                            <div class="photo-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;">
                                 ${report.photos.map(url => `
-                                    <div class="photo-preview-item">
-                                        <img src="${url}" onclick="window.open('${url}', '_blank')">
+                                    <div class="photo-preview-item" style="aspect-ratio: 1; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid #e0e0e0;">
+                                        <img src="${url}" onclick="window.open('${url}', '_blank')" style="width: 100%; height: 100%; object-fit: cover;">
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
                     ` : ''}
-
-                    <div style="margin-top: 20px; text-align: right;">
-                        <button onclick="deleteMaintenanceReport('${report.reportId}')" 
-                                style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s ease;">
-                            🗑️ Elimina Report
-                        </button>
-                    </div>
                 </div>
             `;
         }
