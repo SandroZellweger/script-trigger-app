@@ -1377,6 +1377,7 @@
             <button class="tab active" onclick="switchTab('new-report')">📝 Nuovo Report</button>
             <button class="tab" onclick="switchTab('active-reports')">🔨 Report Attivi</button>
             <button class="tab" onclick="switchTab('workshop-lists')">🏥 In Officina</button>
+            <button class="tab" onclick="switchTab('invoices')">📄 Fatture</button>
             <button class="tab" onclick="switchTab('history')">📊 Storico Completo</button>
             <button class="tab" onclick="switchTab('garages')">🔧 Gestione Officine</button>
             <button class="tab" onclick="switchTab('import-legacy')">📥 Importa Dati Legacy</button>
@@ -1481,6 +1482,43 @@
                     <div class="loading">
                         <div class="spinner"></div>
                         <p>Caricamento liste officina...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INVOICES TAB -->
+        <div id="invoices" class="tab-content">
+            <div class="content-card">
+                <h2 style="margin-bottom: 20px;">📄 Gestione Fatture</h2>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Carica fatture di manutenzione completate anche senza lista in officina. Il sistema analizzerà automaticamente i lavori effettuati.
+                </p>
+                
+                <button onclick="openStandaloneInvoiceUpload()" 
+                        style="background: linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%); color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(156,39,176,0.3); transition: all 0.3s; margin-bottom: 30px;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(156,39,176,0.4)'"
+                        onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(156,39,176,0.3)'">
+                    📤 Carica Nuova Fattura
+                </button>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px;">ℹ️ Come funziona</h3>
+                    <ol style="margin: 0; padding-left: 20px; color: #666; line-height: 1.8;">
+                        <li><strong>Seleziona il veicolo</strong> per cui vuoi registrare la fattura</li>
+                        <li><strong>Carica la fattura</strong> da Google Drive</li>
+                        <li><strong>L'AI analizza automaticamente</strong> i lavori e i costi</li>
+                        <li><strong>Seleziona l'officina</strong> che ha eseguito i lavori</li>
+                        <li><strong>Salva nello storico</strong> per tenere traccia di tutti i lavori</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 15px;">📋 Fatture Recenti</h3>
+                    <div id="recentInvoicesList">
+                        <p style="color: #999; text-align: center; padding: 40px;">
+                            Nessuna fattura registrata. Clicca "Carica Nuova Fattura" per iniziare.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1984,6 +2022,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 loadActiveReports();
             } else if (tabName === 'workshop-lists') {
                 loadWorkshopLists();
+            } else if (tabName === 'invoices') {
+                loadRecentInvoices();
             } else if (tabName === 'history') {
                 loadHistory();
             } else if (tabName === 'garages') {
@@ -3208,6 +3248,76 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             
             const script = document.createElement('script');
             script.src = url;
+            document.body.appendChild(script);
+        }
+
+        // Load recent standalone invoices
+        function loadRecentInvoices() {
+            const container = document.getElementById('recentInvoicesList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Caricamento fatture...</p></div>';
+            
+            const callback = 'loadRecentInvoicesCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (!response.success) {
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; color: #999;">⚠️ Errore nel caricamento</div>`;
+                    delete window[callback];
+                    return;
+                }
+                
+                const invoices = response.invoices || [];
+                
+                if (invoices.length === 0) {
+                    container.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: #999;">
+                            <p style="font-size: 48px; margin: 0;">📄</p>
+                            <p style="margin: 10px 0 0 0;">Nessuna fattura caricata ancora</p>
+                        </div>
+                    `;
+                    delete window[callback];
+                    return;
+                }
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                
+                invoices.forEach(invoice => {
+                    const date = invoice.date ? new Date(invoice.date).toLocaleDateString('it-IT') : '-';
+                    const cost = invoice.analysis?.totalCost || 'N/D';
+                    const works = invoice.analysis?.worksCount || 0;
+                    
+                    html += `
+                        <div style="background: white; border: 2px solid #e0e0e0; border-radius: 8px; padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div>
+                                    <h4 style="margin: 0 0 4px 0; font-size: 14px;">${invoice.vehicleName || 'Veicolo sconosciuto'}</h4>
+                                    <p style="margin: 0; font-size: 12px; color: #666;">📅 ${date} | 🔧 ${invoice.workshopName || 'N/D'}</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="margin: 0; font-size: 15px; font-weight: bold; color: #9c27b0;">${cost}</p>
+                                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #666;">${works} lavori</p>
+                                </div>
+                            </div>
+                            ${invoice.invoiceUrl ? `
+                                <a href="${invoice.invoiceUrl}" target="_blank" 
+                                   style="display: inline-block; padding: 6px 12px; background: #f5f5f5; color: #666; text-decoration: none; border-radius: 6px; font-size: 12px; margin-top: 8px;">
+                                    📄 ${invoice.invoiceFileName || 'Vedi fattura'}
+                                </a>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+                delete window[callback];
+            };
+            
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getRecentInvoicesJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                container.innerHTML = `<div style="padding: 20px; text-align: center; color: #999;">❌ Errore di connessione</div>`;
+                delete window[callback];
+            };
             document.body.appendChild(script);
         }
 
@@ -5012,6 +5122,283 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             script.src = `${window.APP_CONFIG.scriptUrl}?function=addGarageJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(garageData))}&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 alert('❌ Errore di connessione');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+
+        // ===== STANDALONE INVOICE UPLOAD FUNCTIONS =====
+        
+        function openStandaloneInvoiceUpload() {
+            // Create modal for standalone invoice upload
+            const modal = document.createElement('div');
+            modal.id = 'standaloneInvoiceModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; overflow-y: auto; padding: 20px;';
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">📄 Carica Fattura</h2>
+                        <button onclick="closeStandaloneInvoiceModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">1️⃣ Seleziona Veicolo</label>
+                        <select id="standaloneInvoiceVehicle" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                            <option value="">Seleziona veicolo...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">2️⃣ Seleziona Fattura da Drive</label>
+                        <button onclick="selectStandaloneInvoiceFile()" 
+                                style="background: #4285f4; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%;">
+                            📁 Scegli da Google Drive
+                        </button>
+                        <div id="standaloneInvoiceFileInfo" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; display: none;">
+                            <p style="margin: 0; color: #666;"><strong>File selezionato:</strong> <span id="standaloneInvoiceFileName">-</span></p>
+                        </div>
+                    </div>
+                    
+                    <div id="standaloneInvoiceAnalysis" style="display: none; margin-bottom: 20px;">
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 10px; border-left: 4px solid #4caf50;">
+                            <h4 style="margin: 0 0 10px 0; color: #2e7d32;">✅ Analisi Completata</h4>
+                            <div id="standaloneAnalysisResult"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="standaloneWorkshopSelect" style="display: none; margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">3️⃣ Seleziona Officina</label>
+                        <select id="standaloneWorkshopName" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                            <option value="">Seleziona officina...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="closeStandaloneInvoiceModal()" 
+                                style="background: #f5f5f5; color: #666; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: bold;">
+                            Annulla
+                        </button>
+                        <button id="standaloneInvoiceSaveBtn" onclick="saveStandaloneInvoice()" disabled
+                                style="background: linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%); color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: bold; opacity: 0.5;">
+                            💾 Salva Fattura
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Load vehicles in dropdown
+            const vehicleSelect = document.getElementById('standaloneInvoiceVehicle');
+            currentVehicles.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle.id;
+                option.textContent = `${vehicle.name} (${vehicle.licencePlate})`;
+                option.dataset.vehicleName = vehicle.name;
+                vehicleSelect.appendChild(option);
+            });
+            
+            // Load garages
+            loadStandaloneGarages();
+        }
+        
+        function closeStandaloneInvoiceModal() {
+            const modal = document.getElementById('standaloneInvoiceModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        let standaloneInvoiceData = {
+            vehicleId: null,
+            vehicleName: null,
+            fileId: null,
+            fileName: null,
+            fileUrl: null,
+            workshopName: null,
+            analysis: null
+        };
+        
+        async function selectStandaloneInvoiceFile() {
+            const vehicleSelect = document.getElementById('standaloneInvoiceVehicle');
+            if (!vehicleSelect.value) {
+                alert('Seleziona prima un veicolo');
+                return;
+            }
+            
+            standaloneInvoiceData.vehicleId = vehicleSelect.value;
+            standaloneInvoiceData.vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].dataset.vehicleName;
+            
+            // Use existing Drive Picker
+            try {
+                await ensureDriveToken();
+                showDrivePickerForStandaloneInvoice(driveAccessToken);
+            } catch (error) {
+                console.error('Error with Drive picker:', error);
+                alert('Errore nell\'apertura di Google Drive. Riprova.');
+            }
+        }
+        
+        function showDrivePickerForStandaloneInvoice(accessToken) {
+            const picker = new google.picker.PickerBuilder()
+                .addView(google.picker.ViewId.DOCS)
+                .setOAuthToken(accessToken)
+                .setDeveloperKey(window.PRIVATE_CONFIG?.driveApiKey || window.APP_CONFIG?.driveApiKey)
+                .setCallback((data) => handleStandaloneInvoicePickerCallback(data))
+                .build();
+            picker.setVisible(true);
+        }
+        
+        function handleStandaloneInvoicePickerCallback(data) {
+            if (data.action === google.picker.Action.PICKED) {
+                const file = data.docs[0];
+                standaloneInvoiceData.fileId = file.id;
+                standaloneInvoiceData.fileName = file.name;
+                standaloneInvoiceData.fileUrl = file.url;
+                
+                document.getElementById('standaloneInvoiceFileName').textContent = file.name;
+                document.getElementById('standaloneInvoiceFileInfo').style.display = 'block';
+                
+                // Analyze invoice
+                analyzeStandaloneInvoice();
+            }
+        }
+        
+        function analyzeStandaloneInvoice() {
+            const analysisDiv = document.getElementById('standaloneInvoiceAnalysis');
+            analysisDiv.style.display = 'block';
+            analysisDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Analisi AI in corso...</p></div>';
+            
+            const callback = 'standaloneInvoiceAnalysisCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success && response.analysis) {
+                    standaloneInvoiceData.analysis = response.analysis;
+                    
+                    const analysis = response.analysis;
+                    let resultHtml = `
+                        <p style="margin: 5px 0;"><strong>🔧 Lavori:</strong> ${analysis.worksCount || 0} trovati</p>
+                        <p style="margin: 5px 0;"><strong>💰 Costo Totale:</strong> ${analysis.totalCost || 'Non specificato'}</p>
+                    `;
+                    
+                    if (analysis.works && analysis.works.length > 0) {
+                        resultHtml += '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        analysis.works.forEach(work => {
+                            resultHtml += `<li>${work.description || work.name} ${work.cost ? '- ' + work.cost : ''}</li>`;
+                        });
+                        resultHtml += '</ul>';
+                    }
+                    
+                    document.getElementById('standaloneAnalysisResult').innerHTML = resultHtml;
+                    document.getElementById('standaloneWorkshopSelect').style.display = 'block';
+                    updateStandaloneSaveButton();
+                } else {
+                    analysisDiv.innerHTML = '<div style="background: #fff3cd; padding: 15px; border-radius: 10px; border-left: 4px solid #ffc107;"><p style="margin: 0;">⚠️ Impossibile analizzare la fattura automaticamente. Puoi comunque salvarla manualmente.</p></div>';
+                    document.getElementById('standaloneWorkshopSelect').style.display = 'block';
+                    updateStandaloneSaveButton();
+                }
+                
+                delete window[callback];
+            };
+            
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=analyzeInvoiceJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&fileId=${encodeURIComponent(standaloneInvoiceData.fileId)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                analysisDiv.innerHTML = '<div style="background: #ffebee; padding: 15px; border-radius: 10px; border-left: 4px solid #f44336;"><p style="margin: 0;">❌ Errore durante l\'analisi. Puoi comunque salvare la fattura manualmente.</p></div>';
+                document.getElementById('standaloneWorkshopSelect').style.display = 'block';
+                updateStandaloneSaveButton();
+                delete window[callback];
+            };
+            document.body.appendChild(script);
+        }
+        
+        function loadStandaloneGarages() {
+            const select = document.getElementById('standaloneWorkshopName');
+            
+            const callback = 'loadStandaloneGaragesCallback_' + Date.now();
+            window[callback] = function(response) {
+                if (response.success && response.garages) {
+                    response.garages.forEach(garage => {
+                        const option = document.createElement('option');
+                        option.value = garage.name;
+                        option.textContent = garage.name;
+                        select.appendChild(option);
+                    });
+                }
+                delete window[callback];
+            };
+            
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=getAllWorkshopsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            document.body.appendChild(script);
+        }
+        
+        function updateStandaloneSaveButton() {
+            const vehicleSelect = document.getElementById('standaloneInvoiceVehicle');
+            const workshopSelect = document.getElementById('standaloneWorkshopName');
+            const saveBtn = document.getElementById('standaloneInvoiceSaveBtn');
+            
+            const isReady = vehicleSelect.value && standaloneInvoiceData.fileId && workshopSelect.value;
+            
+            saveBtn.disabled = !isReady;
+            saveBtn.style.opacity = isReady ? '1' : '0.5';
+            saveBtn.style.cursor = isReady ? 'pointer' : 'not-allowed';
+        }
+        
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const vehicleSelect = document.getElementById('standaloneInvoiceVehicle');
+            const workshopSelect = document.getElementById('standaloneWorkshopName');
+            
+            if (vehicleSelect) vehicleSelect.addEventListener('change', updateStandaloneSaveButton);
+            if (workshopSelect) workshopSelect.addEventListener('change', function() {
+                standaloneInvoiceData.workshopName = this.value;
+                updateStandaloneSaveButton();
+            });
+        });
+        
+        function saveStandaloneInvoice() {
+            const saveBtn = document.getElementById('standaloneInvoiceSaveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = '⏳ Salvataggio...';
+            
+            const invoiceData = {
+                vehicleId: standaloneInvoiceData.vehicleId,
+                vehicleName: standaloneInvoiceData.vehicleName,
+                workshopName: standaloneInvoiceData.workshopName,
+                invoiceFileId: standaloneInvoiceData.fileId,
+                invoiceFileName: standaloneInvoiceData.fileName,
+                invoiceUrl: standaloneInvoiceData.fileUrl,
+                analysis: standaloneInvoiceData.analysis,
+                date: new Date().toISOString(),
+                type: 'standalone_invoice'
+            };
+            
+            const callback = 'saveStandaloneInvoiceCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                if (response.success) {
+                    alert('✅ Fattura salvata con successo nello storico!');
+                    closeStandaloneInvoiceModal();
+                    // Refresh history if on history tab
+                    if (document.getElementById('history').classList.contains('active')) {
+                        loadHistory();
+                    }
+                } else {
+                    alert('❌ Errore nel salvataggio: ' + response.error);
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Salva Fattura';
+                }
+                delete window[callback];
+            };
+            
+            const script = document.createElement('script');
+            script.src = `${window.APP_CONFIG.scriptUrl}?function=saveStandaloneInvoiceJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&data=${encodeURIComponent(JSON.stringify(invoiceData))}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                alert('❌ Errore di connessione');
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Salva Fattura';
                 delete window[callback];
             };
             document.body.appendChild(script);
