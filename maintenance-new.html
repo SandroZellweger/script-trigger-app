@@ -5244,12 +5244,22 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 initGooglePicker();
             }
             
+            // Hide modal temporarily to show picker on top
+            const modal = document.getElementById('standaloneInvoiceModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
             // Get Drive access token
             try {
                 const token = await ensureDriveToken();
                 showDrivePickerForStandaloneInvoice(token);
             } catch (error) {
                 console.error('Error with Drive picker:', error);
+                // Restore modal on error
+                if (modal) {
+                    modal.style.display = 'flex';
+                }
                 alert('Errore nell\'apertura di Google Drive. Riprova.');
             }
         }
@@ -5286,6 +5296,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         }
         
         function handleStandaloneInvoicePickerCallback(data) {
+            // Always restore modal visibility
+            const modal = document.getElementById('standaloneInvoiceModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+            
             if (data.action === google.picker.Action.PICKED) {
                 const file = data.docs[0];
                 standaloneInvoiceData.fileId = file.id;
