@@ -2892,13 +2892,159 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 return;
             }
 
-            container.innerHTML = '';
+            // Group reports by vehicle
+            const groupedByVehicle = {};
             reports.forEach(report => {
-                container.insertAdjacentHTML('beforeend', createReportCard(report));
+                const vehicleKey = report.vehicleId || report.vehicleName;
+                if (!groupedByVehicle[vehicleKey]) {
+                    groupedByVehicle[vehicleKey] = {
+                        vehicleId: report.vehicleId,
+                        vehicleName: report.vehicleName,
+                        reports: []
+                    };
+                }
+                groupedByVehicle[vehicleKey].reports.push(report);
+            });
+
+            container.innerHTML = '';
+            Object.values(groupedByVehicle).forEach(vehicleGroup => {
+                container.insertAdjacentHTML('beforeend', createGroupedVehicleCard(vehicleGroup));
             });
         }
 
-        // Create report card HTML
+        // Toggle vehicle issues visibility
+        function toggleVehicleIssues(vehicleId) {
+            const issuesContainer = document.getElementById(`issues-${vehicleId}`);
+            const toggleBtn = document.getElementById(`toggle-${vehicleId}`);
+            
+            if (issuesContainer.style.display === 'none') {
+                issuesContainer.style.display = 'block';
+                toggleBtn.textContent = '▲ Nascondi problemi';
+            } else {
+                issuesContainer.style.display = 'none';
+                toggleBtn.textContent = '▼ Mostra tutti i problemi';
+            }
+        }
+
+        // Create grouped vehicle card HTML
+        function createGroupedVehicleCard(vehicleGroup) {
+            const { vehicleId, vehicleName, reports } = vehicleGroup;
+            
+            // Calculate totals across all reports for this vehicle
+            let totalIssues = 0;
+            let completedIssues = 0;
+            let highestUrgency = 'low';
+            const priorities = { critical: 4, high: 3, medium: 2, low: 1 };
+            
+            const allIssues = [];
+            reports.forEach(report => {
+                totalIssues += report.issues.length;
+                completedIssues += report.issues.filter(i => i.completed).length;
+                
+                report.issues.forEach(issue => {
+                    const issueUrgency = issue.urgency || 'low';
+                    if (priorities[issueUrgency] > priorities[highestUrgency]) {
+                        highestUrgency = issueUrgency;
+                    }
+                    
+                    // Cache issue data
+                    const cacheKey = `${report.reportId}_${issue.issueNumber}`;
+                    issueDataCache[cacheKey] = issue;
+                    
+                    allIssues.push({
+                        ...issue,
+                        reportId: report.reportId,
+                        reportDate: report.reportDate,
+                        reportedBy: report.reportedBy
+                    });
+                });
+            });
+            
+            const progress = totalIssues > 0 ? (completedIssues / totalIssues) * 100 : 0;
+            const openIssues = totalIssues - completedIssues;
+            
+            const urgencyLabels = {
+                low: 'BASSA',
+                medium: 'MEDIA',
+                high: 'ALTA',
+                critical: 'CRITICA'
+            };
+            
+            const safeVehicleId = (vehicleId || vehicleName || 'unknown').replace(/[^a-zA-Z0-9]/g, '_');
+            
+            return `
+                <div class="report-card" style="padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 8px;">
+                                🚗 ${vehicleName}
+                            </div>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                📊 ${openIssues} problema${openIssues !== 1 ? 'i' : ''} aperto${openIssues !== 1 ? '' : ''} | ${completedIssues}/${totalIssues} risolti
+                            </div>
+                        </div>
+                        <span class="urgency-badge urgency-${highestUrgency}" style="font-size: 11px; padding: 3px 8px; border-radius: 10px;">${urgencyLabels[highestUrgency]}</span>
+                    </div>
+
+                    <div style="background: #e0e0e0; border-radius: 10px; height: 6px; margin: 8px 0;">
+                        <div style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 10px; transition: width 0.3s;"></div>
+                    </div>
+
+                    <button id="toggle-${safeVehicleId}" 
+                            onclick="toggleVehicleIssues('${safeVehicleId}')" 
+                            style="width: 100%; background: white; border: 1px solid #dee2e6; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #667eea; margin: 8px 0; transition: all 0.2s;"
+                            onmouseover="this.style.background='#f8f9fa'" 
+                            onmouseout="this.style.background='white'">
+                        ▼ Mostra tutti i problemi
+                    </button>
+
+                    <div id="issues-${safeVehicleId}" style="display: none;">
+                        <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-top: 8px;">
+                            ${allIssues.map((issue, index) => {
+                                const urgencyColor = issue.urgency === 'critical' ? '#f44336' : 
+                                                    issue.urgency === 'high' ? '#ff9800' : 
+                                                    issue.urgency === 'medium' ? '#ffc107' : '#4caf50';
+                                
+                                return `
+                                    <div style="display: flex; align-items: start; gap: 8px; padding: 8px; background: ${issue.completed ? '#f5f5f5' : '#fff'}; border-left: 2px solid ${urgencyColor}; margin-bottom: 6px; border-radius: 4px;">
+                                        <input type="checkbox" 
+                                               style="cursor: pointer; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"
+                                               ${issue.completed ? 'checked' : ''} 
+                                               onchange="toggleIssueStatus('${issue.reportId}', ${issue.issueNumber}, this.checked)">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; margin-bottom: 4px;">
+                                                <span style="font-weight: 600; color: #333;">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</span>
+                                                <span class="urgency-badge urgency-${issue.urgency}" style="font-size: 10px; padding: 2px 6px; border-radius: 8px;">${urgencyLabels[issue.urgency]}</span>
+                                                <span style="color: #999; font-size: 11px;">📅 ${new Date(issue.reportDate).toLocaleDateString('it-IT', {day: '2-digit', month: 'short'})}</span>
+                                            </div>
+                                            <div style="font-size: 13px; color: #555; ${issue.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${issue.description}</div>
+                                        </div>
+                                        <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                                            <button onclick="openEditIssueModal('${issue.reportId}', ${issue.issueNumber})" 
+                                                    style="background: white; border: 1px solid #dee2e6; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                                                    onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#667eea'" 
+                                                    onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                                    title="Modifica">
+                                                ✏️
+                                            </button>
+                                            <button onclick="deleteMaintenanceReport('${issue.reportId}')" 
+                                                    style="background: white; border: 1px solid #dee2e6; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                                                    onmouseover="this.style.background='#fff5f5'; this.style.borderColor='#dc3545'" 
+                                                    onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                                    title="Elimina report">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create report card HTML (legacy - kept for compatibility)
         function createReportCard(report) {
             const urgencyClass = getHighestUrgency(report.issues);
             const completedCount = report.issues.filter(i => i.completed).length;
