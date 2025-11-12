@@ -5374,21 +5374,47 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         function loadStandaloneGarages() {
             const select = document.getElementById('standaloneWorkshopName');
             
+            if (!select) {
+                console.error('❌ standaloneWorkshopName select not found');
+                return;
+            }
+            
+            console.log('🏢 Loading garages for standalone invoice...');
+            
             const callback = 'loadStandaloneGaragesCallback_' + Date.now();
             window[callback] = function(response) {
-                if (response.success && response.garages) {
+                console.log('🏢 Garages response:', response);
+                
+                if (response.success && response.garages && response.garages.length > 0) {
+                    console.log(`✅ Found ${response.garages.length} garages`);
                     response.garages.forEach(garage => {
                         const option = document.createElement('option');
                         option.value = garage.name;
                         option.textContent = garage.name;
                         select.appendChild(option);
                     });
+                } else {
+                    console.warn('⚠️ No garages found or error:', response);
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = '❌ Nessuna officina trovata';
+                    option.disabled = true;
+                    select.appendChild(option);
                 }
                 delete window[callback];
             };
             
             const script = document.createElement('script');
             script.src = `${window.APP_CONFIG.scriptUrl}?function=getAllWorkshopsJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                console.error('❌ Error loading garages script');
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '❌ Errore caricamento';
+                option.disabled = true;
+                select.appendChild(option);
+                delete window[callback];
+            };
             document.body.appendChild(script);
         }
         
