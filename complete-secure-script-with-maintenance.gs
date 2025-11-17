@@ -898,39 +898,74 @@ function extractCustomerFromEvent(event) {
     let customerName = '';
     let customerPhone = '';
     
-    // Extract email
-    const emailMatch = description.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    // Extract email from description
+    // Pattern matches most email formats
+    const emailMatch = description.match(/Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
     if (emailMatch) {
-      customerEmail = emailMatch[0];
-    }
-    
-    // Extract phone (Swiss formats: +41, 0041, 07x, +417x)
-    const phoneMatch = description.match(/(\+41|0041|0)\s?([67]\d)\s?(\d{3})\s?(\d{2})\s?(\d{2})/);
-    if (phoneMatch) {
-      customerPhone = phoneMatch[0].replace(/\s/g, '');
-    }
-    
-    // Extract name from description keywords
-    const lines = description.split('\n');
-    for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (lowerLine.includes('cliente:') || 
-          lowerLine.includes('name:') ||
-          lowerLine.includes('nome:') ||
-          lowerLine.includes('customer:')) {
-        customerName = line.split(':')[1]?.trim() || '';
-        break;
+      customerEmail = emailMatch[1].trim();
+    } else {
+      // Fallback: search anywhere in description
+      const emailFallback = description.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+      if (emailFallback) {
+        customerEmail = emailFallback[0];
       }
     }
     
-    // Fallback: use event title as name if no name found
+    // Extract phone from description
+    // Pattern: "Numero di cellulare: +41774070742" or similar
+    const phoneMatch = description.match(/(?:Numero di cellulare|Telefono|Phone|Cellulare):\s*([\+\d\s]+)/i);
+    if (phoneMatch) {
+      customerPhone = phoneMatch[1].trim();
+    } else {
+      // Fallback: Swiss phone formats (+41, 0041, 07x, +417x)
+      const phoneFallback = description.match(/(\+41|0041|0)\s?([67]\d)\s?(\d{3})\s?(\d{2})\s?(\d{2})/);
+      if (phoneFallback) {
+        customerPhone = phoneFallback[0];
+      }
+    }
+    
+    // Extract name from title
+    // Format: "$ 1 - Alessandro Barbone - CHF 0.00"
+    // Extract text between first "-" and second "-" (or "- CHF")
+    let nameFromTitle = '';
+    if (title.includes(' - ')) {
+      const parts = title.split(' - ');
+      if (parts.length >= 2) {
+        // Get the second part (index 1) which should be the name
+        nameFromTitle = parts[1]
+          .replace(/CHF\s*[\d,.]+/gi, '') // Remove CHF amounts
+          .replace(/\(.*?\)/g, '') // Remove parentheses content
+          .trim();
+      }
+    }
+    
+    if (nameFromTitle) {
+      customerName = nameFromTitle;
+    }
+    
+    // Fallback: try to find name in description
     if (!customerName) {
-      // Remove common prefixes and suffixes
+      const lines = description.split('\n');
+      for (const line of lines) {
+        const lowerLine = line.toLowerCase();
+        if (lowerLine.includes('cliente:') || 
+            lowerLine.includes('name:') ||
+            lowerLine.includes('nome:') ||
+            lowerLine.includes('customer:')) {
+          customerName = line.split(':')[1]?.trim() || '';
+          break;
+        }
+      }
+    }
+    
+    // Last fallback: use cleaned title
+    if (!customerName) {
       customerName = title
-        .replace(/\s*-\s*N\d+/gi, '') // Remove "- N3"
-        .replace(/\s*\(.*?\)/g, '') // Remove (anything)
-        .trim()
-        .split('-')[0]?.trim() || title;
+        .replace(/\$/g, '')
+        .replace(/\d+\s*-\s*/g, '')
+        .replace(/CHF\s*[\d,.]+/gi, '')
+        .replace(/\(.*?\)/g, '')
+        .split('-')[0]?.trim() || 'Cliente';
     }
     
     return {

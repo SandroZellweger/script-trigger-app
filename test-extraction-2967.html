@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Estrazione Dati - Ref 2967</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .test-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .test-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .result {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .result.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left: 4px solid #28a745;
+        }
+
+        .result.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-left: 4px solid #dc3545;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 12px;
+            margin-top: 15px;
+            font-size: 15px;
+        }
+
+        .data-grid strong {
+            color: #667eea;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        pre {
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+
+        .expected {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .expected h4 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test Estrazione Dati - Ref 2967</h1>
+            <p>Verifica l'estrazione corretta di nome, email e telefono</p>
+        </div>
+
+        <div class="test-card">
+            <h2>📋 Dati Attesi</h2>
+            <div class="expected">
+                <h4>Dal Calendario:</h4>
+                <div class="data-grid">
+                    <strong>Nome:</strong> <span class="highlight">Alessandro Barbone</span>
+                    <strong>Email:</strong> <span class="highlight">noleggiosemplice23@gmail.com</span>
+                    <strong>Telefono:</strong> <span class="highlight">+41774070742</span>
+                    <strong>Veicolo:</strong> <span>N01 - Opel Vivaro (Losone)</span>
+                    <strong>Riferimento:</strong> <span>2967</span>
+                </div>
+            </div>
+
+            <button class="btn" onclick="testBooking()">🔍 Test Ricerca Booking 2967</button>
+            
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-RQV_o-cZ9bkKVB9RvwjpvOnr7BVA1n-WpvxqCe6xp9UeeDVx2hVrfSFSIIKwBBqQ/exec';
+        const AUTH_TOKEN = 'your-auth-token-here'; // Replace with actual token
+
+        function makeJsonpRequest(functionName, params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = `callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                window[callbackName] = (data) => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    resolve(data);
+                };
+                
+                const script = document.createElement('script');
+                const urlParams = new URLSearchParams({
+                    function: functionName,
+                    authToken: AUTH_TOKEN,
+                    callback: callbackName,
+                    ...params
+                });
+                
+                script.src = `${SCRIPT_URL}?${urlParams}`;
+                script.onerror = () => {
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        async function testBooking() {
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<div class="result" style="background: #e3f2fd; border-left: 4px solid #2196f3;"><strong>🔄 Ricerca in corso...</strong></div>';
+            
+            try {
+                const data = await makeJsonpRequest('findBookingByReferenceJsonp', { referenceNumber: '2967' });
+                
+                console.log('📅 Response:', data);
+                
+                if (data.success && data.booking) {
+                    const b = data.booking;
+                    
+                    // Check if extracted data matches expected
+                    const nameOk = b.customerName === 'Alessandro Barbone';
+                    const emailOk = b.customerEmail === 'noleggiosemplice23@gmail.com';
+                    const phoneOk = b.customerPhone === '+41774070742';
+                    
+                    const allOk = nameOk && emailOk && phoneOk;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result ${allOk ? 'success' : 'error'}">
+                            <h3>${allOk ? '✅' : '⚠️'} Risultati Estrazione</h3>
+                            <div class="data-grid">
+                                <strong>Nome:</strong> 
+                                <span style="${nameOk ? 'color: green;' : 'color: red;'}">
+                                    ${nameOk ? '✅' : '❌'} ${b.customerName || 'N/A'}
+                                    ${!nameOk ? '<br><small style="color: #666;">Atteso: Alessandro Barbone</small>' : ''}
+                                </span>
+                                
+                                <strong>Email:</strong> 
+                                <span style="${emailOk ? 'color: green;' : 'color: red;'}">
+                                    ${emailOk ? '✅' : '❌'} ${b.customerEmail || 'N/A'}
+                                    ${!emailOk ? '<br><small style="color: #666;">Atteso: noleggiosemplice23@gmail.com</small>' : ''}
+                                </span>
+                                
+                                <strong>Telefono:</strong> 
+                                <span style="${phoneOk ? 'color: green;' : 'color: red;'}">
+                                    ${phoneOk ? '✅' : '❌'} ${b.customerPhone || 'N/A'}
+                                    ${!phoneOk ? '<br><small style="color: #666;">Atteso: +41774070742</small>' : ''}
+                                </span>
+                                
+                                <strong>Veicolo:</strong> <span>${b.vehicleName}</span>
+                                <strong>Riferimento:</strong> <span>${b.reference}</span>
+                            </div>
+                            
+                            <h4 style="margin-top: 20px;">📦 Raw Response:</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Prenotazione Non Trovata</h3>
+                            <p>Nessuna prenotazione con riferimento 2967</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Errore</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
