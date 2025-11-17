@@ -1418,22 +1418,24 @@ function createStripeCheckoutSession(amount, description) {
   try {
     const config = getConfig();
 
-    const payload = {
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'chf',
-          product_data: {
-            name: description || 'Payment',
-          },
-          unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: 'https://your-website.com/success?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: 'https://your-website.com/cancel',
-    };
+    // Build form-encoded payload correctly for nested objects
+    const formData = [];
+    
+    // payment_method_types
+    formData.push('payment_method_types[0]=card');
+    
+    // line_items with nested structure
+    formData.push('line_items[0][price_data][currency]=chf');
+    formData.push('line_items[0][price_data][product_data][name]=' + encodeURIComponent(description || 'Payment'));
+    formData.push('line_items[0][price_data][unit_amount]=' + Math.round(parseFloat(amount) * 100));
+    formData.push('line_items[0][quantity]=1');
+    
+    // mode
+    formData.push('mode=payment');
+    
+    // URLs
+    formData.push('success_url=' + encodeURIComponent('https://your-website.com/success?session_id={CHECKOUT_SESSION_ID}'));
+    formData.push('cancel_url=' + encodeURIComponent('https://your-website.com/cancel'));
 
     const options = {
       method: 'POST',
@@ -1441,18 +1443,15 @@ function createStripeCheckoutSession(amount, description) {
         'Authorization': `Bearer ${config.STRIPE_SECRET_KEY}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      payload: Object.keys(payload).map(key => {
-        if (typeof payload[key] === 'object') {
-          return encodeURIComponent(key) + '=' + encodeURIComponent(JSON.stringify(payload[key]));
-        }
-        return encodeURIComponent(key) + '=' + encodeURIComponent(payload[key]);
-      }).join('&')
+      payload: formData.join('&'),
+      muteHttpExceptions: true // To see full error response
     };
 
     const response = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions', options);
+    const responseCode = response.getResponseCode();
     const responseData = JSON.parse(response.getContentText());
 
-    if (response.getResponseCode() === 200) {
+    if (responseCode === 200) {
       return {
         success: true,
         sessionId: responseData.id,
@@ -1461,7 +1460,8 @@ function createStripeCheckoutSession(amount, description) {
     } else {
       return {
         success: false,
-        error: responseData.error ? responseData.error.message : 'Unknown Stripe error'
+        error: responseData.error ? responseData.error.message : 'Unknown Stripe error',
+        details: responseData
       };
     }
   } catch (error) {

@@ -485,8 +485,13 @@
 
                 console.log('💳 Payment response:', data);
 
-                if (data && data.result) {
-                    // Extract the Stripe URL from the response
+                if (data && data.success && data.checkoutUrl) {
+                    // Use the checkoutUrl directly from the response
+                    currentPaymentLink = data.checkoutUrl;
+                    showPaymentResult(amount, description, currentPaymentLink);
+                    addLog(`✅ Payment link created successfully!`, 'success');
+                } else if (data && data.result) {
+                    // Fallback: Extract the Stripe URL from the result field
                     const urlMatch = data.result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
                     if (urlMatch) {
                         currentPaymentLink = urlMatch[0];
