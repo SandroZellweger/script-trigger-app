@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Booking Lookup System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .result.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left: 4px solid #28a745;
+            display: block;
+        }
+
+        .result.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-left: 4px solid #dc3545;
+            display: block;
+        }
+
+        .result.info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            border-left: 4px solid #17a2b8;
+            display: block;
+        }
+
+        .result h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .result pre {
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .data-grid strong {
+            color: #667eea;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.success {
+            background: #d4edda;
+            color: #28a745;
+        }
+
+        .status-badge.error {
+            background: #f8d7da;
+            color: #dc3545;
+        }
+
+        .timeline {
+            margin-top: 30px;
+        }
+
+        .timeline-item {
+            padding: 10px 0;
+            border-left: 3px solid #e0e0e0;
+            padding-left: 20px;
+            margin-left: 10px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            position: absolute;
+            left: -8px;
+            top: 12px;
+        }
+
+        .timeline-item.active::before {
+            background: #667eea;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Test Booking Lookup System</h1>
+            <p>Verifica l'integrazione del sistema di ricerca prenotazioni</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Test 1: Ricerca Prenotazione</h2>
+            <div class="input-group">
+                <label for="referenceNumber">Numero Riferimento Prenotazione:</label>
+                <input 
+                    type="text" 
+                    id="referenceNumber" 
+                    placeholder="Es: 12345 o N3-12345"
+                >
+            </div>
+            <button class="btn" onclick="testBookingLookup()">
+                Cerca Prenotazione
+            </button>
+            <div id="result1" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>💳 Test 2: Pagamento con Booking Data</h2>
+            <div class="input-group">
+                <label for="paymentRef">Numero Riferimento:</label>
+                <input 
+                    type="text" 
+                    id="paymentRef" 
+                    placeholder="Es: 12345"
+                >
+            </div>
+            <div class="input-group">
+                <label for="paymentAmount">Importo (CHF):</label>
+                <input 
+                    type="number" 
+                    id="paymentAmount" 
+                    placeholder="100.00"
+                    value="50.00"
+                >
+            </div>
+            <div class="input-group">
+                <label for="paymentDesc">Descrizione:</label>
+                <input 
+                    type="text" 
+                    id="paymentDesc" 
+                    placeholder="Pagamento prenotazione"
+                    value="Test payment with booking data"
+                >
+            </div>
+            <button class="btn" onclick="testPaymentWithBooking()">
+                Crea Link Pagamento
+            </button>
+            <div id="result2" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Timeline di Test</h2>
+            <div class="timeline" id="timeline">
+                <div class="timeline-item">
+                    <strong>Inizializzazione</strong>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">
+                        Sistema pronto per i test
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-RQV_o-cZ9bkKVB9RvwjpvOnr7BVA1n-WpvxqCe6xp9UeeDVx2hVrfSFSIIKwBBqQ/exec';
+        const AUTH_TOKEN = 'your-auth-token-here'; // Replace with actual token
+
+        let currentBooking = null;
+
+        function addTimelineItem(message, active = false) {
+            const timeline = document.getElementById('timeline');
+            const item = document.createElement('div');
+            item.className = `timeline-item ${active ? 'active' : ''}`;
+            item.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}</strong>
+                <div style="font-size: 14px; color: #666; margin-top: 5px;">
+                    ${message}
+                </div>
+            `;
+            timeline.appendChild(item);
+            
+            // Remove active from previous items
+            const items = timeline.querySelectorAll('.timeline-item');
+            items.forEach((el, index) => {
+                if (index < items.length - 1) {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        function makeJsonpRequest(functionName, params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = `callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                window[callbackName] = (data) => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    resolve(data);
+                };
+                
+                const script = document.createElement('script');
+                const urlParams = new URLSearchParams({
+                    function: functionName,
+                    authToken: AUTH_TOKEN,
+                    callback: callbackName,
+                    ...params
+                });
+                
+                script.src = `${SCRIPT_URL}?${urlParams}`;
+                script.onerror = () => {
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        async function testBookingLookup() {
+            const referenceNumber = document.getElementById('referenceNumber').value.trim();
+            const resultDiv = document.getElementById('result1');
+            
+            if (!referenceNumber) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<h3>❌ Errore</h3><p>Inserisci un numero di riferimento</p>';
+                return;
+            }
+            
+            addTimelineItem(`🔍 Ricerca prenotazione: ${referenceNumber}`, true);
+            
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '<h3><span class="loading"></span> Ricerca in corso...</h3>';
+            
+            try {
+                const data = await makeJsonpRequest('findBookingByReferenceJsonp', { referenceNumber });
+                
+                console.log('📅 Booking data:', data);
+                
+                if (data.success && data.booking) {
+                    currentBooking = data.booking;
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Prenotazione Trovata</h3>
+                        <div class="data-grid">
+                            <strong>Riferimento:</strong> <span>${data.booking.reference}</span>
+                            <strong>Cliente:</strong> <span>${data.booking.customerName || 'N/A'}</span>
+                            <strong>Email:</strong> <span>${data.booking.customerEmail || 'N/A'}</span>
+                            <strong>Telefono:</strong> <span>${data.booking.customerPhone || 'N/A'}</span>
+                            <strong>Veicolo:</strong> <span>${data.booking.vehicleName}</span>
+                            <strong>Inizio:</strong> <span>${new Date(data.booking.startDate).toLocaleString('it-CH')}</span>
+                            <strong>Fine:</strong> <span>${new Date(data.booking.endDate).toLocaleString('it-CH')}</span>
+                        </div>
+                        <h4 style="margin-top: 20px;">Raw Response:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    
+                    addTimelineItem(`✅ Prenotazione trovata: ${data.booking.customerName}`);
+                } else {
+                    currentBooking = null;
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Prenotazione Non Trovata</h3>
+                        <p>Nessuna prenotazione trovata con riferimento: <strong>${referenceNumber}</strong></p>
+                        <h4 style="margin-top: 20px;">Raw Response:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    
+                    addTimelineItem(`❌ Prenotazione non trovata: ${referenceNumber}`);
+                }
+            } catch (error) {
+                console.error('📅 Booking lookup error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Errore di Connessione</h3>
+                    <p>${error.message}</p>
+                `;
+                
+                addTimelineItem(`❌ Errore: ${error.message}`);
+            }
+        }
+
+        async function testPaymentWithBooking() {
+            const referenceNumber = document.getElementById('paymentRef').value.trim();
+            const amount = document.getElementById('paymentAmount').value;
+            const description = document.getElementById('paymentDesc').value;
+            const resultDiv = document.getElementById('result2');
+            
+            if (!amount || !description) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<h3>❌ Errore</h3><p>Compila tutti i campi</p>';
+                return;
+            }
+            
+            addTimelineItem(`💳 Creazione pagamento: CHF ${amount}`, true);
+            
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '<h3><span class="loading"></span> Creazione link pagamento...</h3>';
+            
+            try {
+                // First, lookup booking if reference provided
+                let bookingData = null;
+                if (referenceNumber) {
+                    addTimelineItem(`🔍 Ricerca prenotazione per pagamento: ${referenceNumber}`, true);
+                    const lookupResult = await makeJsonpRequest('findBookingByReferenceJsonp', { referenceNumber });
+                    
+                    if (lookupResult.success && lookupResult.booking) {
+                        bookingData = lookupResult.booking;
+                        addTimelineItem(`✅ Dati cliente trovati: ${bookingData.customerName}`);
+                    }
+                }
+                
+                // Create payment with booking data
+                const paymentParams = {
+                    amount: amount,
+                    description: description,
+                    account: 'green',
+                    customerEmail: bookingData?.customerEmail || '',
+                    vehicleId: bookingData?.vehicleId || '',
+                    bookingRef: bookingData?.reference || ''
+                };
+                
+                addTimelineItem(`💳 Invio richiesta a Stripe...`, true);
+                const paymentResult = await makeJsonpRequest('triggerStripePaymentJsonp', paymentParams);
+                
+                console.log('💳 Payment result:', paymentResult);
+                
+                if (paymentResult.success && paymentResult.checkoutUrl) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Link Pagamento Creato!</h3>
+                        ${bookingData ? `
+                        <div class="data-grid" style="margin-bottom: 20px;">
+                            <strong>Cliente:</strong> <span>${bookingData.customerName}</span>
+                            <strong>Email:</strong> <span>${bookingData.customerEmail}</span>
+                            <strong>Veicolo:</strong> <span>${bookingData.vehicleName}</span>
+                        </div>
+                        ` : ''}
+                        <p><strong>Checkout URL:</strong></p>
+                        <a href="${paymentResult.checkoutUrl}" target="_blank" style="color: #667eea; word-break: break-all;">
+                            ${paymentResult.checkoutUrl}
+                        </a>
+                        <h4 style="margin-top: 20px;">Raw Response:</h4>
+                        <pre>${JSON.stringify(paymentResult, null, 2)}</pre>
+                    `;
+                    
+                    addTimelineItem(`✅ Link pagamento creato con successo`);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Errore Creazione Pagamento</h3>
+                        <p>${paymentResult.error || 'Errore sconosciuto'}</p>
+                        <h4 style="margin-top: 20px;">Raw Response:</h4>
+                        <pre>${JSON.stringify(paymentResult, null, 2)}</pre>
+                    `;
+                    
+                    addTimelineItem(`❌ Errore creazione pagamento`);
+                }
+            } catch (error) {
+                console.error('💳 Payment creation error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Errore di Connessione</h3>
+                    <p>${error.message}</p>
+                `;
+                
+                addTimelineItem(`❌ Errore: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

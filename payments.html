@@ -356,6 +356,33 @@
                 </select>
             </div>
 
+            <div class="input-group">
+                <label for="bookingRef">🔍 Numero Riferimento Prenotazione (opzionale)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input 
+                        type="text" 
+                        id="bookingRef" 
+                        placeholder="Es: 12345 o N3-12345"
+                        style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;"
+                    >
+                    <button 
+                        type="button" 
+                        onclick="searchBooking()" 
+                        style="background: #667eea; padding: 12px 24px; border-radius: 8px; border: none; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s;"
+                        onmouseover="this.style.background='#5a67d8'"
+                        onmouseout="this.style.background='#667eea'"
+                    >
+                        Cerca
+                    </button>
+                </div>
+                <small id="bookingStatus" style="display: block; margin-top: 8px; color: #666; font-size: 14px;"></small>
+            </div>
+
+            <div id="customerInfo" style="display: none; margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f0f7ff 0%, #e8f5ff 100%); border-radius: 12px; border-left: 4px solid #667eea;">
+                <h4 style="margin: 0 0 12px 0; color: #667eea; font-size: 16px;">✅ Dati Cliente Trovati</h4>
+                <div id="customerDetails" style="font-size: 14px; line-height: 1.8;"></div>
+            </div>
+
             <button class="create-btn" id="createBtn" onclick="createPaymentLink()">
                 Create Payment Link
             </button>
@@ -465,12 +492,21 @@
                 console.log('💳 Payment settings:', settings);
                 addLog(`🔗 Using script URL: ${settings.scriptUrl.substring(0, 50)}...`, 'info');
                 
+                // Get booking data if available
+                const customerEmail = currentBooking?.customerEmail || '';
+                const vehicleId = currentBooking?.vehicleId || '';
+                const bookingRef = currentBooking?.reference || '';
+                
+                if (currentBooking) {
+                    addLog(`📋 Using booking data: ${bookingRef} (${currentBooking.customerName})`, 'info');
+                }
+                
                 let data;
 
                 try {
                     // Try CORS first
                     addLog('📡 Attempting secure connection...', 'info');
-                    const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}&account=${encodeURIComponent(account)}`;
+                    const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}&account=${encodeURIComponent(account)}&customerEmail=${encodeURIComponent(customerEmail)}&vehicleId=${encodeURIComponent(vehicleId)}&bookingRef=${encodeURIComponent(bookingRef)}`;
                     console.log('💳 CORS Request URL:', requestUrl);
                     
                     const response = await fetch(requestUrl);
@@ -487,7 +523,7 @@
                     addLog('⚠️ Secure connection failed, trying alternative method...', 'info');
                     
                     try {
-                        data = await createPaymentLinkJsonp(settings, amount, description, account);
+                        data = await createPaymentLinkJsonp(settings, amount, description, account, customerEmail, vehicleId, bookingRef);
                         addLog('✅ Connected via alternative method', 'success');
                     } catch (jsonpError) {
                         console.error('💳 JSONP also failed:', jsonpError);
@@ -526,7 +562,7 @@
                 createBtn.disabled = false;
                 createBtn.innerHTML = 'Create Payment Link';
             }
-        }        function createPaymentLinkJsonp(settings, amount, description, account) {
+        }        function createPaymentLinkJsonp(settings, amount, description, account, customerEmail = '', vehicleId = '', bookingRef = '') {
             return new Promise((resolve, reject) => {
                 console.log('💳 Starting JSONP payment request...');
                 
@@ -562,6 +598,9 @@
                     amount: encodeURIComponent(amount),
                     description: encodeURIComponent(description),
                     account: encodeURIComponent(account || 'green'),
+                    customerEmail: encodeURIComponent(customerEmail),
+                    vehicleId: encodeURIComponent(vehicleId),
+                    bookingRef: encodeURIComponent(bookingRef),
                     callback: callbackName
                 });
                 
@@ -650,6 +689,129 @@
             
             // Focus on amount field
             document.getElementById('amount').focus();
+        }
+
+        // Booking lookup variables
+        let currentBooking = null;
+
+        function searchBooking() {
+            const refInput = document.getElementById('bookingRef');
+            const statusDiv = document.getElementById('bookingStatus');
+            const customerInfoDiv = document.getElementById('customerInfo');
+            
+            const referenceNumber = refInput.value.trim();
+            
+            if (!referenceNumber) {
+                statusDiv.textContent = '⚠️ Inserisci un numero di riferimento';
+                statusDiv.style.color = '#f59e0b';
+                customerInfoDiv.style.display = 'none';
+                currentBooking = null;
+                return;
+            }
+            
+            statusDiv.textContent = '🔍 Ricerca in corso...';
+            statusDiv.style.color = '#667eea';
+            
+            makeJsonpRequest('findBookingByReferenceJsonp', { referenceNumber })
+                .then(data => {
+                    console.log('📅 Booking search result:', data);
+                    
+                    if (data.success && data.booking) {
+                        currentBooking = data.booking;
+                        displayCustomerInfo(data.booking);
+                        statusDiv.textContent = '✅ Prenotazione trovata!';
+                        statusDiv.style.color = '#10b981';
+                        addLog(`Found booking: ${data.booking.reference} for ${data.booking.customerName}`, 'success');
+                    } else {
+                        currentBooking = null;
+                        customerInfoDiv.style.display = 'none';
+                        statusDiv.textContent = '❌ Prenotazione non trovata';
+                        statusDiv.style.color = '#ef4444';
+                        addLog(`Booking ${referenceNumber} not found`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('📅 Booking search failed:', error);
+                    currentBooking = null;
+                    customerInfoDiv.style.display = 'none';
+                    statusDiv.textContent = '❌ Errore durante la ricerca';
+                    statusDiv.style.color = '#ef4444';
+                    addLog(`Booking search error: ${error.message}`, 'error');
+                });
+        }
+
+        function displayCustomerInfo(booking) {
+            const customerInfoDiv = document.getElementById('customerInfo');
+            const detailsDiv = document.getElementById('customerDetails');
+            
+            const startDate = formatDate(booking.startDate);
+            const endDate = formatDate(booking.endDate);
+            
+            detailsDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 8px;">
+                    <strong>👤 Nome:</strong> <span>${sanitizeInput(booking.customerName || 'N/A')}</span>
+                    <strong>📧 Email:</strong> <span>${sanitizeInput(booking.customerEmail || 'N/A')}</span>
+                    <strong>📱 Telefono:</strong> <span>${sanitizeInput(booking.customerPhone || 'N/A')}</span>
+                    <strong>🚗 Veicolo:</strong> <span>${sanitizeInput(booking.vehicleName)}</span>
+                    <strong>📅 Dal:</strong> <span>${sanitizeInput(startDate)}</span>
+                    <strong>📅 Al:</strong> <span>${sanitizeInput(endDate)}</span>
+                    <strong>🔢 Riferimento:</strong> <span style="font-family: monospace; background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">${sanitizeInput(booking.reference)}</span>
+                </div>
+            `;
+            
+            customerInfoDiv.style.display = 'block';
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return 'N/A';
+            try {
+                const date = new Date(isoString);
+                return date.toLocaleDateString('it-CH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                return isoString;
+            }
+        }
+
+        function makeJsonpRequest(functionName, params) {
+            return new Promise((resolve, reject) => {
+                const settings = getSettings();
+                if (!settings) {
+                    reject(new Error('Settings not loaded'));
+                    return;
+                }
+                
+                const callbackName = `callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                window[callbackName] = (data) => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    resolve(data);
+                };
+                
+                const script = document.createElement('script');
+                const urlParams = new URLSearchParams({
+                    function: functionName,
+                    authToken: settings.authToken,
+                    callback: callbackName,
+                    ...params
+                });
+                
+                script.src = `${settings.scriptUrl}?${urlParams}`;
+                script.onerror = () => {
+                    delete window[callbackName];
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.head.appendChild(script);
+            });
         }
 
         function addLog(message, type = 'info') {

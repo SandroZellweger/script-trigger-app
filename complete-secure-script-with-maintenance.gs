@@ -99,6 +99,9 @@ function doGet(e) {
       case "triggerStripePaymentJsonp":
         return triggerStripePaymentJsonp(e.parameter);
         break;
+      case "findBookingByReferenceJsonp":
+        return findBookingByReferenceJsonp(e.parameter);
+        break;
       case "pingJsonp":
         return pingJsonp(e.parameter);
         break;
@@ -811,6 +814,153 @@ function getVehicleListJsonp(params) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
+// NEW: Search booking by reference number across all vehicle calendars
+function findBookingByReference(referenceNumber) {
+  try {
+    Logger.log('🔍 Searching for booking reference: ' + referenceNumber);
+    
+    // Get all vehicle calendars
+    const vehicleData = getVehicleData();
+    if (!vehicleData.success) {
+      return { success: false, error: 'Cannot access vehicle data' };
+    }
+
+    const vehicles = vehicleData.vehicles;
+    const normalizedRef = referenceNumber.toString().trim().toLowerCase();
+    
+    // Search in all calendars (last 12 months to 6 months future)
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 12);
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 6);
+
+    for (const vehicle of vehicles) {
+      try {
+        const calendar = CalendarApp.getCalendarById(vehicle.calendarId);
+        if (!calendar) continue;
+
+        const events = calendar.getEvents(startDate, endDate);
+        
+        for (const event of events) {
+          const title = event.getTitle().toLowerCase();
+          const description = (event.getDescription() || '').toLowerCase();
+          
+          // Check if reference is in title or description
+          if (title.includes(normalizedRef) || description.includes(normalizedRef)) {
+            // Extract customer data from event
+            const customerData = extractCustomerFromEvent(event);
+            
+            Logger.log('✅ Found booking in vehicle: ' + vehicle.vehicleType);
+            return {
+              success: true,
+              booking: {
+                referenceNumber: referenceNumber,
+                vehicleType: vehicle.vehicleType,
+                vehicleName: vehicle.vehicleNumber || vehicle.vehicleType,
+                calendarId: vehicle.calendarId,
+                eventId: event.getId(),
+                eventTitle: event.getTitle(),
+                startDate: event.getStartTime().toISOString(),
+                endDate: event.getEndTime().toISOString(),
+                customer: customerData
+              }
+            };
+          }
+        }
+      } catch (calError) {
+        Logger.log('⚠️ Error searching calendar ' + vehicle.vehicleType + ': ' + calError);
+        continue;
+      }
+    }
+
+    Logger.log('❌ No booking found with reference: ' + referenceNumber);
+    return {
+      success: false,
+      error: 'Prenotazione non trovata. Verifica il numero di riferimento.'
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in findBookingByReference: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Helper: Extract customer data from calendar event
+function extractCustomerFromEvent(event) {
+  try {
+    const title = event.getTitle();
+    const description = event.getDescription() || '';
+    
+    let customerEmail = '';
+    let customerName = '';
+    let customerPhone = '';
+    
+    // Extract email
+    const emailMatch = description.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) {
+      customerEmail = emailMatch[0];
+    }
+    
+    // Extract phone (Swiss formats: +41, 0041, 07x, +417x)
+    const phoneMatch = description.match(/(\+41|0041|0)\s?([67]\d)\s?(\d{3})\s?(\d{2})\s?(\d{2})/);
+    if (phoneMatch) {
+      customerPhone = phoneMatch[0].replace(/\s/g, '');
+    }
+    
+    // Extract name from description keywords
+    const lines = description.split('\n');
+    for (const line of lines) {
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('cliente:') || 
+          lowerLine.includes('name:') ||
+          lowerLine.includes('nome:') ||
+          lowerLine.includes('customer:')) {
+        customerName = line.split(':')[1]?.trim() || '';
+        break;
+      }
+    }
+    
+    // Fallback: use event title as name if no name found
+    if (!customerName) {
+      // Remove common prefixes and suffixes
+      customerName = title
+        .replace(/\s*-\s*N\d+/gi, '') // Remove "- N3"
+        .replace(/\s*\(.*?\)/g, '') // Remove (anything)
+        .trim()
+        .split('-')[0]?.trim() || title;
+    }
+    
+    return {
+      name: customerName || 'Cliente',
+      email: customerEmail || '',
+      phone: customerPhone || ''
+    };
+    
+  } catch (error) {
+    Logger.log('Error extracting customer data: ' + error);
+    return {
+      name: 'Cliente',
+      email: '',
+      phone: ''
+    };
+  }
+}
+
+// JSONP wrapper for findBookingByReference
+function findBookingByReferenceJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const result = findBookingByReference(params.referenceNumber);
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(result) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
 function getVehicleBookings(params) {
   try {
     if (!params || !params.vehicleId) {
@@ -1380,7 +1530,7 @@ function triggerHardcodedReport() {
 }
 
 // Stripe payment functions
-function triggerStripePayment(amount, description, account) {
+function triggerStripePayment(amount, description, account, customerEmail, vehicleId, bookingRef) {
   try {
     const config = getConfig();
 
@@ -1406,8 +1556,16 @@ function triggerStripePayment(amount, description, account) {
       }
     }
 
-    // Create Stripe checkout session with the selected account
-    const checkoutSession = createStripeCheckoutSession(amount, description, stripeKey, accountType);
+    // Create Stripe checkout session with the selected account and booking data
+    const checkoutSession = createStripeCheckoutSession(
+      amount, 
+      description, 
+      stripeKey, 
+      accountType,
+      customerEmail || '',
+      vehicleId || '',
+      bookingRef || ''
+    );
 
     if (checkoutSession.success) {
       return {
@@ -1431,7 +1589,7 @@ function triggerStripePayment(amount, description, account) {
   }
 }
 
-function createStripeCheckoutSession(amount, description, stripeKey, accountType) {
+function createStripeCheckoutSession(amount, description, stripeKey, accountType, customerEmail, vehicleId, bookingRef) {
   try {
     // Decode description if it comes URL-encoded from frontend
     const cleanDescription = decodeURIComponent(description || 'Payment');
@@ -1451,9 +1609,26 @@ function createStripeCheckoutSession(amount, description, stripeKey, accountType
     // mode
     formData.push('mode=payment');
     
+    // Customer info (if email provided)
+    if (customerEmail && customerEmail.includes('@')) {
+      formData.push('customer_email=' + encodeURIComponent(customerEmail));
+      formData.push('customer_creation=always');
+    }
+    
+    // Metadata for tracking
+    if (vehicleId) {
+      formData.push('metadata[vehicle_id]=' + encodeURIComponent(vehicleId));
+    }
+    if (bookingRef) {
+      formData.push('metadata[booking_reference]=' + encodeURIComponent(bookingRef));
+    }
+    formData.push('metadata[payment_type]=' + encodeURIComponent(cleanDescription));
+    formData.push('metadata[account]=' + encodeURIComponent(accountType));
+    formData.push('metadata[timestamp]=' + new Date().toISOString());
+    
     // URLs
-    formData.push('success_url=' + encodeURIComponent('https://your-website.com/success?session_id={CHECKOUT_SESSION_ID}'));
-    formData.push('cancel_url=' + encodeURIComponent('https://your-website.com/cancel'));
+    formData.push('success_url=' + encodeURIComponent('https://sandrozellweger.github.io/script-trigger-app/payment-success.html?session_id={CHECKOUT_SESSION_ID}'));
+    formData.push('cancel_url=' + encodeURIComponent('https://sandrozellweger.github.io/script-trigger-app/payments.html'));
 
     const options = {
       method: 'POST',
@@ -1716,7 +1891,14 @@ function generateIglohomeCodeAppJsonp(params) {
 function triggerStripePaymentJsonp(params) {
   try {
     const callback = params.callback || 'callback';
-    const result = triggerStripePayment(params.amount, params.description, params.account);
+    const result = triggerStripePayment(
+      params.amount, 
+      params.description, 
+      params.account,
+      params.customerEmail || '',
+      params.vehicleId || '',
+      params.bookingRef || ''
+    );
 
     const jsonpResponse = `/**/${callback}(${JSON.stringify(result)});`;
 
