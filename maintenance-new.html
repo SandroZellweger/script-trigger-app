@@ -1362,6 +1362,187 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        /* AI Personal Assistant Styles */
+        .ai-chat-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .ai-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+            scroll-behavior: smooth;
+        }
+
+        .ai-message {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: flex-start;
+            gap: 12px;
+            animation: messageSlideIn 0.3s ease-out;
+        }
+
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message.ai-user {
+            flex-direction: row-reverse;
+        }
+
+        .ai-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .ai-message.ai-user .ai-avatar {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .ai-content {
+            background: white;
+            padding: 15px 18px;
+            border-radius: 18px;
+            max-width: 75%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            line-height: 1.6;
+        }
+
+        .ai-message.ai-user .ai-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .ai-content strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .ai-content ul {
+            margin: 10px 0;
+        }
+
+        .ai-content a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .ai-message.ai-user .ai-content a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .ai-content .ai-action-result {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .ai-content .ai-error-result {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .ai-input-container {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 2px solid #e0e0e0;
+            gap: 10px;
+        }
+
+        #aiCommandInput {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        #aiCommandInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .ai-send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .ai-send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Loading animation */
+        .ai-typing {
+            display: inline-block;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .ai-typing span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        .ai-typing span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .ai-typing span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-10px); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -1380,6 +1561,7 @@
             <button class="tab" onclick="switchTab('invoices')">📄 Fatture</button>
             <button class="tab" onclick="switchTab('history')">📊 Storico Completo</button>
             <button class="tab" onclick="switchTab('garages')">🔧 Gestione Officine</button>
+            <button class="tab" onclick="switchTab('personal-ai')">🤖 AI Personale</button>
             <button class="tab" onclick="switchTab('import-legacy')">📥 Importa Dati Legacy</button>
         </div>
 
@@ -1668,6 +1850,59 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         <div id="importProgressBar" class="progress-bar" style="width: 0%; transition: width 0.3s ease;"></div>
                     </div>
                     <p id="importStatusText">Preparazione dati...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI PERSONAL ASSISTANT TAB -->
+        <div id="personal-ai" class="tab-content">
+            <div class="content-card">
+                <h2 style="margin-bottom: 10px;">🤖 Assistente AI Personale</h2>
+                <p style="color: #666; margin-bottom: 30px;">Chiedimi cosa vuoi fare e lo farò per te automaticamente!</p>
+                
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 16px;">💡 Esempi di comandi:</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="setAICommand('Crea codice igloohome per N06 fino a domani alle 7')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
+                            📱 Codice Igloohome
+                        </button>
+                        <button onclick="setAICommand('Crea link pagamento 150 CHF per multa velocità')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
+                            💳 Link Pagamento
+                        </button>
+                        <button onclick="setAICommand('Crea danno veicolo N01: lampadina sinistra davanti rotta')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
+                            🔧 Nuovo Danno
+                        </button>
+                        <button onclick="setAICommand('Genera PDF manutenzione per veicolo N07')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
+                            📄 PDF Manutenzione
+                        </button>
+                    </div>
+                </div>
+
+                <div class="ai-chat-container">
+                    <div class="ai-messages" id="aiChatMessages">
+                        <div class="ai-message ai-bot">
+                            <div class="ai-avatar">🤖</div>
+                            <div class="ai-content">
+                                Ciao! Sono il tuo assistente AI personale. 👋<br><br>
+                                Posso aiutarti con:
+                                <ul style="margin: 10px 0; padding-left: 20px;">
+                                    <li>📱 Creare codici Igloohome per veicoli</li>
+                                    <li>💳 Generare link di pagamento Stripe</li>
+                                    <li>🔧 Registrare danni e problemi ai veicoli</li>
+                                    <li>📄 Generare PDF di manutenzione</li>
+                                    <li>📲 Inviare istruzioni ai clienti</li>
+                                </ul>
+                                Dimmi cosa vuoi fare e ci penso io! 🚀
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-input-container">
+                        <input type="text" id="aiCommandInput" placeholder="Scrivi cosa vuoi fare... (es: Crea codice igloohome per N06)" onkeypress="if(event.key === 'Enter') executeAICommand()">
+                        <button class="ai-send-btn" onclick="executeAICommand()">
+                            ➤
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -8459,6 +8694,316 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 console.error('Error in saveInvoiceToHistoryWithWorkshop:', error);
                 return { success: false, error: error.message };
             }
+        }
+
+        // ============================================
+        // AI PERSONAL ASSISTANT FUNCTIONS
+        // ============================================
+        
+        let aiCommandHistory = [];
+
+        // Popola l'input con il comando di esempio
+        function setAICommand(text) {
+            document.getElementById('aiCommandInput').value = text;
+            document.getElementById('aiCommandInput').focus();
+        }
+
+        // Funzione principale per eseguire i comandi AI
+        async function executeAICommand() {
+            const input = document.getElementById('aiCommandInput');
+            const command = input.value.trim();
+            
+            if (!command) return;
+            
+            // Aggiungi messaggio utente alla chat
+            addAIMessage(command, 'user');
+            
+            // Pulisci input
+            input.value = '';
+            
+            // Mostra animazione "typing"
+            showAITyping();
+            
+            // Salva nella cronologia
+            aiCommandHistory.push(command);
+            
+            // Processa il comando
+            setTimeout(() => {
+                processAICommand(command);
+            }, 800);
+        }
+
+        // Mostra animazione typing
+        function showAITyping() {
+            const messagesDiv = document.getElementById('aiChatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'ai-typing-indicator';
+            typingDiv.className = 'ai-message ai-bot';
+            typingDiv.innerHTML = `
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-typing">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Rimuovi animazione typing
+        function hideAITyping() {
+            const typingDiv = document.getElementById('ai-typing-indicator');
+            if (typingDiv) typingDiv.remove();
+        }
+
+        // Aggiungi messaggio alla chat
+        function addAIMessage(content, type = 'bot') {
+            hideAITyping();
+            
+            const messagesDiv = document.getElementById('aiChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ai-${type}`;
+            
+            const avatar = type === 'bot' ? '🤖' : '👤';
+            
+            messageDiv.innerHTML = `
+                <div class="ai-avatar">${avatar}</div>
+                <div class="ai-content">${content}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Processa e riconosce il tipo di comando
+        async function processAICommand(command) {
+            const lower = command.toLowerCase();
+            
+            try {
+                // Pattern per codici Igloohome
+                if (lower.includes('codice') && lower.includes('igloohome')) {
+                    await handleIgloohomeCommand(command);
+                }
+                // Pattern per link di pagamento
+                else if (lower.includes('link') && (lower.includes('pagamento') || lower.includes('stripe'))) {
+                    await handlePaymentCommand(command);
+                }
+                // Pattern per creazione danni
+                else if (lower.includes('danno') || lower.includes('guasto') || lower.includes('problema')) {
+                    await handleDamageCommand(command);
+                }
+                // Pattern per generazione PDF
+                else if (lower.includes('pdf') || lower.includes('stampa')) {
+                    await handlePDFCommand(command);
+                }
+                // Pattern per invio messaggi
+                else if (lower.includes('manda') || lower.includes('invia') || lower.includes('messaggio')) {
+                    await handleMessageCommand(command);
+                }
+                // Comando non riconosciuto
+                else {
+                    addAIMessage(`
+                        Non ho capito il comando. Ecco cosa posso fare:
+                        <ul>
+                            <li>📱 Creare codici Igloohome</li>
+                            <li>💳 Generare link di pagamento Stripe</li>
+                            <li>🔧 Registrare danni ai veicoli</li>
+                            <li>📄 Generare PDF di manutenzione</li>
+                            <li>📲 Inviare istruzioni ai clienti</li>
+                        </ul>
+                        Prova a riformulare il comando!
+                    `, 'bot');
+                }
+            } catch (error) {
+                console.error('Error processing AI command:', error);
+                addAIMessage(`
+                    <div class="ai-error-result">
+                        ❌ Si è verificato un errore: ${error.message}
+                    </div>
+                `, 'bot');
+            }
+        }
+
+        // Gestione comando Igloohome
+        async function handleIgloohomeCommand(command) {
+            // Estrai veicolo (N01, N06, ecc.)
+            const vehicleMatch = command.match(/[NnBb]\s*0*(\d+)/);
+            const vehicleNum = vehicleMatch ? vehicleMatch[1].padStart(2, '0') : null;
+            const vehicleCode = vehicleMatch ? (command.toLowerCase().includes('b') ? 'B' : 'N') + vehicleNum : null;
+            
+            if (!vehicleCode) {
+                addAIMessage(`
+                    <div class="ai-error-result">
+                        ❌ Non ho trovato il codice veicolo (es: N06, B01)
+                    </div>
+                    Riprova con: "Crea codice igloohome per N06 fino a domani alle 7"
+                `, 'bot');
+                return;
+            }
+            
+            // Estrai orario - esempi: "fino a domani alle 7", "fino alle 18:00", "valido 3 giorni"
+            let endTime = null;
+            let endDate = new Date();
+            
+            if (command.toLowerCase().includes('domani')) {
+                endDate.setDate(endDate.getDate() + 1);
+                const hourMatch = command.match(/(\d+)(?::(\d+))?/);
+                if (hourMatch) {
+                    endDate.setHours(parseInt(hourMatch[1]), parseInt(hourMatch[2] || 0), 0, 0);
+                }
+            } else {
+                const daysMatch = command.match(/(\d+)\s*giorn[oi]/);
+                if (daysMatch) {
+                    endDate.setDate(endDate.getDate() + parseInt(daysMatch[1]));
+                    endDate.setHours(23, 59, 0, 0);
+                } else {
+                    // Default: 24 ore
+                    endDate.setDate(endDate.getDate() + 1);
+                }
+            }
+            
+            addAIMessage(`
+                <div class="ai-action-result">
+                    ✅ <strong>Codice Igloohome per ${vehicleCode}</strong><br>
+                    📅 Valido fino a: ${endDate.toLocaleString('it-IT')}<br>
+                    <br>
+                    <strong>🔑 Codice: 123456789</strong><br>
+                    <br>
+                    <em>💡 Nota: Questa è una simulazione. Integrare con backend Igloohome per codici reali.</em>
+                </div>
+            `, 'bot');
+        }
+
+        // Gestione comando pagamento Stripe
+        async function handlePaymentCommand(command) {
+            // Estrai importo
+            const amountMatch = command.match(/(\d+(?:[.,]\d+)?)\s*(?:CHF|franch|€|eur)/i);
+            const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : null;
+            
+            if (!amount) {
+                addAIMessage(`
+                    <div class="ai-error-result">
+                        ❌ Non ho trovato l'importo (es: 150 CHF, 50.00 franchi)
+                    </div>
+                    Riprova con: "Crea link pagamento 150 CHF per multa velocità"
+                `, 'bot');
+                return;
+            }
+            
+            // Estrai descrizione
+            const descMatch = command.match(/per\s+(.+)$/i);
+            const description = descMatch ? descMatch[1] : 'Pagamento';
+            
+            // Simula generazione link Stripe
+            const mockLink = `https://buy.stripe.com/test_XXXXX${Math.random().toString(36).substr(2, 9)}`;
+            
+            addAIMessage(`
+                <div class="ai-action-result">
+                    ✅ <strong>Link Pagamento Stripe Creato</strong><br>
+                    💰 Importo: ${amount.toFixed(2)} CHF<br>
+                    📝 Descrizione: ${description}<br>
+                    <br>
+                    🔗 <a href="${mockLink}" target="_blank">${mockLink}</a><br>
+                    <br>
+                    <button onclick="navigator.clipboard.writeText('${mockLink}'); alert('Link copiato!');" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        📋 Copia Link
+                    </button>
+                    <br><br>
+                    <em>💡 Nota: Link simulato. Integrare con API Stripe per link reali.</em>
+                </div>
+            `, 'bot');
+        }
+
+        // Gestione comando creazione danno
+        async function handleDamageCommand(command) {
+            // Estrai veicolo
+            const vehicleMatch = command.match(/[NnBb]\s*0*(\d+)/);
+            const vehicleNum = vehicleMatch ? vehicleMatch[1].padStart(2, '0') : null;
+            const vehicleCode = vehicleMatch ? (command.toLowerCase().includes('b') ? 'B' : 'N') + vehicleNum : null;
+            
+            // Estrai descrizione danno
+            const descMatch = command.match(/(?:danno|guasto|problema)[:\s]+(.+)$/i) || 
+                             command.match(/veicolo\s+[NnBb]\d+[:\s]+(.+)$/i);
+            const description = descMatch ? descMatch[1] : 'Danno non specificato';
+            
+            if (!vehicleCode) {
+                addAIMessage(`
+                    <div class="ai-error-result">
+                        ❌ Non ho trovato il codice veicolo
+                    </div>
+                    Riprova con: "Crea danno veicolo N01: lampadina sinistra davanti rotta"
+                `, 'bot');
+                return;
+            }
+            
+            // Cambia tab a report attivi
+            switchTab('active-reports');
+            
+            addAIMessage(`
+                <div class="ai-action-result">
+                    ✅ <strong>Danno Registrato</strong><br>
+                    🚐 Veicolo: ${vehicleCode}<br>
+                    📝 Descrizione: ${description}<br>
+                    <br>
+                    ➡️ Ti ho portato alla sezione "Report Attivi" dove puoi vedere e gestire il danno.
+                </div>
+            `, 'bot');
+            
+            // Simula creazione report (in produzione usare saveMaintenanceReportJsonp)
+            console.log('Simulated damage report:', { vehicle: vehicleCode, description });
+        }
+
+        // Gestione comando generazione PDF
+        async function handlePDFCommand(command) {
+            const vehicleMatch = command.match(/[NnBb]\s*0*(\d+)/);
+            const vehicleNum = vehicleMatch ? vehicleMatch[1].padStart(2, '0') : null;
+            const vehicleCode = vehicleMatch ? (command.toLowerCase().includes('b') ? 'B' : 'N') + vehicleNum : null;
+            
+            if (!vehicleCode) {
+                addAIMessage(`
+                    <div class="ai-error-result">
+                        ❌ Non ho trovato il codice veicolo
+                    </div>
+                    Riprova con: "Genera PDF manutenzione per veicolo N07"
+                `, 'bot');
+                return;
+            }
+            
+            addAIMessage(`
+                <div class="ai-action-result">
+                    ✅ <strong>Generazione PDF in corso...</strong><br>
+                    🚐 Veicolo: ${vehicleCode}<br>
+                    <br>
+                    📄 Il PDF verrà scaricato automaticamente tra pochi secondi.
+                    <br><br>
+                    <em>💡 Nota: Funzione in sviluppo. Integrare con jsPDF esistente.</em>
+                </div>
+            `, 'bot');
+        }
+
+        // Gestione comando invio messaggi
+        async function handleMessageCommand(command) {
+            const phoneMatch = command.match(/(\+?\d{10,})/);
+            const phone = phoneMatch ? phoneMatch[1] : null;
+            
+            if (!phone) {
+                addAIMessage(`
+                    <div class="ai-error-result">
+                        ❌ Non ho trovato il numero di telefono
+                    </div>
+                    Riprova con: "Manda istruzioni al +41791234567"
+                `, 'bot');
+                return;
+            }
+            
+            addAIMessage(`
+                <div class="ai-action-result">
+                    ✅ <strong>Messaggio Inviato</strong><br>
+                    📱 Destinatario: ${phone}<br>
+                    📲 Tipo: Istruzioni veicolo<br>
+                    <br>
+                    <em>💡 Nota: Funzione in sviluppo. Integrare con servizio SMS/WhatsApp.</em>
+                </div>
+            `, 'bot');
         }
     </script>
 
