@@ -11,6 +11,7 @@ function getConfig() {
 
   return {
     STRIPE_SECRET_KEY: scriptProperties.getProperty('STRIPE_SECRET_KEY') || '',
+    STRIPE_BLACK_API_KEY: scriptProperties.getProperty('STRIPE_BLACK_API_KEY') || '',
     AUTH_TOKEN: scriptProperties.getProperty('AUTH_TOKEN') || 'mySecureVanApp_2025',
     PARENT_FOLDER_ID: scriptProperties.getProperty('PARENT_FOLDER_ID') || '',
     EXPENSE_SHEET_ID: scriptProperties.getProperty('EXPENSE_SHEET_ID') || '',
