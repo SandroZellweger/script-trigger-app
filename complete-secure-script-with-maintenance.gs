@@ -93,7 +93,7 @@ function doGet(e) {
         result = triggerHardcodedReport();
         break;
       case "triggerStripePayment":
-        result = triggerStripePayment(e.parameter.amount, e.parameter.description);
+        result = triggerStripePayment(e.parameter.amount, e.parameter.description, e.parameter.account);
         break;
       case "triggerStripePaymentJsonp":
         return triggerStripePaymentJsonp(e.parameter);
@@ -1379,26 +1379,42 @@ function triggerHardcodedReport() {
 }
 
 // Stripe payment functions
-function triggerStripePayment(amount, description) {
+function triggerStripePayment(amount, description, account) {
   try {
     const config = getConfig();
 
-    if (!config.STRIPE_SECRET_KEY) {
-      return {
-        success: false,
-        error: "Stripe secret key not configured in Script Properties"
-      };
+    // Determine which Stripe key to use based on account parameter
+    const accountType = account || 'green'; // Default to green
+    let stripeKey;
+    
+    if (accountType.toLowerCase() === 'black') {
+      stripeKey = config.STRIPE_BLACK_API_KEY;
+      if (!stripeKey) {
+        return {
+          success: false,
+          error: "Stripe Black API key not configured in Script Properties"
+        };
+      }
+    } else {
+      stripeKey = config.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
+        return {
+          success: false,
+          error: "Stripe Green secret key not configured in Script Properties"
+        };
+      }
     }
 
-    // Create Stripe checkout session
-    const checkoutSession = createStripeCheckoutSession(amount, description);
+    // Create Stripe checkout session with the selected account
+    const checkoutSession = createStripeCheckoutSession(amount, description, stripeKey, accountType);
 
     if (checkoutSession.success) {
       return {
         success: true,
-        message: "Stripe payment session created successfully",
+        message: `Stripe payment session created successfully (${accountType.toUpperCase()} account)`,
         checkoutUrl: checkoutSession.url,
-        sessionId: checkoutSession.sessionId
+        sessionId: checkoutSession.sessionId,
+        account: accountType
       };
     } else {
       return {
@@ -1414,9 +1430,10 @@ function triggerStripePayment(amount, description) {
   }
 }
 
-function createStripeCheckoutSession(amount, description) {
+function createStripeCheckoutSession(amount, description, stripeKey, accountType) {
   try {
-    const config = getConfig();
+    // Decode description if it comes URL-encoded from frontend
+    const cleanDescription = decodeURIComponent(description || 'Payment');
 
     // Build form-encoded payload correctly for nested objects
     const formData = [];
@@ -1426,7 +1443,7 @@ function createStripeCheckoutSession(amount, description) {
     
     // line_items with nested structure
     formData.push('line_items[0][price_data][currency]=chf');
-    formData.push('line_items[0][price_data][product_data][name]=' + encodeURIComponent(description || 'Payment'));
+    formData.push('line_items[0][price_data][product_data][name]=' + encodeURIComponent(cleanDescription));
     formData.push('line_items[0][price_data][unit_amount]=' + Math.round(parseFloat(amount) * 100));
     formData.push('line_items[0][quantity]=1');
     
@@ -1440,7 +1457,7 @@ function createStripeCheckoutSession(amount, description) {
     const options = {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${config.STRIPE_SECRET_KEY}`,
+        'Authorization': `Bearer ${stripeKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       payload: formData.join('&'),
@@ -1698,7 +1715,7 @@ function generateIglohomeCodeAppJsonp(params) {
 function triggerStripePaymentJsonp(params) {
   try {
     const callback = params.callback || 'callback';
-    const result = triggerStripePayment(params.amount, params.description);
+    const result = triggerStripePayment(params.amount, params.description, params.account);
 
     const jsonpResponse = `/**/${callback}(${JSON.stringify(result)});`;
 

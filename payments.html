@@ -346,7 +346,17 @@
             <div class="input-group">
                 <label for="description">Description:</label>
                 <input type="text" id="description" placeholder="Noleggio Furgone - 3 giorni" required>
-            </div>            <button class="create-btn" id="createBtn" onclick="createPaymentLink()">
+            </div>
+
+            <div class="input-group">
+                <label for="account">Stripe Account:</label>
+                <select id="account" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                    <option value="green">🟢 Green Account (Default)</option>
+                    <option value="black">⚫ Black Account</option>
+                </select>
+            </div>
+
+            <button class="create-btn" id="createBtn" onclick="createPaymentLink()">
                 Create Payment Link
             </button>
             
@@ -430,6 +440,7 @@
 
             const amount = document.getElementById('amount').value;
             const description = document.getElementById('description').value;
+            const account = document.getElementById('account').value;
 
             if (!amount || !description) {
                 addLog('❌ Please fill in all fields', 'error');
@@ -447,7 +458,8 @@
             createBtn.innerHTML = '<span class="loading"></span> Creating...';
 
             try {
-                addLog(`🚀 Creating payment link for CHF ${amount}...`, 'info');
+                const accountLabel = account === 'black' ? '⚫ Black' : '🟢 Green';
+                addLog(`🚀 Creating payment link for CHF ${amount} (${accountLabel} Account)...`, 'info');
 
                 const settings = getSettings();
                 console.log('💳 Payment settings:', settings);
@@ -458,7 +470,7 @@
                 try {
                     // Try CORS first
                     addLog('📡 Attempting secure connection...', 'info');
-                    const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}`;
+                    const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}&account=${encodeURIComponent(account)}`;
                     console.log('💳 CORS Request URL:', requestUrl);
                     
                     const response = await fetch(requestUrl);
@@ -475,7 +487,7 @@
                     addLog('⚠️ Secure connection failed, trying alternative method...', 'info');
                     
                     try {
-                        data = await createPaymentLinkJsonp(settings, amount, description);
+                        data = await createPaymentLinkJsonp(settings, amount, description, account);
                         addLog('✅ Connected via alternative method', 'success');
                     } catch (jsonpError) {
                         console.error('💳 JSONP also failed:', jsonpError);
@@ -514,7 +526,7 @@
                 createBtn.disabled = false;
                 createBtn.innerHTML = 'Create Payment Link';
             }
-        }        function createPaymentLinkJsonp(settings, amount, description) {
+        }        function createPaymentLinkJsonp(settings, amount, description, account) {
             return new Promise((resolve, reject) => {
                 console.log('💳 Starting JSONP payment request...');
                 
@@ -549,6 +561,7 @@
                     authToken: encodeURIComponent(settings.authToken),
                     amount: encodeURIComponent(amount),
                     description: encodeURIComponent(description),
+                    account: encodeURIComponent(account || 'green'),
                     callback: callbackName
                 });
                 
