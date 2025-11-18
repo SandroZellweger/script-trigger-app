@@ -851,18 +851,25 @@ function findBookingByReference(referenceNumber) {
             const customerData = extractCustomerFromEvent(event);
             
             Logger.log('✅ Found booking in vehicle: ' + vehicle.vehicleType);
+            
+            // Extract vehicle ID from vehicleType (e.g., "N01 - Opel Vivaro" -> "N01")
+            const vehicleIdMatch = vehicle.vehicleType.match(/^([A-Z]\d+)/);
+            const vehicleId = vehicleIdMatch ? vehicleIdMatch[1] : vehicle.vehicleType;
+            
             return {
               success: true,
               booking: {
-                referenceNumber: referenceNumber,
-                vehicleType: vehicle.vehicleType,
-                vehicleName: vehicle.vehicleNumber || vehicle.vehicleType,
+                reference: referenceNumber.toString(),
+                vehicleName: vehicle.vehicleType,
+                vehicleId: vehicleId,
                 calendarId: vehicle.calendarId,
                 eventId: event.getId(),
                 eventTitle: event.getTitle(),
                 startDate: event.getStartTime().toISOString(),
                 endDate: event.getEndTime().toISOString(),
-                customer: customerData
+                customerName: customerData.name || '',
+                customerEmail: customerData.email || '',
+                customerPhone: customerData.phone || ''
               }
             };
           }
