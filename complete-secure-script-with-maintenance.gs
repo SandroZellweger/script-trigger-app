@@ -1710,8 +1710,8 @@ function createStripeCheckoutSession(amount, description, stripeKey, accountType
   }
 }
 
-// Create Stripe Payment Link (permanent or 24h)
-function createStripePaymentLink(amount, description, account, linkType, eventId) {
+// Create Stripe Payment Link (permanent or checkout)
+function createStripePaymentLink(amount, description, account, linkType, bookingRef) {
   try {
     const config = getConfig();
     
@@ -1731,16 +1731,35 @@ function createStripePaymentLink(amount, description, account, linkType, eventId
       }
     }
 
-    // If eventId provided, extract event details for description
+    // If bookingRef provided, extract booking details for description
     let finalDescription = decodeURIComponent(description || 'Payment');
-    if (eventId) {
+    let customerEmail = '';
+    let vehicleId = '';
+    
+    if (bookingRef) {
       try {
-        const eventDetails = getEventDetailsForPayment(eventId);
-        if (eventDetails.success) {
-          finalDescription = eventDetails.description;
+        const bookingDetails = getBookingDetailsByReference(bookingRef);
+        if (bookingDetails.success && bookingDetails.event) {
+          const event = bookingDetails.event;
+          const eventDescription = event.getDescription() || '';
+          const startDate = Utilities.formatDate(event.getStartTime(), 'Europe/Zurich', 'dd/MM/yyyy');
+          const endDate = Utilities.formatDate(event.getEndTime(), 'Europe/Zurich', 'dd/MM/yyyy');
+          
+          // Extract customer info
+          const customerMatch = eventDescription.match(/👤\s*Cliente:\s*([^\n]+)/i);
+          const emailMatch = eventDescription.match(/📧\s*Email:\s*([^\n]+)/i);
+          const vehicleMatch = eventDescription.match(/🚗\s*Veicolo:\s*([^\n]+)/i);
+          
+          const customerName = customerMatch ? customerMatch[1].trim() : 'Cliente';
+          customerEmail = emailMatch ? emailMatch[1].trim() : '';
+          const vehicleName = vehicleMatch ? vehicleMatch[1].trim() : event.getTitle().replace(/\s*\(.*?\)\s*/g, '').trim();
+          vehicleId = bookingDetails.vehicleId || '';
+          
+          // Build enhanced description
+          finalDescription = `Noleggio ${vehicleName} | Cliente: ${customerName} | Ref: ${bookingRef} | Periodo: ${startDate} - ${endDate}`;
         }
       } catch (error) {
-        Logger.log('Error extracting event details: ' + error.toString());
+        Logger.log('Error extracting booking details: ' + error.toString());
       }
     }
 
@@ -1785,42 +1804,83 @@ function createStripePaymentLink(amount, description, account, linkType, eventId
       return { success: false, error: 'Failed to create price: ' + (price.error?.message || 'Unknown error') };
     }
 
-    // Step 3: Create Payment Link
-    const linkPayload = [];
-    linkPayload.push('line_items[0][price]=' + encodeURIComponent(price.id));
-    linkPayload.push('line_items[0][quantity]=1');
-    linkPayload.push('after_completion[type]=hosted_confirmation');
-    linkPayload.push('after_completion[hosted_confirmation][custom_message]=' + encodeURIComponent('Grazie per il pagamento!'));
+    // Step 3: Create Payment Link or Checkout Session
+    if (linkType === 'checkout') {
+      // For checkout, use Checkout Sessions
+      const checkoutPayload = [];
+      checkoutPayload.push('payment_method_types[0]=card');
+      checkoutPayload.push('line_items[0][price]=' + encodeURIComponent(price.id));
+      checkoutPayload.push('line_items[0][quantity]=1');
+      checkoutPayload.push('mode=payment');
+      checkoutPayload.push('success_url=' + encodeURIComponent('https://sandrozellweger.github.io/script-trigger-app/payment-success.html?session_id={CHECKOUT_SESSION_ID}'));
+      checkoutPayload.push('cancel_url=' + encodeURIComponent('https://sandrozellweger.github.io/script-trigger-app/payments.html'));
+      
+      // Add customer email if available
+      if (customerEmail && customerEmail.includes('@')) {
+        checkoutPayload.push('customer_email=' + encodeURIComponent(customerEmail));
+      }
+      
+      // Add metadata
+      if (vehicleId) {
+        checkoutPayload.push('metadata[vehicle_id]=' + encodeURIComponent(vehicleId));
+      }
+      if (bookingRef) {
+        checkoutPayload.push('metadata[booking_reference]=' + encodeURIComponent(bookingRef));
+      }
 
-    // If 24h link, add expiration
-    if (linkType === '24h') {
-      const expiresAt = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
-      linkPayload.push('expires_at=' + expiresAt);
+      const checkoutResponse = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + stripeKey,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        payload: checkoutPayload.join('&'),
+        muteHttpExceptions: true
+      });
+
+      const checkout = JSON.parse(checkoutResponse.getContentText());
+      if (!checkout.url) {
+        return { success: false, error: 'Failed to create checkout session: ' + (checkout.error?.message || 'Unknown error') };
+      }
+
+      return {
+        success: true,
+        url: checkout.url,
+        id: checkout.id,
+        type: 'checkout',
+        account: accountType
+      };
+    } else {
+      // For permanent links, use Payment Links API
+      const linkPayload = [];
+      linkPayload.push('line_items[0][price]=' + encodeURIComponent(price.id));
+      linkPayload.push('line_items[0][quantity]=1');
+      linkPayload.push('after_completion[type]=hosted_confirmation');
+      linkPayload.push('after_completion[hosted_confirmation][custom_message]=' + encodeURIComponent('Grazie per il pagamento!'));
+
+      const linkResponse = UrlFetchApp.fetch('https://api.stripe.com/v1/payment_links', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + stripeKey,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        payload: linkPayload.join('&'),
+        muteHttpExceptions: true
+      });
+
+      const paymentLink = JSON.parse(linkResponse.getContentText());
+      if (!paymentLink.url) {
+        return { success: false, error: 'Failed to create payment link: ' + (paymentLink.error?.message || 'Unknown error') };
+      }
+
+      return {
+        success: true,
+        url: paymentLink.url,
+        id: paymentLink.id,
+        type: 'permanent',
+        account: accountType
+      };
     }
-
-    const linkResponse = UrlFetchApp.fetch('https://api.stripe.com/v1/payment_links', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + stripeKey,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      payload: linkPayload.join('&'),
-      muteHttpExceptions: true
-    });
-
-    const paymentLink = JSON.parse(linkResponse.getContentText());
-    if (!paymentLink.url) {
-      return { success: false, error: 'Failed to create payment link: ' + (paymentLink.error?.message || 'Unknown error') };
-    }
-
-    return {
-      success: true,
-      url: paymentLink.url,
-      id: paymentLink.id,
-      type: linkType || 'permanent',
-      expiresAt: linkType === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
-      account: accountType
-    };
 
   } catch (error) {
     return {
@@ -1830,51 +1890,46 @@ function createStripePaymentLink(amount, description, account, linkType, eventId
   }
 }
 
-// Get event details from calendar for payment description
-function getEventDetailsForPayment(eventId) {
+// Get booking details by reference number
+function getBookingDetailsByReference(referenceNr) {
   try {
     const config = getConfig();
     const calendarIds = [
-      config.CALENDAR_ID_N01,
-      config.CALENDAR_ID_N06,
-      config.CALENDAR_ID_N07,
-      config.CALENDAR_ID_N10,
-      config.CALENDAR_ID_N29,
-      config.CALENDAR_ID_B01,
-      config.CALENDAR_ID_B07
-    ].filter(id => id);
+      { id: config.CALENDAR_ID_N01, vehicle: 'N01' },
+      { id: config.CALENDAR_ID_N06, vehicle: 'N06' },
+      { id: config.CALENDAR_ID_N07, vehicle: 'N07' },
+      { id: config.CALENDAR_ID_N10, vehicle: 'N10' },
+      { id: config.CALENDAR_ID_N29, vehicle: 'N29' },
+      { id: config.CALENDAR_ID_B01, vehicle: 'B01' },
+      { id: config.CALENDAR_ID_B07, vehicle: 'B07' }
+    ].filter(cal => cal.id);
 
-    for (let calendarId of calendarIds) {
+    // Search in all calendars
+    for (let cal of calendarIds) {
       try {
-        const calendar = CalendarApp.getCalendarById(calendarId);
+        const calendar = CalendarApp.getCalendarById(cal.id);
         if (!calendar) continue;
 
-        const event = calendar.getEventById(eventId);
-        if (event) {
-          const title = event.getTitle();
+        // Get events from last 90 days to next 365 days
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 90);
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 365);
+        
+        const events = calendar.getEvents(startDate, endDate);
+        
+        for (let event of events) {
           const description = event.getDescription() || '';
-          const startDate = Utilities.formatDate(event.getStartTime(), 'Europe/Zurich', 'dd/MM/yyyy');
-          const endDate = Utilities.formatDate(event.getEndTime(), 'Europe/Zurich', 'dd/MM/yyyy');
-          
-          // Extract customer info from description
-          const customerMatch = description.match(/👤\s*Cliente:\s*([^\n]+)/i);
           const referenceMatch = description.match(/📋\s*Riferimento:\s*([^\n]+)/i);
           
-          const customerName = customerMatch ? customerMatch[1].trim() : 'Cliente';
-          const referenceNr = referenceMatch ? referenceMatch[1].trim() : 'N/A';
-          const vehicleName = title.replace(/\s*\(.*?\)\s*/g, '').trim();
-
-          const paymentDescription = `Noleggio ${vehicleName} | Cliente: ${customerName} | Ref: ${referenceNr} | Periodo: ${startDate} - ${endDate}`;
-
-          return {
-            success: true,
-            description: paymentDescription,
-            customerName: customerName,
-            referenceNr: referenceNr,
-            vehicleName: vehicleName,
-            startDate: startDate,
-            endDate: endDate
-          };
+          if (referenceMatch && referenceMatch[1].trim() === referenceNr.trim()) {
+            return {
+              success: true,
+              event: event,
+              vehicleId: cal.vehicle,
+              calendarId: cal.id
+            };
+          }
         }
       } catch (e) {
         continue;
@@ -1883,7 +1938,7 @@ function getEventDetailsForPayment(eventId) {
 
     return {
       success: false,
-      error: 'Event not found in any calendar'
+      error: 'Booking not found with reference: ' + referenceNr
     };
   } catch (error) {
     return {
@@ -1900,10 +1955,10 @@ function createPaymentLinkJsonp(params) {
     const amount = params.amount;
     const description = params.description || '';
     const account = params.account || 'green';
-    const linkType = params.linkType || 'permanent';
-    const eventId = params.eventId || null;
+    const linkType = params.linkType || 'checkout';
+    const bookingRef = params.bookingRef || null;
 
-    const result = createStripePaymentLink(amount, description, account, linkType, eventId);
+    const result = createStripePaymentLink(amount, description, account, linkType, bookingRef);
 
     const jsonpResponse = `/**/${callback}(${JSON.stringify(result)});`;
     return ContentService
