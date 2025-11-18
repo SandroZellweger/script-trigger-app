@@ -99,6 +99,9 @@ function doGet(e) {
       case "triggerStripePaymentJsonp":
         return triggerStripePaymentJsonp(e.parameter);
         break;
+      case "createPaymentLinkJsonp":
+        return createPaymentLinkJsonp(e.parameter);
+        break;
       case "findBookingByReferenceJsonp":
         return findBookingByReferenceJsonp(e.parameter);
         break;
@@ -1704,6 +1707,218 @@ function createStripeCheckoutSession(amount, description, stripeKey, accountType
       success: false,
       error: error.toString()
     };
+  }
+}
+
+// Create Stripe Payment Link (permanent or 24h)
+function createStripePaymentLink(amount, description, account, linkType, eventId) {
+  try {
+    const config = getConfig();
+    
+    // Determine which Stripe key to use
+    const accountType = account || 'green';
+    let stripeKey;
+    
+    if (accountType.toLowerCase() === 'black') {
+      stripeKey = config.STRIPE_BLACK_API_KEY;
+      if (!stripeKey) {
+        return { success: false, error: "Stripe Black API key not configured" };
+      }
+    } else {
+      stripeKey = config.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
+        return { success: false, error: "Stripe Green secret key not configured" };
+      }
+    }
+
+    // If eventId provided, extract event details for description
+    let finalDescription = decodeURIComponent(description || 'Payment');
+    if (eventId) {
+      try {
+        const eventDetails = getEventDetailsForPayment(eventId);
+        if (eventDetails.success) {
+          finalDescription = eventDetails.description;
+        }
+      } catch (error) {
+        Logger.log('Error extracting event details: ' + error.toString());
+      }
+    }
+
+    // Step 1: Create Product
+    const productPayload = [];
+    productPayload.push('name=' + encodeURIComponent(finalDescription));
+    productPayload.push('active=true');
+
+    const productResponse = UrlFetchApp.fetch('https://api.stripe.com/v1/products', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + stripeKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      payload: productPayload.join('&'),
+      muteHttpExceptions: true
+    });
+
+    const product = JSON.parse(productResponse.getContentText());
+    if (!product.id) {
+      return { success: false, error: 'Failed to create product: ' + (product.error?.message || 'Unknown error') };
+    }
+
+    // Step 2: Create Price
+    const pricePayload = [];
+    pricePayload.push('product=' + encodeURIComponent(product.id));
+    pricePayload.push('currency=chf');
+    pricePayload.push('unit_amount=' + Math.round(parseFloat(amount) * 100));
+
+    const priceResponse = UrlFetchApp.fetch('https://api.stripe.com/v1/prices', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + stripeKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      payload: pricePayload.join('&'),
+      muteHttpExceptions: true
+    });
+
+    const price = JSON.parse(priceResponse.getContentText());
+    if (!price.id) {
+      return { success: false, error: 'Failed to create price: ' + (price.error?.message || 'Unknown error') };
+    }
+
+    // Step 3: Create Payment Link
+    const linkPayload = [];
+    linkPayload.push('line_items[0][price]=' + encodeURIComponent(price.id));
+    linkPayload.push('line_items[0][quantity]=1');
+    linkPayload.push('after_completion[type]=hosted_confirmation');
+    linkPayload.push('after_completion[hosted_confirmation][custom_message]=' + encodeURIComponent('Grazie per il pagamento!'));
+
+    // If 24h link, add expiration
+    if (linkType === '24h') {
+      const expiresAt = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+      linkPayload.push('expires_at=' + expiresAt);
+    }
+
+    const linkResponse = UrlFetchApp.fetch('https://api.stripe.com/v1/payment_links', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + stripeKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      payload: linkPayload.join('&'),
+      muteHttpExceptions: true
+    });
+
+    const paymentLink = JSON.parse(linkResponse.getContentText());
+    if (!paymentLink.url) {
+      return { success: false, error: 'Failed to create payment link: ' + (paymentLink.error?.message || 'Unknown error') };
+    }
+
+    return {
+      success: true,
+      url: paymentLink.url,
+      id: paymentLink.id,
+      type: linkType || 'permanent',
+      expiresAt: linkType === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
+      account: accountType
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Get event details from calendar for payment description
+function getEventDetailsForPayment(eventId) {
+  try {
+    const config = getConfig();
+    const calendarIds = [
+      config.CALENDAR_ID_N01,
+      config.CALENDAR_ID_N06,
+      config.CALENDAR_ID_N07,
+      config.CALENDAR_ID_N10,
+      config.CALENDAR_ID_N29,
+      config.CALENDAR_ID_B01,
+      config.CALENDAR_ID_B07
+    ].filter(id => id);
+
+    for (let calendarId of calendarIds) {
+      try {
+        const calendar = CalendarApp.getCalendarById(calendarId);
+        if (!calendar) continue;
+
+        const event = calendar.getEventById(eventId);
+        if (event) {
+          const title = event.getTitle();
+          const description = event.getDescription() || '';
+          const startDate = Utilities.formatDate(event.getStartTime(), 'Europe/Zurich', 'dd/MM/yyyy');
+          const endDate = Utilities.formatDate(event.getEndTime(), 'Europe/Zurich', 'dd/MM/yyyy');
+          
+          // Extract customer info from description
+          const customerMatch = description.match(/👤\s*Cliente:\s*([^\n]+)/i);
+          const referenceMatch = description.match(/📋\s*Riferimento:\s*([^\n]+)/i);
+          
+          const customerName = customerMatch ? customerMatch[1].trim() : 'Cliente';
+          const referenceNr = referenceMatch ? referenceMatch[1].trim() : 'N/A';
+          const vehicleName = title.replace(/\s*\(.*?\)\s*/g, '').trim();
+
+          const paymentDescription = `Noleggio ${vehicleName} | Cliente: ${customerName} | Ref: ${referenceNr} | Periodo: ${startDate} - ${endDate}`;
+
+          return {
+            success: true,
+            description: paymentDescription,
+            customerName: customerName,
+            referenceNr: referenceNr,
+            vehicleName: vehicleName,
+            startDate: startDate,
+            endDate: endDate
+          };
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Event not found in any calendar'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// JSONP wrapper for createPaymentLink
+function createPaymentLinkJsonp(params) {
+  try {
+    const callback = params.callback;
+    const amount = params.amount;
+    const description = params.description || '';
+    const account = params.account || 'green';
+    const linkType = params.linkType || 'permanent';
+    const eventId = params.eventId || null;
+
+    const result = createStripePaymentLink(amount, description, account, linkType, eventId);
+
+    const jsonpResponse = `/**/${callback}(${JSON.stringify(result)});`;
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch (error) {
+    const callback = params.callback || 'callback';
+    const errorResponse = {
+      success: false,
+      error: error.toString()
+    };
+    const jsonpResponse = `/**/${callback}(${JSON.stringify(errorResponse)});`;
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 }
 

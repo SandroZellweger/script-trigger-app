@@ -357,6 +357,33 @@
             </div>
 
             <div class="input-group">
+                <label for="linkType">Link Type:</label>
+                <select id="linkType" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;" onchange="toggleEventIdField()">
+                    <option value="checkout">💳 Checkout Session (Quick - Default)</option>
+                    <option value="permanent">🔗 Permanent Link</option>
+                    <option value="24h">⏰ 24 Hour Link (with Event Details)</option>
+                </select>
+                <small style="display: block; margin-top: 8px; color: #666; font-size: 14px;">
+                    <strong>Checkout:</strong> Standard payment (recommended)<br>
+                    <strong>Permanent:</strong> Link never expires<br>
+                    <strong>24h:</strong> Link expires after 24h, includes booking details
+                </small>
+            </div>
+
+            <div class="input-group" id="eventIdGroup" style="display: none;">
+                <label for="eventId">📅 Calendar Event ID (for 24h links):</label>
+                <input 
+                    type="text" 
+                    id="eventId" 
+                    placeholder="Paste event ID from calendar"
+                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;"
+                >
+                <small style="display: block; margin-top: 8px; color: #666; font-size: 14px;">
+                    Event details (customer, vehicle, dates) will be automatically included in payment description
+                </small>
+            </div>
+
+            <div class="input-group">
                 <label for="bookingRef">🔍 Numero Riferimento Prenotazione (opzionale)</label>
                 <div style="display: flex; gap: 10px;">
                     <input 
@@ -460,6 +487,18 @@
         let currentPaymentLink = '';
         let isLoading = false;
 
+        // Toggle event ID field visibility
+        function toggleEventIdField() {
+            const linkType = document.getElementById('linkType').value;
+            const eventIdGroup = document.getElementById('eventIdGroup');
+            
+            if (linkType === '24h') {
+                eventIdGroup.style.display = 'block';
+            } else {
+                eventIdGroup.style.display = 'none';
+            }
+        }
+
         // Load logs from localStorage
         let logs = JSON.parse(localStorage.getItem('paymentLogs')) || [];
         renderLogs();        async function createPaymentLink() {
@@ -501,54 +540,70 @@
                     addLog(`📋 Using booking data: ${bookingRef} (${currentBooking.customerName})`, 'info');
                 }
                 
+                const linkType = document.getElementById('linkType').value;
+                const eventId = document.getElementById('eventId').value;
+
                 let data;
 
                 try {
-                    // Try CORS first
-                    addLog('📡 Attempting secure connection...', 'info');
-                    const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}&account=${encodeURIComponent(account)}&customerEmail=${encodeURIComponent(customerEmail)}&vehicleId=${encodeURIComponent(vehicleId)}&bookingRef=${encodeURIComponent(bookingRef)}`;
-                    console.log('💳 CORS Request URL:', requestUrl);
+                    addLog('📡 Attempting to create payment link...', 'info');
                     
-                    const response = await fetch(requestUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    // Use different endpoints based on link type
+                    if (linkType === 'checkout') {
+                        // Original checkout session method
+                        const requestUrl = `${settings.scriptUrl}?function=triggerStripePayment&authToken=${settings.authToken}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}&account=${encodeURIComponent(account)}&customerEmail=${encodeURIComponent(customerEmail)}&vehicleId=${encodeURIComponent(vehicleId)}&bookingRef=${encodeURIComponent(bookingRef)}`;
+                        console.log('💳 CORS Request URL:', requestUrl);
+                        
+                        try {
+                            const response = await fetch(requestUrl);
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            data = await response.json();
+                        } catch (corsError) {
+                            console.log('💳 CORS failed, trying JSONP:', corsError);
+                            data = await createPaymentLinkJsonp(settings, amount, description, account, customerEmail, vehicleId, bookingRef, 'checkout');
+                        }
+                    } else {
+                        // Payment Link method (permanent or 24h)
+                        data = await createPaymentLinkJsonp(settings, amount, description, account, customerEmail, vehicleId, bookingRef, linkType, eventId);
                     }
                     
-                    data = await response.json();
-                    addLog('✅ Connected via secure method', 'success');
-                } catch (corsError) {
-                    // CORS failed, try JSONP fallback
-                    console.log('💳 CORS failed, trying JSONP:', corsError);
-                    addLog('⚠️ Secure connection failed, trying alternative method...', 'info');
-                    
-                    try {
-                        data = await createPaymentLinkJsonp(settings, amount, description, account, customerEmail, vehicleId, bookingRef);
-                        addLog('✅ Connected via alternative method', 'success');
-                    } catch (jsonpError) {
-                        console.error('💳 JSONP also failed:', jsonpError);
-                        throw new Error(`Both connection methods failed. CORS: ${corsError.message}, JSONP: ${jsonpError.message}`);
-                    }
+                    addLog('✅ Connected successfully', 'success');
+                } catch (error) {
+                    console.error('💳 Payment creation failed:', error);
+                    throw error;
                 }
 
                 console.log('💳 Payment response:', data);
 
-                if (data && data.success && data.checkoutUrl) {
-                    // Use the checkoutUrl directly from the response
-                    currentPaymentLink = data.checkoutUrl;
-                    showPaymentResult(amount, description, currentPaymentLink);
-                    addLog(`✅ Payment link created successfully!`, 'success');
-                } else if (data && data.result) {
-                    // Fallback: Extract the Stripe URL from the result field
-                    const urlMatch = data.result.match(/https:\/\/checkout\.stripe\.com\/[^\s]+/);
-                    if (urlMatch) {
-                        currentPaymentLink = urlMatch[0];
-                        showPaymentResult(amount, description, currentPaymentLink);
-                        addLog(`✅ Payment link created successfully!`, 'success');
+                if (data && data.success) {
+                    // Handle both checkout sessions and payment links
+                    if (data.checkoutUrl) {
+                        currentPaymentLink = data.checkoutUrl;
+                    } else if (data.url) {
+                        currentPaymentLink = data.url;
+                    } else if (data.result) {
+                        const urlMatch = data.result.match(/https:\/\/(checkout|buy)\.stripe\.com\/[^\s]+/);
+                        if (urlMatch) {
+                            currentPaymentLink = urlMatch[0];
+                        } else {
+                            throw new Error('Could not extract payment URL from response');
+                        }
                     } else {
-                        console.error('💳 No Stripe URL found in response:', data.result);
-                        throw new Error('Could not extract payment URL from response');
+                        throw new Error('No payment URL in response');
                     }
+                    
+                    showPaymentResult(amount, description, currentPaymentLink, data);
+                    
+                    let successMsg = '✅ Payment link created successfully!';
+                    if (data.type === '24h') {
+                        successMsg += ` (Expires in 24h)`;
+                    } else if (data.type === 'permanent') {
+                        successMsg += ` (Permanent)`;
+                    }
+                    if (data.account) {
+                        successMsg += ` [${data.account.toUpperCase()} Account]`;
+                    }
+                    addLog(successMsg, 'success');
                 } else {
                     console.error('💳 Invalid response format:', data);
                     throw new Error(data?.error || 'Invalid response from server');
@@ -562,7 +617,7 @@
                 createBtn.disabled = false;
                 createBtn.innerHTML = 'Create Payment Link';
             }
-        }        function createPaymentLinkJsonp(settings, amount, description, account, customerEmail = '', vehicleId = '', bookingRef = '') {
+        }        function createPaymentLinkJsonp(settings, amount, description, account, customerEmail = '', vehicleId = '', bookingRef = '', linkType = 'checkout', eventId = '') {
             return new Promise((resolve, reject) => {
                 console.log('💳 Starting JSONP payment request...');
                 
@@ -593,19 +648,24 @@
                 };                // Create script element
                 const script = document.createElement('script');
                 const params = new URLSearchParams({
-                    function: 'triggerStripePaymentJsonp',
-                    authToken: encodeURIComponent(settings.authToken),
+                    function: linkType === 'checkout' || linkType === '24h' || linkType === 'permanent' ? 'createPaymentLinkJsonp' : 'triggerStripePaymentJsonp',
+                    authToken: settings.authToken,
                     amount: encodeURIComponent(amount),
                     description: encodeURIComponent(description),
                     account: encodeURIComponent(account || 'green'),
-                    customerEmail: encodeURIComponent(customerEmail),
-                    vehicleId: encodeURIComponent(vehicleId),
-                    bookingRef: encodeURIComponent(bookingRef),
+                    linkType: encodeURIComponent(linkType || 'checkout'),
                     callback: callbackName
                 });
                 
+                // Add optional parameters
+                if (customerEmail) params.append('customerEmail', encodeURIComponent(customerEmail));
+                if (vehicleId) params.append('vehicleId', encodeURIComponent(vehicleId));
+                if (bookingRef) params.append('bookingRef', encodeURIComponent(bookingRef));
+                if (eventId) params.append('eventId', encodeURIComponent(eventId));
+                
                 script.src = `${settings.scriptUrl}?${params}`;
                 console.log('💳 JSONP request URL:', script.src);
+                console.log('💳 Link Type:', linkType);
                 console.log('💳 Auth token being sent:', settings.authToken);
                 
                 // Handle script load errors
@@ -642,9 +702,18 @@
             });
         }
 
-        function showPaymentResult(amount, description, paymentUrl) {
+        function showPaymentResult(amount, description, paymentUrl, data = {}) {
             document.getElementById('resultAmount').textContent = `CHF ${amount}`;
-            document.getElementById('resultDescription').textContent = description;
+            
+            let fullDescription = description;
+            if (data.type === '24h' && data.expiresAt) {
+                const expiryDate = new Date(data.expiresAt);
+                fullDescription += ` (⏰ Expires: ${expiryDate.toLocaleString('it-IT')})`;
+            } else if (data.type === 'permanent') {
+                fullDescription += ' (🔗 Permanent Link)';
+            }
+            
+            document.getElementById('resultDescription').textContent = fullDescription;
             document.getElementById('paymentLink').textContent = paymentUrl;
             document.getElementById('resultSection').classList.add('show');
 
