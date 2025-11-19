@@ -1736,32 +1736,66 @@ function createStripePaymentLink(amount, description, account, linkType, booking
     let customerEmail = '';
     let vehicleId = '';
     
+    Logger.log('🔍 createStripePaymentLink - bookingRef received: ' + bookingRef);
+    
     if (bookingRef) {
       try {
+        Logger.log('🔍 Calling getBookingDetailsByReference for: ' + bookingRef);
         const bookingDetails = getBookingDetailsByReference(bookingRef);
+        Logger.log('🔍 Booking details result: ' + JSON.stringify(bookingDetails));
+        
         if (bookingDetails.success && bookingDetails.event) {
           const event = bookingDetails.event;
           const eventDescription = event.getDescription() || '';
           const startDate = Utilities.formatDate(event.getStartTime(), 'Europe/Zurich', 'dd/MM/yyyy');
           const endDate = Utilities.formatDate(event.getEndTime(), 'Europe/Zurich', 'dd/MM/yyyy');
           
-          // Extract customer info
-          const customerMatch = eventDescription.match(/👤\s*Cliente:\s*([^\n]+)/i);
-          const emailMatch = eventDescription.match(/📧\s*Email:\s*([^\n]+)/i);
-          const vehicleMatch = eventDescription.match(/🚗\s*Veicolo:\s*([^\n]+)/i);
+          // Extract customer info from event title and description
+          // Title format: "+🟢 13 - 🖤 nadia Piaggi piaggi - CHF 54.50"
+          const title = event.getTitle();
+          const titleMatch = title.match(/[-–]\s*(?:🖤|🟢)?\s*([^-–]+?)\s*[-–]\s*CHF/i);
           
-          const customerName = customerMatch ? customerMatch[1].trim() : 'Cliente';
+          // Extract from description (no emojis in description)
+          const emailMatch = eventDescription.match(/Email:\s*([^\n]+)/i);
+          const phoneMatch = eventDescription.match(/Numero di cellulare:\s*([^\n]+)/i);
+          const vehicleMatch = eventDescription.match(/Veicolo:\s*([^\n]+)/i);
+          
+          const customerName = titleMatch ? titleMatch[1].trim() : 'Cliente';
           customerEmail = emailMatch ? emailMatch[1].trim() : '';
-          const vehicleName = vehicleMatch ? vehicleMatch[1].trim() : event.getTitle().replace(/\s*\(.*?\)\s*/g, '').trim();
+          const phoneNumber = phoneMatch ? phoneMatch[1].trim() : '';
+          const vehicleName = vehicleMatch ? vehicleMatch[1].trim() : bookingDetails.vehicleId;
           vehicleId = bookingDetails.vehicleId || '';
           
           // Build enhanced description
-          finalDescription = `Noleggio ${vehicleName} | Cliente: ${customerName} | Ref: ${bookingRef} | Periodo: ${startDate} - ${endDate}`;
+          // Keep original description in UPPERCASE at the beginning, then add booking details
+          let descriptionParts = [];
+          
+          // Add original description in uppercase if not empty and not "Payment"
+          if (finalDescription && finalDescription.toLowerCase() !== 'payment') {
+            descriptionParts.push(finalDescription.toUpperCase());
+          }
+          
+          // Add booking details
+          descriptionParts.push(`Noleggio ${vehicleName}`);
+          descriptionParts.push(`Cliente: ${customerName}`);
+          descriptionParts.push(`Ref: ${bookingRef}`);
+          descriptionParts.push(`Periodo: ${startDate} - ${endDate}`);
+          
+          if (phoneNumber) {
+            descriptionParts.push(`Tel: ${phoneNumber}`);
+          }
+          
+          finalDescription = descriptionParts.join(' | ');
+          Logger.log('✅ Enhanced description created: ' + finalDescription);
+        } else {
+          Logger.log('⚠️ Booking details not found or event is null');
         }
       } catch (error) {
-        Logger.log('Error extracting booking details: ' + error.toString());
+        Logger.log('❌ Error extracting booking details: ' + error.toString());
       }
     }
+    
+    Logger.log('📝 Final description for Stripe: ' + finalDescription);
 
     // Step 1: Create Product
     const productPayload = [];
@@ -1893,16 +1927,19 @@ function createStripePaymentLink(amount, description, account, linkType, booking
 // Get booking details by reference number
 function getBookingDetailsByReference(referenceNr) {
   try {
-    const config = getConfig();
-    const calendarIds = [
-      { id: config.CALENDAR_ID_N01, vehicle: 'N01' },
-      { id: config.CALENDAR_ID_N06, vehicle: 'N06' },
-      { id: config.CALENDAR_ID_N07, vehicle: 'N07' },
-      { id: config.CALENDAR_ID_N10, vehicle: 'N10' },
-      { id: config.CALENDAR_ID_N29, vehicle: 'N29' },
-      { id: config.CALENDAR_ID_B01, vehicle: 'B01' },
-      { id: config.CALENDAR_ID_B07, vehicle: 'B07' }
-    ].filter(cal => cal.id);
+    // Get vehicle data from Google Sheet
+    const vehicleDataResult = getVehicleData();
+    if (vehicleDataResult.error || !vehicleDataResult.vehicles) {
+      return { success: false, error: 'Failed to load vehicle data: ' + (vehicleDataResult.error || 'Unknown error') };
+    }
+    
+    const calendarIds = vehicleDataResult.vehicles
+      .filter(v => v.calendarId) // Only include vehicles with calendar IDs
+      .map(v => ({
+        id: v.calendarId,
+        vehicle: v.vehicleType, // Just the vehicle code (e.g., "N01")
+        displayName: v.calendarName || v.vehicleType // Full name for display
+      }));
 
     // Search in all calendars
     for (let cal of calendarIds) {
@@ -1920,15 +1957,22 @@ function getBookingDetailsByReference(referenceNr) {
         
         for (let event of events) {
           const description = event.getDescription() || '';
-          const referenceMatch = description.match(/📋\s*Riferimento:\s*([^\n]+)/i);
           
-          if (referenceMatch && referenceMatch[1].trim() === referenceNr.trim()) {
-            return {
-              success: true,
-              event: event,
-              vehicleId: cal.vehicle,
-              calendarId: cal.id
-            };
+          // Search for "Riferimento: XXXX" in description (no emoji)
+          const referenceMatch = description.match(/Riferimento:\s*([^\n]+)/i);
+          
+          if (referenceMatch) {
+            const foundRef = referenceMatch[1].trim();
+            
+            if (foundRef === referenceNr.trim() || foundRef === referenceNr.toString().trim()) {
+              Logger.log(`✅ Match found in ${cal.vehicle}: Ref ${foundRef}`);
+              return {
+                success: true,
+                event: event,
+                vehicleId: cal.vehicle,
+                calendarId: cal.id
+              };
+            }
           }
         }
       } catch (e) {
@@ -1957,6 +2001,16 @@ function createPaymentLinkJsonp(params) {
     const account = params.account || 'green';
     const linkType = params.linkType || 'checkout';
     const bookingRef = params.bookingRef || null;
+
+    // DEBUG: Log booking reference if provided
+    if (bookingRef) {
+      Logger.log('🔍 DEBUG - Looking for booking reference: ' + bookingRef);
+      const debugResult = getBookingDetailsByReference(bookingRef);
+      Logger.log('🔍 DEBUG - Search result: ' + JSON.stringify(debugResult));
+      if (debugResult.success && debugResult.event) {
+        Logger.log('🔍 DEBUG - Event description: ' + debugResult.event.getDescription());
+      }
+    }
 
     const result = createStripePaymentLink(amount, description, account, linkType, bookingRef);
 
@@ -1993,6 +2047,101 @@ function testStripePayment() {
       success: false,
       error: error.toString()
     };
+  }
+}
+
+// Test booking reference search
+function testBookingReference() {
+  // CHANGE THIS to a real booking reference from your calendar
+  const testReference = "2967"; // ⚠️ REPLACE WITH REAL REFERENCE
+  
+  Logger.log('🔍 Searching for reference: ' + testReference);
+  const result = getBookingDetailsByReference(testReference);
+  
+  Logger.log('📊 Search result: ' + JSON.stringify(result));
+  
+  if (result.success && result.event) {
+    const event = result.event;
+    Logger.log('✅ Event found!');
+    Logger.log('📅 Title: ' + event.getTitle());
+    Logger.log('📝 Description:\n' + event.getDescription());
+    Logger.log('🚗 Vehicle: ' + result.vehicleId);
+    Logger.log('📆 Start: ' + event.getStartTime());
+    Logger.log('📆 End: ' + event.getEndTime());
+  } else {
+    Logger.log('❌ Event not found: ' + result.error);
+  }
+  
+  return result;
+}
+
+// List all references in calendars (debug helper)
+function listAllReferences() {
+  // Get vehicle data from Google Sheet
+  const vehicleDataResult = getVehicleData();
+  
+  Logger.log('🔧 Vehicle Data Load:');
+  if (vehicleDataResult.error) {
+    Logger.log('❌ Error: ' + vehicleDataResult.error);
+    return;
+  }
+  
+  Logger.log('✅ Loaded ' + vehicleDataResult.vehicles.length + ' vehicles from sheet');
+  
+  const calendarIds = vehicleDataResult.vehicles
+    .filter(v => v.calendarId)
+    .map(v => ({
+      id: v.calendarId,
+      vehicle: v.vehicleType
+    }));
+
+  Logger.log('\n📋 Listing all booking references...');
+  Logger.log('Total calendars to check: ' + calendarIds.length + '\n');
+  
+  for (let cal of calendarIds) {
+    try {
+      const calendar = CalendarApp.getCalendarById(cal.id);
+      if (!calendar) continue;
+
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 90);
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 365);
+      
+      const events = calendar.getEvents(startDate, endDate);
+      Logger.log(`\n🚗 ${cal.vehicle} (${cal.id.substring(0, 20)}...)`);
+      Logger.log(`   Found ${events.length} events between ${startDate.toLocaleDateString()} and ${endDate.toLocaleDateString()}`);
+      
+      let foundRefs = 0;
+      for (let event of events) {
+        const description = event.getDescription() || '';
+        const title = event.getTitle();
+        
+        // Show first few events for debugging
+        if (foundRefs < 3) {
+          Logger.log(`   📅 ${title} (${event.getStartTime().toLocaleDateString()})`);
+          if (description) {
+            Logger.log(`      Description length: ${description.length} chars`);
+            Logger.log(`      First 200 chars: ${description.substring(0, 200)}...`);
+          } else {
+            Logger.log(`      No description`);
+          }
+        }
+        
+        // Look for "Riferimento: XXXX" in description (no emoji)
+        const referenceMatch = description.match(/Riferimento:\s*([^\n]+)/i);
+        if (referenceMatch) {
+          Logger.log(`   ✅ Ref: "${referenceMatch[1].trim()}" | Event: ${title}`);
+          foundRefs++;
+        }
+      }
+      
+      if (foundRefs === 0) {
+        Logger.log(`   ⚠️ No references found in ${events.length} events`);
+      }
+    } catch (e) {
+      Logger.log(`❌ Error accessing ${cal.vehicle}: ${e.toString()}`);
+    }
   }
 }
 
