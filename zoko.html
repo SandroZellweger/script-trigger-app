@@ -754,7 +754,8 @@
                             setLoading(false);
                             return;
                         }
-                          requestUrl = `${settings.scriptUrl}?function=${endpoint}Jsonp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}&van=${van}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+                          // Use vehicleId instead of van to match backend expectation
+                          requestUrl = `${settings.scriptUrl}?function=${endpoint}Jsonp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}&vehicleId=${van}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
                     } else {
                         // Standard request for booking and multiday forms
                         requestUrl = `${settings.scriptUrl}?function=${endpoint}Jsonp&authToken=${settings.authToken}&phoneNumber=${encodeURIComponent(finalPhoneNumber)}`;
