@@ -2076,6 +2076,33 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const typingIndicator = addMessageToChat('bot', '', 'typing');
 
             try {
+                // First test if the endpoint is reachable
+                const testResponse = await new Promise((resolve, reject) => {
+                    const callbackName = 'testCallback_' + Date.now();
+                    const testUrl = `${window.APP_CONFIG.scriptUrl}?function=testAiEndpointJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callbackName}`;
+
+                    window[callbackName] = (data) => {
+                        delete window[callbackName];
+                        document.body.removeChild(document.getElementById(callbackName));
+                        resolve(data);
+                    };
+
+                    const script = document.createElement('script');
+                    script.id = callbackName;
+                    script.src = testUrl;
+                    script.onerror = () => reject(new Error('Network error testing AI endpoint.'));
+                    document.body.appendChild(script);
+                });
+
+                if (!testResponse.success) {
+                    throw new Error('AI endpoint test failed: ' + testResponse.message);
+                }
+
+                if (!testResponse.hasApiKey) {
+                    throw new Error('OpenAI API key not configured on the server.');
+                }
+
+                // Now make the actual AI call
                 const response = await new Promise((resolve, reject) => {
                     const callbackName = 'aiCallback_' + Date.now();
                     const url = `${window.APP_CONFIG.scriptUrl}?function=handleMaintenanceAiRequestJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callbackName}&query=${encodeURIComponent(query)}`;

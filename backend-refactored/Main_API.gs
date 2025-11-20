@@ -74,6 +74,8 @@ function doGet(e) {
       // --- AI Assistant ---
       case "handleMaintenanceAiRequestJsonp":
         return handleMaintenanceAiRequestJsonp(e.parameter);
+      case "testAiEndpointJsonp":
+        return testAiEndpointJsonp(e.parameter);
         
       default:
         return createJsonResponse({ error: `Unknown function: ${functionName}` });
@@ -296,4 +298,23 @@ function callOpenAI(url, apiKey, messages, tools) {
   const response = UrlFetchApp.fetch(url, options);
   const responseData = JSON.parse(response.getContentText());
   return responseData.choices[0].message;
+}
+
+// Test endpoint for AI functionality
+function testAiEndpointJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const apiKey = getOpenAIApiKey();
+
+  const response = {
+    success: true,
+    message: "AI endpoint is reachable",
+    hasApiKey: !!apiKey,
+    timestamp: new Date().toISOString()
+  };
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
