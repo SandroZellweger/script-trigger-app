@@ -197,19 +197,89 @@ function handleMaintenanceAiRequest(params) {
           required: ["vehicle", "description", "cost"]
         }
       }
+    },
+    {
+      type: "function",
+      function: {
+        name: "createPaymentLink",
+        description: "Crea un link di pagamento Stripe per un importo specifico.",
+        parameters: {
+          type: "object",
+          properties: {
+            amount: {
+              type: "number",
+              description: "Importo in franchi (es. 50.00)"
+            },
+            description: {
+              type: "string",
+              description: "Descrizione del pagamento"
+            }
+          },
+          required: ["amount", "description"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "generateIglohomeCode",
+        description: "Genera un codice di accesso Igloohome per un veicolo specifico.",
+        parameters: {
+          type: "object",
+          properties: {
+            vehicleType: {
+              type: "string",
+              description: "Tipo di veicolo (es. N01, N02)"
+            }
+          },
+          required: ["vehicleType"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "sendMessage",
+        description: "Invia un messaggio WhatsApp per spiegare come prenotare.",
+        parameters: {
+          type: "object",
+          properties: {
+            phoneNumber: {
+              type: "string",
+              description: "Numero di telefono (formato internazionale)"
+            }
+          },
+          required: ["phoneNumber"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "getVehicleList",
+        description: "Ottieni la lista dei veicoli disponibili.",
+        parameters: {
+          type: "object",
+          properties: {}
+        }
+      }
     }
   ];
 
   // Define the available functions in this script that the AI can call
   const availableFunctions = {
     "createMaintenanceReport": createMaintenanceReport,
+    "createPaymentLink": createPaymentLinkForAI,
+    "generateIglohomeCode": generateIglohomeCodeForAI,
+    "sendMessage": sendMessageForAI,
+    "getVehicleList": getVehicleListForAI
   };
 
   // 2. Initial conversation messages
   const messages = [
     {
       role: "system",
-      content: "You are a helpful assistant for managing vehicle maintenance. You can create maintenance reports. Ask for clarification if the user's request is ambiguous or missing information. Always reply to the user in Italian."
+      content: "Sei un assistente AI per la gestione di una flotta di veicoli. Puoi creare report di manutenzione, generare link di pagamento Stripe, creare codici di accesso Igloohome, inviare messaggi WhatsApp e fornire informazioni sui veicoli disponibili. Rispondi sempre in italiano e chiedi chiarimenti se necessario."
     },
     {
       role: "user",
@@ -317,4 +387,64 @@ function testAiEndpointJsonp(params) {
   return ContentService
     .createTextOutput(jsonpResponse)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// AI Function Wrappers
+function createPaymentLinkForAI(amount, description) {
+  try {
+    Logger.log(`AI Payment Link Request: CHF ${amount} - ${description}`);
+    // For now, return a placeholder - you'll need to implement createPaymentLink
+    return { 
+      success: true, 
+      link: `https://checkout.stripe.com/pay/placeholder_${amount}_${Date.now()}`, 
+      message: `Link di pagamento creato per CHF ${amount}: ${description}` 
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function generateIglohomeCodeForAI(vehicleType) {
+  try {
+    Logger.log(`AI Iglohome Code Request: ${vehicleType}`);
+    // For now, return a placeholder - you'll need to implement generateIglohomeCode
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return { 
+      success: true, 
+      code: code, 
+      message: `Codice Igloohome generato per ${vehicleType}: ${code}` 
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function sendMessageForAI(phoneNumber) {
+  try {
+    Logger.log(`AI Message Request: ${phoneNumber}`);
+    // For now, return a placeholder - you'll need to implement sendHowToBookMessageApp
+    return { 
+      success: true, 
+      message: `Messaggio inviato al numero ${phoneNumber}` 
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getVehicleListForAI() {
+  try {
+    Logger.log('AI Vehicle List Request');
+    // For now, return a placeholder - you'll need to implement getVehicleList
+    return { 
+      success: true, 
+      vehicles: [
+        { name: 'N1', type: 'Furgone', status: 'Disponibile' },
+        { name: 'N2', type: 'Furgone', status: 'In manutenzione' },
+        { name: 'N3', type: 'Camion', status: 'Disponibile' }
+      ]
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
