@@ -68,6 +68,8 @@ function doGet(e) {
         return createJsonResponse({ result: "Ping successful" });
       case "pingJsonp":
         return createJsonpResponse(e.parameter.callback, { result: "Ping successful" });
+      case "getOpenAIApiKeyJsonp":
+        return getOpenAIApiKeyJsonp(e.parameter);
         
       default:
         return createJsonResponse({ error: `Unknown function: ${functionName}` });
@@ -92,5 +94,47 @@ function doPost(e) {
 
   } catch (error) {
     return createJsonResponseWithCors({ error: error.toString() });
+  }
+}
+
+// Utility function to get OpenAI API key securely
+function getOpenAIApiKey() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      Logger.log('OpenAI API key not configured in Script Properties');
+      return null;
+    }
+    
+    return apiKey;
+  } catch (error) {
+    Logger.log('Error retrieving OpenAI API key: ' + error.toString());
+    return null;
+  }
+}
+
+// JSONP wrapper for OpenAI API key
+function getOpenAIApiKeyJsonp(params) {
+  try {
+    const apiKey = getOpenAIApiKey();
+    
+    if (!apiKey) {
+      return createJsonpResponse(params.callback, { 
+        success: false, 
+        error: 'OpenAI API key not configured' 
+      });
+    }
+    
+    return createJsonpResponse(params.callback, { 
+      success: true, 
+      apiKey: apiKey 
+    });
+  } catch (error) {
+    return createJsonpResponse(params.callback, { 
+      success: false, 
+      error: error.toString() 
+    });
   }
 }
