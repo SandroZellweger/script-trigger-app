@@ -10,6 +10,12 @@ function generateIglohomeCodeApp(params) {
     const endDate = params.endDate;
     const phoneNumber = params.phoneNumber;
     
+    Logger.log('🔐 generateIglohomeCodeApp called with:', { vehicleId, startDate, endDate, phoneNumber });
+    
+    if (!phoneNumber) {
+      return { success: false, error: "Phone number is required" };
+    }
+    
     // Placeholder logic - In real implementation this calls Iglohome API
     // We need to fetch the vehicle data to get the lock ID
     const vehicleDataResult = getVehicleData();
@@ -22,65 +28,52 @@ function generateIglohomeCodeApp(params) {
       return { success: false, error: "Vehicle not found: " + vehicleId };
     }
     
-    // Simulate API call success
+    // Simulate API call success - Generate 8-digit PIN
     const mockPin = Math.floor(10000000 + Math.random() * 90000000).toString();
     
-    // Format dates for WhatsApp message
-    const formatDate = (dateStr) => {
-      const date = new Date(dateStr);
-      return date.toLocaleString('it-IT', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    };
+    Logger.log('📱 Generated PIN:', mockPin, 'for vehicle:', vehicle.calendarName);
     
-    // Send WhatsApp message with PIN using Zoko API
+    // Send WhatsApp message with PIN using sendIglohomePin from 6_Messaging_Logic.gs
     if (phoneNumber) {
       try {
-        const url = "https://chat.zoko.io/v2/message";
-        const config = getConfig();
-        const apiKey = "0a12096d-cfee-43e2-8360-b66d7b460cd3";
+        Logger.log('📤 Sending WhatsApp message to:', phoneNumber);
         
-        const payload = {
-          channel: "whatsapp",
-          recipient: phoneNumber,
-          type: "template",
-          templateId: "how_to_book_new",
-          templateLanguage: "it",
-          templateArgs: [
-            mockPin, // PIN code
-            vehicle.calendarName, // Vehicle name
-            formatDate(startDate), // Start date
-            formatDate(endDate), // End date
-            vehicle.vehicleAdress || "Indirizzo da confermare" // Vehicle address
-          ]
-        };
+        const whatsappSuccess = sendIglohomePin(phoneNumber, mockPin);
         
-        const options = {
-          method: 'post',
-          contentType: 'application/json',
-          headers: {
-            'apikey': apiKey
-          },
-          payload: JSON.stringify(payload),
-          muteHttpExceptions: true
-        };
-        
-        const response = UrlFetchApp.fetch(url, options);
-        const responseCode = response.getResponseCode();
-        const responseText = response.getContentText();
-        
-        Logger.log('Zoko WhatsApp response: ' + responseCode + ' - ' + responseText);
-        
-        if (responseCode !== 200 && responseCode !== 201) {
-          Logger.log('Warning: WhatsApp message may not have been sent. Status: ' + responseCode);
+        if (whatsappSuccess) {
+          Logger.log('✅ WhatsApp message sent successfully');
+          return {
+            success: true,
+            pin: mockPin,
+            message: `PIN generated and sent via WhatsApp to ${phoneNumber}`,
+            vehicle: vehicleId,
+            validFrom: startDate,
+            validTo: endDate,
+            whatsappSent: true
+          };
+        } else {
+          Logger.log('⚠️ WhatsApp send failed');
+          return {
+            success: true,
+            pin: mockPin,
+            message: `PIN generated but WhatsApp send failed`,
+            vehicle: vehicleId,
+            validFrom: startDate,
+            validTo: endDate,
+            whatsappSent: false
+          };
         }
       } catch (whatsappError) {
-        // Log the error but don't fail the PIN generation
-        Logger.log('Error sending WhatsApp message: ' + whatsappError.toString());
+        Logger.log('❌ WhatsApp send error:', whatsappError.toString());
+        return {
+          success: true,
+          pin: mockPin,
+          message: `PIN generated but WhatsApp send failed: ${whatsappError.toString()}`,
+          vehicle: vehicleId,
+          validFrom: startDate,
+          validTo: endDate,
+          whatsappSent: false
+        };
       }
     }
     
@@ -91,7 +84,7 @@ function generateIglohomeCodeApp(params) {
       vehicle: vehicleId,
       validFrom: startDate,
       validTo: endDate,
-      whatsappSent: !!phoneNumber
+      whatsappSent: false
     };
   } catch (error) {
     return {
