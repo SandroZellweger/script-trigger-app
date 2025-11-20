@@ -70,3 +70,13 @@ function handleJsonpRequest(e, dataFunction) {
     return createJsonResponse(errorResult);
   }
 }
+
+// Sanitize JSONP callback function name
+function sanitizeJsonpCallback(name) {
+  var fallback = 'callback';
+  if (!name) {
+    return fallback;
+  }
+  var cleaned = String(name).replace(/[^\w$]/g, '');
+  return cleaned || fallback;
+}
