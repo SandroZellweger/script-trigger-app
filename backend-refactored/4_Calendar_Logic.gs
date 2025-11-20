@@ -75,7 +75,8 @@ function getBookingDetailsByReference(referenceNr) {
 function findBookingByReferenceJsonp(params) {
   try {
     const callback = params.callback;
-    const reference = params.reference;
+    // Accept both 'reference' and 'referenceNumber' for compatibility
+    const reference = params.reference || params.referenceNumber;
     
     if (!reference) {
       return createJsonpResponse(callback, { success: false, error: 'No reference provided' });
@@ -86,16 +87,33 @@ function findBookingByReferenceJsonp(params) {
     // Convert event object to simple JSON if found (CalendarEvent object is not JSON serializable directly)
     if (result.success && result.event) {
       const event = result.event;
+      const description = event.getDescription() || '';
+      const title = event.getTitle();
+      
+      // Extract customer info from description
+      const emailMatch = description.match(/Email:\s*([^\n]+)/i);
+      const phoneMatch = description.match(/Numero di cellulare:\s*([^\n]+)/i);
+      const vehicleMatch = description.match(/Veicolo:\s*([^\n]+)/i);
+      const referenceMatch = description.match(/Riferimento:\s*([^\n]+)/i);
+      
+      // Extract customer name from title (format: "$ 1 - Alessandro Barbone - CHF 0.00")
+      const titleMatch = title.match(/[-–]\s*(?:🖤|🟢)?\s*([^-–]+?)\s*[-–]\s*CHF/i);
+      const customerName = titleMatch ? titleMatch[1].trim() : 'N/A';
+      
       const simpleResult = {
         success: true,
         vehicleId: result.vehicleId,
         calendarId: result.calendarId,
         booking: {
-          title: event.getTitle(),
-          startTime: event.getStartTime(),
-          endTime: event.getEndTime(),
-          description: event.getDescription(),
-          location: event.getLocation()
+          reference: referenceMatch ? referenceMatch[1].trim() : reference,
+          customerName: customerName,
+          customerEmail: emailMatch ? emailMatch[1].trim() : 'N/A',
+          customerPhone: phoneMatch ? phoneMatch[1].trim() : 'N/A',
+          vehicleName: vehicleMatch ? vehicleMatch[1].trim() : result.vehicleId,
+          startDate: event.getStartTime(),
+          endDate: event.getEndTime(),
+          title: title,
+          description: description
         }
       };
       return createJsonpResponse(callback, simpleResult);
