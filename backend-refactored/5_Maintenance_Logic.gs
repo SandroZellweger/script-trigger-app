@@ -116,3 +116,23 @@ function logExpense(data) {
     return { success: false, error: error.toString() };
   }
 }
+
+// Get Vehicle List (simple version for dropdowns)
+function getVehicleList() {
+  const vehicleData = getVehicleData();
+  if (vehicleData.error) return vehicleData;
+  
+  return {
+    success: true,
+    vehicles: vehicleData.vehicles.map(v => ({
+      id: v.vehicleType,
+      name: v.calendarName || v.vehicleType,
+      plate: v.licencePlate || ''
+    }))
+  };
+}
+
+// JSONP Wrapper for getVehicleList
+function getVehicleListJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, () => getVehicleList());
+}

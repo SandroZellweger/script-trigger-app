@@ -42,6 +42,10 @@ function doGet(e) {
         return getVehicleOverviewJsonp(e.parameter);
       case "getMaintenanceDataJsonp":
         return getMaintenanceDataJsonp(e.parameter);
+      case "getVehicleList":
+        return createJsonResponse(getVehicleList());
+      case "getVehicleListJsonp":
+        return getVehicleListJsonp(e.parameter);
         
       // --- Messaging ---
       case "sendHowToBookMessageApp":
