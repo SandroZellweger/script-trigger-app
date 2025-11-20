@@ -145,7 +145,14 @@ function getOpenAIApiKeyJsonp(params) {
 
 // JSONP wrapper for AI Assistant
 function handleMaintenanceAiRequestJsonp(params) {
-  return handleJsonpRequest({ parameter: params }, handleMaintenanceAiRequest);
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = handleMaintenanceAiRequest(params);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 /**

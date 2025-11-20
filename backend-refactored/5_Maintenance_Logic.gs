@@ -136,8 +136,3 @@ function getVehicleList() {
 function getVehicleListJsonp(params) {
   return handleJsonpRequest({ parameter: params }, () => getVehicleList());
 }
-
-// JSONP wrapper for AI Assistant
-function handleMaintenanceAiRequestJsonp(params) {
-  return handleJsonpRequest({ parameter: params }, handleMaintenanceAiRequest);
-}
