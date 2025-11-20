@@ -202,7 +202,7 @@ function handleMaintenanceAiRequest(params) {
       type: "function",
       function: {
         name: "createPaymentLink",
-        description: "Crea un link di pagamento Stripe per un importo specifico.",
+        description: "Crea un link di pagamento Stripe per un importo specifico. Puoi specificare il conto (black/green), descrizione e opzionalmente un numero di riferimento prenotazione.",
         parameters: {
           type: "object",
           properties: {
@@ -212,7 +212,16 @@ function handleMaintenanceAiRequest(params) {
             },
             description: {
               type: "string",
-              description: "Descrizione del pagamento"
+              description: "Descrizione del pagamento (es. 'Multa', 'Noleggio', 'Riparazione')"
+            },
+            account: {
+              type: "string",
+              description: "Conto Stripe da usare: 'green' (default) o 'black'",
+              enum: ["green", "black"]
+            },
+            bookingRef: {
+              type: "string",
+              description: "Numero di riferimento prenotazione (opzionale, per arricchire automaticamente la descrizione)"
             }
           },
           required: ["amount", "description"]
@@ -304,9 +313,10 @@ function handleMaintenanceAiRequest(params) {
 
         // Call the local function with the arguments provided by the AI
         const functionResponse = functionToCall(
-          functionArgs.vehicle,
+          functionArgs.vehicle || functionArgs.amount,
           functionArgs.description,
-          functionArgs.cost
+          functionArgs.cost || functionArgs.account,
+          functionArgs.bookingRef
         );
 
         // 6. Add the result of the tool execution to the message history
@@ -390,16 +400,29 @@ function testAiEndpointJsonp(params) {
 }
 
 // AI Function Wrappers
-function createPaymentLinkForAI(amount, description) {
+function createPaymentLinkForAI(amount, description, account, bookingRef) {
   try {
-    Logger.log(`AI Payment Link Request: CHF ${amount} - ${description}`);
-    // For now, return a placeholder - you'll need to implement createPaymentLink
-    return { 
-      success: true, 
-      link: `https://checkout.stripe.com/pay/placeholder_${amount}_${Date.now()}`, 
-      message: `Link di pagamento creato per CHF ${amount}: ${description}` 
-    };
+    Logger.log(`AI Payment Link Request: CHF ${amount} - ${description} - Account: ${account || 'green'} - Ref: ${bookingRef || 'none'}`);
+
+    // Usa la vera funzione Stripe invece del placeholder!
+    const result = createStripePaymentLink(amount, description, account || 'green', 'checkout', bookingRef);
+
+    if (result.success) {
+      Logger.log(`✅ Payment link created: ${result.url}`);
+      return {
+        success: true,
+        link: result.url,
+        message: `Link di pagamento creato per CHF ${amount}: ${description}${account ? ` (conto ${account})` : ''}${bookingRef ? ` - Ref: ${bookingRef}` : ''}`
+      };
+    } else {
+      Logger.log(`❌ Payment link creation failed: ${result.error}`);
+      return {
+        success: false,
+        error: `Errore nella creazione del link: ${result.error}`
+      };
+    }
   } catch (error) {
+    Logger.log(`❌ Error in createPaymentLinkForAI: ${error.toString()}`);
     return { success: false, error: error.toString() };
   }
 }
