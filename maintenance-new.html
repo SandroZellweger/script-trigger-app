@@ -1925,6 +1925,48 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
     </div>
 
     <script>
+
+        // --- Funzioni globali per la gestione batch delle checkbox ---
+        function handleLocalIssueChange(vehicleId, reportId, issueNumber, completed) {
+            if (!window.pendingIssueChanges[vehicleId]) window.pendingIssueChanges[vehicleId] = {};
+            window.pendingIssueChanges[vehicleId][`${reportId}_${issueNumber}`] = completed;
+            document.getElementById(`save-${vehicleId}`).style.display = 'block';
+        }
+
+        function savePendingIssues(vehicleId) {
+            const changes = window.pendingIssueChanges[vehicleId];
+            if (!changes || Object.keys(changes).length === 0) return;
+            const saveBtn = document.getElementById(`save-${vehicleId}`);
+            saveBtn.disabled = true;
+            let pending = Object.keys(changes).length;
+            Object.entries(changes).forEach(([key, completed]) => {
+                const [reportId, issueNumber] = key.split('_');
+                toggleIssueStatusDelayed(reportId, issueNumber, completed, () => {
+                    pending--;
+                    if (pending === 0) {
+                        saveBtn.disabled = false;
+                        saveBtn.style.display = 'none';
+                        window.pendingIssueChanges[vehicleId] = {};
+                        loadActiveReports();
+                    }
+                });
+            });
+        }
+
+        function toggleIssueStatusDelayed(reportId, issueNumber, completed, callback) {
+            const callbackName = 'handleIssueUpdated_' + Math.random().toString(36).substr(2, 8);
+            window[callbackName] = function(response) {
+                if (!response.success) {
+                    alert('Errore nell\'aggiornamento: ' + response.error);
+                }
+                delete window[callbackName];
+                if (callback) callback();
+            };
+            const url = `${window.APP_CONFIG.scriptUrl}?function=updateIssueStatusJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&reportId=${encodeURIComponent(reportId)}&issueIndex=${issueNumber}&completed=${completed}&callback=${callbackName}&_=${Date.now()}`;
+            const script = document.createElement('script');
+            script.src = url;
+            document.body.appendChild(script);
+        }
         // ... existing script setup ...
     </script>
     <script src="config.public.js"></script>
@@ -3344,6 +3386,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
 
             container.innerHTML = '';
+            if (typeof window.pendingIssueChanges === 'undefined') window.pendingIssueChanges = {};
             Object.values(groupedByVehicle).forEach(vehicleGroup => {
                 container.insertAdjacentHTML('beforeend', createGroupedVehicleCard(vehicleGroup));
             });
@@ -3438,17 +3481,14 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     <div id="issues-${safeVehicleId}" style="display: none;">
                         <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-top: 8px;">
                             ${allIssues.map((issue, index) => {
-                                const issueUrgency = issue.urgency || 'low'; // Default to 'low' if undefined
-                                const urgencyColor = issueUrgency === 'critical' ? '#f44336' : 
-                                                    issueUrgency === 'high' ? '#ff9800' : 
-                                                    issueUrgency === 'medium' ? '#ffc107' : '#4caf50';
-                                
+                                const issueUrgency = issue.urgency || 'low';
+                                const urgencyColor = issueUrgency === 'critical' ? '#f44336' : issueUrgency === 'high' ? '#ff9800' : issueUrgency === 'medium' ? '#ffc107' : '#4caf50';
                                 return `
                                     <div style="display: flex; align-items: start; gap: 8px; padding: 8px; background: ${issue.completed ? '#f5f5f5' : '#fff'}; border-left: 2px solid ${urgencyColor}; margin-bottom: 6px; border-radius: 4px;">
-                                        <input type="checkbox" 
-                                               style="cursor: pointer; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"
-                                               ${issue.completed ? 'checked' : ''} 
-                                               onchange="toggleIssueStatus('${issue.reportId}', ${issue.issueNumber}, this.checked)">
+                                        <input type="checkbox"
+                                            style="cursor: pointer; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"
+                                            ${issue.completed ? 'checked' : ''}
+                                            onchange="handleLocalIssueChange('${safeVehicleId}', '${issue.reportId}', ${issue.issueNumber}, this.checked)">
                                         <div style="flex: 1; min-width: 0;">
                                             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; margin-bottom: 4px;">
                                                 <span style="font-weight: 600; color: #333;">${getCategoryIcon(issue.category)} ${getCategoryLabel(issue.category)}</span>
@@ -3476,6 +3516,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                     </div>
                                 `;
                             }).join('')}
+                        <button id="save-${safeVehicleId}" class="submit-btn" style="margin-top: 12px; display: none;" onclick="savePendingIssues('${safeVehicleId}')">💾 Salva modifiche</button>
+
                         </div>
                     </div>
                 </div>
