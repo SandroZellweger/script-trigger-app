@@ -70,6 +70,10 @@ function doGet(e) {
         return createJsonpResponse(e.parameter.callback, { result: "Ping successful" });
       case "getOpenAIApiKeyJsonp":
         return getOpenAIApiKeyJsonp(e.parameter);
+
+      // --- AI Assistant ---
+      case "handleMaintenanceAiRequestJsonp":
+        return handleMaintenanceAiRequestJsonp(e.parameter);
         
       default:
         return createJsonResponse({ error: `Unknown function: ${functionName}` });

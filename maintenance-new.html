@@ -1895,52 +1895,28 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         <div id="personal-ai" class="tab-content">
             <div class="content-card">
                 <h2 style="margin-bottom: 10px;">🤖 Assistente AI Personale</h2>
-                <p style="color: #666; margin-bottom: 30px;">Chiedimi cosa vuoi fare e lo farò per te automaticamente!</p>
-                
-                <div style="background: #f0f4ff; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 16px;">💡 Esempi di comandi:</h3>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button onclick="setAICommand('Crea codice igloohome per N06 fino a domani alle 7')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
-                            📱 Codice Igloohome
-                        </button>
-                        <button onclick="setAICommand('Crea link pagamento 150 CHF per multa velocità')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
-                            💳 Link Pagamento
-                        </button>
-                        <button onclick="setAICommand('Crea danno veicolo N01: lampadina sinistra davanti rotta')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
-                            🔧 Nuovo Danno
-                        </button>
-                        <button onclick="setAICommand('Genera PDF manutenzione per veicolo N07')" style="padding: 10px 15px; background: white; border: 2px solid #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
-                            📄 PDF Manutenzione
-                        </button>
-                    </div>
-                </div>
+                <p style="color: #666; margin-bottom: 30px;">Chiedimi cosa vuoi fare e lo farò per te. Prova a usare la voce!</p>
 
                 <div class="ai-chat-container">
                     <div class="ai-messages" id="aiChatMessages">
+                        <!-- Initial welcome message -->
                         <div class="ai-message ai-bot">
                             <div class="ai-avatar">🤖</div>
                             <div class="ai-content">
-                                Ciao! Sono il tuo assistente AI personale. 👋<br><br>
-                                Posso aiutarti con:
-                                <ul style="margin: 10px 0; padding-left: 20px;">
-                                    <li>📱 Creare codici Igloohome per veicoli</li>
-                                    <li>💳 Generare link di pagamento Stripe</li>
-                                    <li>🔧 Registrare danni e problemi ai veicoli</li>
-                                    <li>📄 Generare PDF di manutenzione</li>
-                                    <li>📲 Inviare istruzioni ai clienti</li>
-                                </ul>
-                                Dimmi cosa vuoi fare e ci penso io! 🚀
+                                Ciao! Sono il tuo assistente AI. Come posso aiutarti oggi?
+                                <br><br>
+                                Puoi chiedermi di creare un report di manutenzione. Per esempio: <em>"Crea un report per N1, problema alla frizione, costo 500 franchi."</em>
                             </div>
                         </div>
                     </div>
                     
                     <div class="ai-input-container">
-                        <input type="text" id="aiCommandInput" placeholder="Scrivi o registra vocalmente cosa vuoi fare... (es: Crea codice igloohome per N06)" onkeypress="if(event.key === 'Enter') executeAICommand()">
-                        <button class="ai-send-btn" onclick="executeAICommand()">
-                            ➤
-                        </button>
-                        <button class="ai-voice-btn" id="aiVoiceBtn" onclick="startVoiceRecording()" title="Registra messaggio vocale">
+                        <input type="text" id="aiCommandInput" placeholder="Scrivi o registra un messaggio..." onkeypress="if(event.key === 'Enter') sendAiMessage()">
+                        <button class="ai-voice-btn" id="aiVoiceBtn" onclick="toggleVoiceRecognition()" title="Avvia/Interrompi riconoscimento vocale">
                             🎤
+                        </button>
+                        <button class="ai-send-btn" onclick="sendAiMessage()" id="aiSendBtn">
+                            ➤
                         </button>
                     </div>
                 </div>
@@ -1949,19 +1925,165 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
     </div>
 
     <script>
-        // Try to load config.private.js silently (only exists locally)
-        (function() {
-            var script = document.createElement('script');
-            script.src = 'config.private.js';
-            script.onerror = function() {
-                console.log('ℹ️ config.private.js not found - using production defaults');
-            };
-            document.head.appendChild(script);
-        })();
+        // ... existing script setup ...
     </script>
     <script src="config.public.js"></script>
     <script>
         // Maintenance System JavaScript
+        // ... existing variables ...
+
+        // --- AI Assistant ---
+        const aiCommandInput = document.getElementById('aiCommandInput');
+        const aiChatMessages = document.getElementById('aiChatMessages');
+        const aiVoiceBtn = document.getElementById('aiVoiceBtn');
+        const aiSendBtn = document.getElementById('aiSendBtn');
+
+        let recognition = null;
+        let isRecognizing = false;
+
+        // Check for browser support and initialize SpeechRecognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false; // Process after a pause
+            recognition.interimResults = true; // Show results as they are recognized
+            recognition.lang = 'it-IT';
+
+            recognition.onstart = function() {
+                isRecognizing = true;
+                aiVoiceBtn.classList.add('recording');
+                aiVoiceBtn.title = 'Interrompi riconoscimento vocale';
+                aiCommandInput.placeholder = 'Sto ascoltando...';
+            };
+
+            recognition.onresult = function(event) {
+                let interim_transcript = '';
+                let final_transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final_transcript += event.results[i][0].transcript;
+                    } else {
+                        interim_transcript += event.results[i][0].transcript;
+                    }
+                }
+                aiCommandInput.value = final_transcript + interim_transcript;
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                stopRecognition();
+            };
+
+            recognition.onend = function() {
+                stopRecognition();
+            };
+        } else {
+            console.warn('Web Speech API not supported in this browser.');
+            aiVoiceBtn.style.display = 'none';
+        }
+
+        function toggleVoiceRecognition() {
+            if (!recognition) return;
+            if (isRecognizing) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function stopRecognition() {
+            if (!recognition) return;
+            isRecognizing = false;
+            aiVoiceBtn.classList.remove('recording');
+            aiVoiceBtn.title = 'Avvia riconoscimento vocale';
+            aiCommandInput.placeholder = 'Scrivi o registra un messaggio...';
+        }
+
+
+        function addMessageToChat(sender, message, type = 'text') {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('ai-message', `ai-${sender}`);
+
+            const avatar = document.createElement('div');
+            avatar.classList.add('ai-avatar');
+            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+            const content = document.createElement('div');
+            content.classList.add('ai-content');
+            
+            if (type === 'typing') {
+                content.innerHTML = `<div class="ai-typing"><span></span><span></span><span></span></div>`;
+            } else {
+                content.innerHTML = message; // Use innerHTML to render potential HTML tags
+            }
+
+            messageElement.appendChild(avatar);
+            messageElement.appendChild(content);
+            aiChatMessages.appendChild(messageElement);
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+            return messageElement;
+        }
+
+        async function sendAiMessage() {
+            const query = aiCommandInput.value.trim();
+            if (!query) return;
+
+            addMessageToChat('user', query);
+            aiCommandInput.value = '';
+            aiSendBtn.disabled = true;
+
+            const typingIndicator = addMessageToChat('bot', '', 'typing');
+
+            try {
+                const response = await new Promise((resolve, reject) => {
+                    const callbackName = 'aiCallback_' + Date.now();
+                    const url = `${window.APP_CONFIG.scriptUrl}?function=handleMaintenanceAiRequestJsonp&authToken=${window.APP_CONFIG.authToken}&callback=${callbackName}&query=${encodeURIComponent(query)}`;
+
+                    window[callbackName] = (data) => {
+                        delete window[callbackName];
+                        document.body.removeChild(document.getElementById(callbackName));
+                        if (data.success) {
+                            resolve(data.response);
+                        } else {
+                            reject(new Error(data.error || 'Unknown AI error'));
+                        }
+                    };
+
+                    const script = document.createElement('script');
+                    script.id = callbackName;
+                    script.src = url;
+                    script.onerror = () => reject(new Error('Network error calling AI endpoint.'));
+                    document.body.appendChild(script);
+                });
+
+                // For now, we just display the raw response from the AI.
+                // The next step is to handle `tool_calls`.
+                let aiResponseText = "Non ho capito bene. Puoi riformulare?";
+                if (response && response.content) {
+                    aiResponseText = response.content;
+                } else if (response && response.tool_calls) {
+                    // This case should ideally not be hit if the backend handles the loop
+                    aiResponseText = `Okay, ho ricevuto una richiesta di azione: <strong>${response.tool_calls[0].function.name}</strong>. La logica per eseguirla non è ancora implementata.`;
+                }
+
+                aiChatMessages.removeChild(typingIndicator);
+                addMessageToChat('bot', aiResponseText);
+
+            } catch (error) {
+                console.error('Error calling AI:', error);
+                aiChatMessages.removeChild(typingIndicator);
+                addMessageToChat('bot', `Si è verificato un errore: ${error.message}`);
+            } finally {
+                aiSendBtn.disabled = false;
+            }
+        }
+
+        function setAICommand(command) {
+            aiCommandInput.value = command;
+            aiCommandInput.focus();
+        }
+
+        // --- End AI Assistant ---
+
 
         let issueCounter = 0;
         let currentVehicles = [];
