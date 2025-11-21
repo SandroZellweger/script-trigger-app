@@ -1617,11 +1617,16 @@
 
                     <div class="km-info" id="kmInfo" style="display: none;">
                         <div class="km-item">
-                            <label>KM fino al prossimo servizio</label>
+                            <label>KM Attuali</label>
+                            <div class="value" id="currentKmDisplay">-</div>
+                            <div style="font-size: 11px; color: #666; margin-top: 4px;" id="lastUpdateDisplay"></div>
+                        </div>
+                        <div class="km-item">
+                            <label>KM al prossimo servizio</label>
                             <div class="value" id="kmToService">-</div>
                         </div>
                         <div class="km-item">
-                            <label>Giorni stimati (100km/giorno)</label>
+                            <label>Giorni stimati</label>
                             <div class="value" id="daysToService">-</div>
                         </div>
                     </div>
@@ -2685,6 +2690,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             option.dataset.kmToService = vehicle.kmToService || 0;
                             option.dataset.licencePlate = vehicle.licencePlate || '';
                             option.dataset.currentKm = vehicle.currentKm || 0;
+                            option.dataset.lastUpdate = vehicle.lastUpdate || '';
                             option.dataset.cartaGrigiaPhoto = vehicle.cartaGrigiaPhoto || '';
                             
                             select.appendChild(option);
@@ -2718,12 +2724,19 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
         function handleVehicleChange(event) {
             const selectedOption = event.target.options[event.target.selectedIndex];
             const kmToService = parseInt(selectedOption.dataset.kmToService) || 0;
+            const currentKm = parseInt(selectedOption.dataset.currentKm) || 0;
+            const lastUpdate = selectedOption.dataset.lastUpdate || '';
             
-            // Show info for any non-zero km value (positive or negative)
-            if (kmToService !== 0) {
-                const daysToService = Math.floor(Math.abs(kmToService) / 100);
-                
+            // Show info if vehicle is selected
+            if (selectedOption.value) {
                 document.getElementById('kmInfo').style.display = 'grid';
+                
+                // Update Current KM & Date
+                document.getElementById('currentKmDisplay').textContent = currentKm > 0 ? currentKm.toLocaleString('it-IT') + ' km' : 'N/D';
+                document.getElementById('lastUpdateDisplay').textContent = lastUpdate ? `Aggiornato: ${lastUpdate}` : '';
+
+                // Calculate days to service (assuming 100km/day)
+                const daysToService = Math.floor(Math.abs(kmToService) / 100);
                 
                 // Handle negative km (overdue service)
                 if (kmToService < 0) {
@@ -2772,6 +2785,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     <div class="form-group">
                         <label>📝 Descrizione Dettagliata del Problema</label>
                         <textarea class="issue-description" rows="4" placeholder="Descrivi il problema in dettaglio (es: 'Il freno posteriore sinistro fa rumore quando freno', 'Ammaccatura sul parafango anteriore destro', ecc.)" required onblur="updateAIAnalysis('${issueId}')"></textarea>
+                    </div>
+
+                    <!-- NUOVO CAMPO: Scadenza KM -->
+                    <div class="form-group" style="background: #f0f4ff; padding: 10px; border-radius: 8px; border: 1px dashed #667eea;">
+                        <label style="color: #4c6ef5;">🏁 Scadenza KM (Opzionale)</label>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 5px;">A quanti KM totali va fatto questo lavoro al massimo?</p>
+                        <input type="number" class="issue-deadline-km" placeholder="Es. 155000" style="border-color: #4c6ef5;">
                     </div>
 
                     <div class="ai-helper-row">
@@ -3441,6 +3461,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 const description = issueElement.querySelector('.issue-description').value;
                 const urgency = issueElement.querySelector('.issue-urgency').value;
                 const mechanicNote = issueElement.querySelector('.issue-note').value.trim();
+                const deadlineKm = issueElement.querySelector('.issue-deadline-km') ? issueElement.querySelector('.issue-deadline-km').value : '';
                 
                 if (category && description && urgency) {
                     issues.push({
@@ -3448,6 +3469,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         description,
                         urgency,
                         note: mechanicNote,
+                        deadlineKm: deadlineKm,
                         status: 'reported',
                         completed: false
                     });

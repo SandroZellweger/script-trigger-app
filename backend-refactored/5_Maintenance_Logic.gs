@@ -159,6 +159,10 @@ function getVehicleListWithKm() {
     let kmIndex = headers.indexOf('KmNextService');
     if (kmIndex === -1) kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
 
+    // Nuovi indici per KM Attuali (Colonna J -> indice 9) e Data (Colonna K -> indice 10)
+    const currentKmIndex = 9; // Colonna J
+    const lastUpdateIndex = 10; // Colonna K
+
     const vehicles = [];
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
@@ -167,11 +171,25 @@ function getVehicleListWithKm() {
       // Check if vehicle has name and calendar ID (skip empty rows)
       // AND filter: only include vehicles starting with "N"
       if (row[nameIndex] && row[idIndex] && vehicleName.toString().trim().toUpperCase().startsWith('N')) {
+        
+        // Formatta la data se presente
+        let lastUpdate = '';
+        if (row[lastUpdateIndex]) {
+          try {
+            const dateObj = new Date(row[lastUpdateIndex]);
+            lastUpdate = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "dd/MM/yyyy");
+          } catch (e) {
+            lastUpdate = row[lastUpdateIndex];
+          }
+        }
+
         vehicles.push({
           name: row[nameIndex],
           calendarId: row[idIndex],
           id: row[idIndex],
-          kmToService: parseInt(row[kmIndex]) || 0
+          kmToService: parseInt(row[kmIndex]) || 0,
+          currentKm: parseInt(row[currentKmIndex]) || 0, // Aggiunto KM Attuali
+          lastUpdate: lastUpdate // Aggiunta Data Aggiornamento
         });
       }
     }
@@ -474,5 +492,148 @@ function addGarageJsonp(params) {
       throw new Error('Invalid garage data: ' + e.toString());
     }
     return addGarage(garageData);
+  });
+}
+
+// Save Maintenance Report
+function saveMaintenanceReport(reportData) {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+    
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+    
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Difetti e Riparazioni');
+    
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Difetti e Riparazioni');
+      // Add headers
+      const headerRow = sheet.getRange(1, 1, 1, 20);
+      headerRow.setValues([[
+        'ID Report', 'Data Segnalazione', 'Nome Veicolo', 'ID Veicolo', 'Segnalato Da',
+        'Categoria', 'Descrizione Problema', 'Urgenza', 'Stato', 'Completato',
+        'Data Completamento', 'Tipo Riparazione', 'Costo (CHF)', 'Garage/Officina', 'N. Fattura',
+        'Link Foto', 'ID Foto Drive', 'N. Problema', 'Totale Problemi', 'Scadenza KM'
+      ]]);
+      // Format headers
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+    
+    // Check if headers exist, if not add them
+    const firstRow = sheet.getRange(1, 1).getValue();
+    if (!firstRow || firstRow !== 'ID Report') {
+      sheet.insertRowBefore(1);
+      const headerRow = sheet.getRange(1, 1, 1, 20);
+      headerRow.setValues([[
+        'ID Report', 'Data Segnalazione', 'Nome Veicolo', 'ID Veicolo', 'Segnalato Da',
+        'Categoria', 'Descrizione Problema', 'Urgenza', 'Stato', 'Completato',
+        'Data Completamento', 'Tipo Riparazione', 'Costo (CHF)', 'Garage/Officina', 'N. Fattura',
+        'Link Foto', 'ID Foto Drive', 'N. Problema', 'Totale Problemi', 'Scadenza KM'
+      ]]);
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+
+    // Check if "Scadenza KM" column exists (it's the 20th column)
+    const lastCol = sheet.getLastColumn();
+    if (lastCol < 20) {
+       sheet.getRange(1, 20).setValue('Scadenza KM').setBackground('#667eea').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+    }
+    
+    const reportId = reportData.reportId;
+    const reportDate = new Date(reportData.reportDate);
+    const issues = reportData.issues;
+    const totalIssues = issues.length;
+    
+    // Add one row per issue
+    issues.forEach((issue, index) => {
+      const photoURLs = reportData.photos ? reportData.photos.join('\n') : '';
+      const photoIds = reportData.photoIds ? reportData.photoIds.join('\n') : '';
+      
+      const row = sheet.appendRow([
+        reportId,
+        reportDate,
+        reportData.vehicleName,
+        reportData.vehicleId,
+        reportData.reportedBy,
+        issue.category,
+        issue.description,
+        issue.urgency,
+        'Aperto',
+        false,
+        '',
+        '',
+        '',
+        '',
+        '',
+        photoURLs,
+        photoIds,
+        index + 1,
+        totalIssues,
+        issue.deadlineKm || '' // Save Deadline KM
+      ]);
+      
+      // Get the last row number
+      const lastRow = sheet.getLastRow();
+      
+      // Format urgency column with colors
+      const urgencyCell = sheet.getRange(lastRow, 8);
+      switch(issue.urgency) {
+        case 'low':
+          urgencyCell.setValue('🟢 Bassa');
+          urgencyCell.setBackground('#c8e6c9');
+          break;
+        case 'medium':
+          urgencyCell.setValue('🟡 Media');
+          urgencyCell.setBackground('#fff9c4');
+          break;
+        case 'high':
+          urgencyCell.setValue('🟠 Alta');
+          urgencyCell.setBackground('#ffccbc');
+          break;
+        case 'critical':
+          urgencyCell.setValue('🔴 Critica');
+          urgencyCell.setBackground('#ffcdd2');
+          break;
+      }
+    });
+    
+    return {
+      success: true,
+      message: 'Report saved successfully',
+      reportId: reportId
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function saveMaintenanceReportJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, (p) => {
+    let reportData;
+    try {
+      reportData = JSON.parse(p.data);
+    } catch (e) {
+      throw new Error('Invalid report data: ' + e.toString());
+    }
+    return saveMaintenanceReport(reportData);
   });
 }

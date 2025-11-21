@@ -59,6 +59,8 @@ function doGet(e) {
         return getVehicleListWithKmJsonp(e.parameter);
       case "getActiveMaintenanceReportsJsonp":
         return getActiveMaintenanceReportsJsonp(e.parameter);
+      case "saveMaintenanceReportJsonp":
+        return saveMaintenanceReportJsonp(e.parameter);
       case "analyzeMaintenanceIssueJsonp":
         return analyzeMaintenanceIssueJsonp(e.parameter);
       case "getGaragesListJsonp":
