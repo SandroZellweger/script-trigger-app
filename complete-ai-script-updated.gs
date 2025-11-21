@@ -341,28 +341,28 @@ function getActiveMaintenanceReportsJsonp(params) {
 
     const reports = Object.values(reportsMap);
 
-    return {
+    const callback = sanitizeJsonpCallback(params.callback || 'callback');
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify({
       success: true,
       reports: reports,
       timestamp: new Date().toISOString()
-    };
+    }) + ');';
+
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+
   } catch (error) {
-    return {
+    const callback = sanitizeJsonpCallback(params.callback || 'callback');
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify({
       success: false,
       error: error.toString()
-    };
+    }) + ');';
+
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
-}
-
-function getActiveMaintenanceReportsJsonp(params) {
-  const callback = sanitizeJsonpCallback(params.callback || 'callback');
-  const response = getActiveMaintenanceReports();
-
-  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
-
-  return ContentService
-    .createTextOutput(jsonpResponse)
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 // Helper Functions
