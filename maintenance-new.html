@@ -1600,6 +1600,8 @@
             <button class="tab" onclick="switchTab('garages')">🔧 Gestione Officine</button>
             <button class="tab" onclick="switchTab('personal-ai')">🤖 AI Personale</button>
             <button class="tab" onclick="switchTab('import-legacy')">📥 Importa Dati Legacy</button>
+            <button class="tab" onclick="switchTab('cleaning')">🧹 Pulizia</button>
+            <button class="tab" onclick="switchTab('damage-ai')">🔍 Analisi Danni AI</button>
         </div>
 
         <!-- NEW REPORT TAB -->
@@ -1888,6 +1890,142 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     </div>
                     <p id="importStatusText">Preparazione dati...</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- CLEANING TAB -->
+        <div id="cleaning" class="tab-content">
+            <div class="content-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>🧹 Pulizia Veicoli</h2>
+                    <button onclick="openAddCleaningModal()" class="add-issue-btn" style="width: auto; margin: 0;">
+                        + Aggiungi Pulizia
+                    </button>
+                </div>
+
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="stat-card" style="background: #f8f9fa; padding: 15px; border-radius: 12px; text-align: center;">
+                        <div class="stat-value" id="cleaningTotal" style="font-size: 24px; font-weight: bold; color: #7DBB35;">0</div>
+                        <div class="stat-label">Pulizie Totali</div>
+                    </div>
+                    <div class="stat-card" style="background: #f8f9fa; padding: 15px; border-radius: 12px; text-align: center;">
+                        <div class="stat-value" id="cleaningThisMonth" style="font-size: 24px; font-weight: bold; color: #2196F3;">0</div>
+                        <div class="stat-label">Questo Mese</div>
+                    </div>
+                </div>
+
+                <div id="cleaningList" class="reports-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Caricamento storico pulizie...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Cleaning Modal -->
+        <div id="cleaningModal" class="modal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeCleaningModal()">&times;</button>
+                <h2 class="modal-title">Registra Pulizia</h2>
+                <form id="cleaningForm" onsubmit="handleCleaningSubmit(event)">
+                    <div class="form-group">
+                        <label>🚐 Veicolo</label>
+                        <select id="cleaningVehicleSelect" required>
+                            <option value="">Seleziona Veicolo...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Data</label>
+                        <input type="date" id="cleaningDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>🧹 Tipo Pulizia</label>
+                        <select id="cleaningType" required>
+                            <option value="">Seleziona Tipo...</option>
+                            <option value="inside">Interna</option>
+                            <option value="outside">Esterna</option>
+                            <option value="both">Completa (Interna + Esterna)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                        <button type="button" onclick="closeCleaningModal()" class="edit-issue-btn-cancel">Annulla</button>
+                        <button type="submit" class="edit-issue-btn-save">Salva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- DAMAGE AI TAB -->
+        <div id="damage-ai" class="tab-content">
+            <div class="content-card">
+                <div class="header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 15px; margin-bottom: 30px;">
+                    <h1 style="font-size: 2.5em; margin-bottom: 10px;">🔍 Test AI Riconoscimento Danni</h1>
+                    <p style="font-size: 1.1em; opacity: 0.9;">Carica una foto di un danno e trova chi l'ha causato</p>
+                </div>
+
+                <div class="info-box" style="background: #e3f2fd; border-left: 5px solid #2196f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #1976d2; margin-bottom: 10px;">Come funziona:</h3>
+                    <ul style="margin-left: 20px; color: #555;">
+                        <li style="margin-bottom: 5px;">📸 Carica una foto del danno rilevato</li>
+                        <li style="margin-bottom: 5px;">🚐 Seleziona il veicolo interessato</li>
+                        <li style="margin-bottom: 5px;">🤖 L'AI analizza le ultime 20 prenotazioni del calendario</li>
+                        <li style="margin-bottom: 5px;">🔎 Controlla le foto nelle cartelle Drive dei clienti</li>
+                        <li style="margin-bottom: 5px;">⚠️ Trova le differenze tra consegna e ritiro</li>
+                        <li style="margin-bottom: 5px;">📊 Mostra i risultati con percentuale di confidenza</li>
+                    </ul>
+                </div>
+
+                <div class="section" style="margin-bottom: 30px; padding: 25px; background: #f8f9fa; border-radius: 15px; border-left: 5px solid #667eea;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">1. Carica Foto Danno</h2>
+                    <div class="form-group">
+                        <label for="damagePhoto">Seleziona la foto del danno rilevato:</label>
+                        <input type="file" id="damagePhoto" accept="image/*" onchange="handleDamagePhotoUpload(event)">
+                        <div id="damagePreview" class="image-preview" style="margin-top: 15px; text-align: center;"></div>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-bottom: 30px; padding: 25px; background: #f8f9fa; border-radius: 15px; border-left: 5px solid #667eea;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">2. Seleziona Veicolo</h2>
+                    <div class="form-group">
+                        <label for="damageVehicleSelect">Scegli il veicolo:</label>
+                        <select id="damageVehicleSelect" onchange="handleDamageVehicleSelection(event)">
+                            <option value="">-- Caricamento veicoli... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-bottom: 30px; padding: 25px; background: #f8f9fa; border-radius: 15px; border-left: 5px solid #667eea;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">3. Come vuoi ricevere i risultati?</h2>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <input type="checkbox" id="notifyEmail" checked style="width: auto; margin-right: 10px;">
+                            📧 Email a noleggiosemplice23@gmail.com
+                        </label>
+                        <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <input type="checkbox" id="notifyWhatsApp" style="width: auto; margin-right: 10px;" onchange="toggleWhatsappInput(event)">
+                            📱 WhatsApp (inserisci numero sotto)
+                        </label>
+                        <input type="tel" id="whatsappNumber" placeholder="+41 79 123 45 67" 
+                               style="margin-left: 30px; margin-top: 5px; display: none; width: calc(100% - 30px); padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                        <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <input type="checkbox" id="showDashboard" checked style="width: auto; margin-right: 10px;">
+                            🖥️ Dashboard Live (apri in nuova finestra)
+                        </label>
+                    </div>
+                </div>
+
+                <button id="analyzeBtn" disabled onclick="startDamageAnalysis()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 40px; font-size: 1.1em; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 10px;">
+                    🔍 Analizza e Trova Responsabile
+                </button>
+
+                <div id="damageLoading" class="loading" style="display: none; text-align: center; padding: 30px;">
+                    <div class="spinner"></div>
+                    <p>Analisi in corso... Questo può richiedere alcuni minuti.</p>
+                    <p style="margin-top: 10px; color: #666;">Sto controllando le ultime 20 prenotazioni...</p>
+                </div>
+
+                <div id="damageResults" class="results" style="display: none; margin-top: 30px;"></div>
             </div>
         </div>
 
@@ -2460,6 +2598,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             // Setup form submission
             document.getElementById('maintenanceForm').addEventListener('submit', handleSubmit);
+
+            // Check for hash in URL to switch tab
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                setTimeout(() => switchTab(hash), 100);
+            }
         }
 
         // Initialize
@@ -2494,6 +2638,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 loadHistory();
             } else if (tabName === 'garages') {
                 loadSavedGarages();
+            } else if (tabName === 'cleaning') {
+                loadCleaningData();
+            } else if (tabName === 'damage-ai') {
+                loadDamageVehicles();
             }
         }
 

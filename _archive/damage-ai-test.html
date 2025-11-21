@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AI Riconoscimento Danni</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input[type="file"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .image-preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #ff6b6b;
+        }
+
+        .result-card.match {
+            border-left-color: #51cf66;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .confidence-badge {
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .confidence-badge.high {
+            background: #51cf66;
+        }
+
+        .confidence-badge.medium {
+            background: #ffa500;
+        }
+
+        .image-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .comparison-image {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .comparison-image img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .comparison-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .error {
+            background: #ffe0e0;
+            border-left: 5px solid #ff6b6b;
+            padding: 15px;
+            border-radius: 8px;
+            color: #d63031;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: #e0ffe0;
+            border-left: 5px solid #51cf66;
+            padding: 15px;
+            border-radius: 8px;
+            color: #27ae60;
+            margin-top: 15px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Test AI Riconoscimento Danni</h1>
+            <p>Carica una foto di un danno e trova chi l'ha causato</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>Come funziona:</h3>
+                <ul>
+                    <li>📸 Carica una foto del danno rilevato</li>
+                    <li>🚐 Seleziona il veicolo interessato</li>
+                    <li>🤖 L'AI analizza le ultime 20 prenotazioni del calendario</li>
+                    <li>🔎 Controlla le foto nelle cartelle Drive dei clienti</li>
+                    <li>⚠️ Trova le differenze tra consegna e ritiro</li>
+                    <li>📊 Mostra i risultati con percentuale di confidenza</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>1. Carica Foto Danno</h2>
+                <div class="form-group">
+                    <label for="damagePhoto">Seleziona la foto del danno rilevato:</label>
+                    <input type="file" id="damagePhoto" accept="image/*">
+                    <div id="damagePreview" class="image-preview"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>2. Seleziona Veicolo</h2>
+                <div class="form-group">
+                    <label for="vehicleSelect">Scegli il veicolo:</label>
+                    <select id="vehicleSelect">
+                        <option value="">-- Caricamento veicoli... --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>3. Come vuoi ricevere i risultati?</h2>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="notifyEmail" checked style="width: auto; margin-right: 10px;">
+                        📧 Email a noleggiosemplice23@gmail.com
+                    </label>
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="notifyWhatsApp" style="width: auto; margin-right: 10px;">
+                        📱 WhatsApp (inserisci numero sotto)
+                    </label>
+                    <input type="tel" id="whatsappNumber" placeholder="+41 79 123 45 67" 
+                           style="margin-left: 30px; margin-top: 5px; display: none;">
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="showDashboard" checked style="width: auto; margin-right: 10px;">
+                        🖥️ Dashboard Live (apri in nuova finestra)
+                    </label>
+                </div>
+            </div>
+
+            <button id="analyzeBtn" disabled>🔍 Analizza e Trova Responsabile</button>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Analisi in corso... Questo può richiedere alcuni minuti.</p>
+                <p style="margin-top: 10px; color: #666;">Sto controllando le ultime 20 prenotazioni...</p>
+            </div>
+
+            <div id="results" class="results"></div>
+        </div>
+    </div>
+
+    <script src="config.public.js"></script>
+    <script>
+        let selectedDamagePhoto = null;
+        let selectedVehicle = null;
+
+        // Load vehicles on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, checking config...');
+            console.log('CONFIG:', window.CONFIG);
+            
+            // Give config.js a moment to load
+            setTimeout(() => {
+                console.log('CONFIG after timeout:', window.CONFIG);
+                setupEventListeners();
+                loadVehicles();
+            }, 200);
+        });
+
+        function setupEventListeners() {
+            // Photo upload
+            document.getElementById('damagePhoto').addEventListener('change', handlePhotoUpload);
+            
+            // Vehicle selection
+            document.getElementById('vehicleSelect').addEventListener('change', handleVehicleSelection);
+            
+            // WhatsApp checkbox toggle
+            document.getElementById('notifyWhatsApp').addEventListener('change', function(e) {
+                const phoneInput = document.getElementById('whatsappNumber');
+                phoneInput.style.display = e.target.checked ? 'block' : 'none';
+                if (e.target.checked) phoneInput.focus();
+            });
+            
+            // Analyze button
+            document.getElementById('analyzeBtn').addEventListener('click', startAnalysis);
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            selectedDamagePhoto = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('damagePreview');
+                preview.innerHTML = `<img src="${e.target.result}" alt="Damage preview">`;
+            };
+            reader.readAsDataURL(file);
+
+            checkEnableAnalyze();
+        }
+
+        function handleVehicleSelection(event) {
+            selectedVehicle = event.target.value;
+            checkEnableAnalyze();
+        }
+
+        function checkEnableAnalyze() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = !(selectedDamagePhoto && selectedVehicle);
+        }
+
+        function loadVehicles() {
+            const scriptUrl = window.CONFIG?.scriptUrl;
+            const authToken = window.CONFIG?.authToken;
+            
+            if (!scriptUrl || !authToken) {
+                console.error('Config not loaded');
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">⚠️ Configurazione mancante</option>';
+                return;
+            }
+
+            const callback = 'vehicleCallback_' + Date.now();
+            
+            window[callback] = function(response) {
+                const select = document.getElementById('vehicleSelect');
+                
+                try {
+                    if (response.success && response.vehicles) {
+                        select.innerHTML = '<option value="">-- Seleziona un veicolo --</option>';
+                        
+                        response.vehicles.forEach(vehicle => {
+                            const option = document.createElement('option');
+                            const value = vehicle.calendarId || vehicle.vehicleType || vehicle.vehicleNumber || vehicle.id || '';
+                            const labelParts = [];
+
+                            if (vehicle.vehicleType) {
+                                labelParts.push(vehicle.vehicleType);
+                            }
+                            if (vehicle.vehicleNumber && !labelParts.includes(vehicle.vehicleNumber)) {
+                                labelParts.push(vehicle.vehicleNumber);
+                            }
+                            if (labelParts.length === 0 && vehicle.calendarName) {
+                                labelParts.push(vehicle.calendarName);
+                            }
+
+                            option.value = value;
+                            option.textContent = vehicle.name || labelParts.join(' - ') || 'Veicolo';
+                            option.dataset.vehicleType = vehicle.vehicleType || '';
+                            option.dataset.vehicleNumber = vehicle.vehicleNumber || '';
+                            option.dataset.calendarId = vehicle.calendarId || '';
+                            
+                            select.appendChild(option);
+                        });
+                        
+                        console.log('✅ Loaded ' + response.vehicles.length + ' vehicles');
+                    } else {
+                        select.innerHTML = '<option value="">❌ ' + (response.error || 'Errore caricamento') + '</option>';
+                        console.error('Vehicle load error:', response);
+                    }
+                } catch (error) {
+                    console.error('Error processing vehicles:', error);
+                    select.innerHTML = '<option value="">❌ Errore processamento</option>';
+                }
+                
+                delete window[callback];
+            };
+
+            const script = document.createElement('script');
+            script.src = `${scriptUrl}?function=getVehicleListJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.onerror = () => {
+                const select = document.getElementById('vehicleSelect');
+                select.innerHTML = '<option value="">❌ Errore connessione script</option>';
+                delete window[callback];
+            };
+            document.head.appendChild(script);
+        }
+
+        async function startAnalysis() {
+            const loadingDiv = document.getElementById('loading');
+            const resultsDiv = document.getElementById('results');
+            const btn = document.getElementById('analyzeBtn');
+
+            // Get notification preferences
+            const notifyEmail = document.getElementById('notifyEmail').checked;
+            const notifyWhatsApp = document.getElementById('notifyWhatsApp').checked;
+            const whatsappNumber = document.getElementById('whatsappNumber').value;
+            const showDashboard = document.getElementById('showDashboard').checked;
+
+            // Validate WhatsApp number if selected
+            if (notifyWhatsApp && !whatsappNumber.trim()) {
+                alert('Inserisci un numero WhatsApp valido');
+                return;
+            }
+
+            // Show loading
+            loadingDiv.classList.add('active');
+            resultsDiv.classList.remove('active');
+            resultsDiv.innerHTML = '';
+            btn.disabled = true;
+
+            // Open dashboard if requested
+            let dashboardWindow = null;
+            if (showDashboard) {
+                dashboardWindow = window.open('damage-results.html', '_blank');
+            }
+
+            try {
+                // Step 1: Upload damage photo to get URL
+                const damagePhotoUrl = await uploadDamagePhoto(selectedDamagePhoto);
+                console.log('Damage photo uploaded:', damagePhotoUrl);
+
+                // Step 2: Get last 20 bookings from calendar
+                const select = document.getElementById('vehicleSelect');
+                const selectedOption = select.options[select.selectedIndex];
+                const vehicleInfo = {
+                    calendarId: selectedVehicle,
+                    vehicleType: selectedOption.dataset.vehicleType,
+                    vehicleNumber: selectedOption.dataset.vehicleNumber,
+                    displayName: selectedOption.textContent
+                };
+
+                console.log('Getting bookings for vehicle:', vehicleInfo);
+                const bookings = await getLastBookings(vehicleInfo, 20);
+                console.log(`Found ${bookings.length} bookings`);
+
+                // Step 3: Analyze each booking's photos
+                const results = await analyzeBookingsForDamage(damagePhotoUrl, bookings, vehicleInfo);
+                
+                // Step 4: Send to dashboard if open
+                if (dashboardWindow && !dashboardWindow.closed) {
+                    dashboardWindow.postMessage({
+                        type: 'DAMAGE_RESULTS',
+                        data: {
+                            results: results,
+                            vehicleInfo: vehicleInfo,
+                            damagePhotoUrl: damagePhotoUrl,
+                            timestamp: new Date().toISOString()
+                        }
+                    }, '*');
+                }
+
+                // Step 5: Display results inline
+                displayResults(results, vehicleInfo);
+
+                // Step 6: Send notifications if requested
+                if (results.length > 0) {
+                    if (notifyWhatsApp && whatsappNumber) {
+                        await sendWhatsAppNotification(whatsappNumber, results, vehicleInfo);
+                    }
+                    // Email is sent automatically by backend if confidence > 70%
+                }
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                resultsDiv.innerHTML = `<div class="error"><strong>Errore:</strong> ${error.message}</div>`;
+                resultsDiv.classList.add('active');
+            } finally {
+                loadingDiv.classList.remove('active');
+                btn.disabled = false;
+            }
+        }
+
+        async function uploadDamagePhoto(file) {
+            // For now, convert to data URL for testing
+            // In production, upload to Drive first
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function getLastBookings(vehicleInfo, limit = 20) {
+            return new Promise((resolve, reject) => {
+                const callback = 'bookingsCallback_' + Date.now();
+                
+                window[callback] = function(response) {
+                    delete window[callback];
+                    
+                    if (response.success && response.bookings) {
+                        // Sort by date and take last N bookings
+                        const sorted = response.bookings.sort((a, b) => 
+                            new Date(b.start) - new Date(a.start)
+                        );
+                        resolve(sorted.slice(0, limit));
+                    } else {
+                        reject(new Error('Failed to load bookings'));
+                    }
+                };
+
+                // Get bookings from last 6 months
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - 6);
+
+                const script = document.createElement('script');
+                script.src = `${window.CONFIG.scriptUrl}?function=getVehicleBookingsJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&vehicleId=${vehicleInfo.calendarId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&callback=${callback}&_=${Date.now()}`;
+                script.onerror = () => reject(new Error('Failed to load script'));
+                document.body.appendChild(script);
+            });
+        }
+
+        async function analyzeBookingsForDamage(damagePhotoUrl, bookings, vehicleInfo) {
+            const results = [];
+            
+            for (const booking of bookings) {
+                console.log(`Analyzing booking: ${booking.title}`);
+                
+                // Extract phone number from booking
+                const phoneNumber = extractPhoneNumber(booking.description);
+                if (!phoneNumber) {
+                    console.log('No phone number found, skipping...');
+                    continue;
+                }
+
+                console.log(`Phone number: ${phoneNumber}`);
+                
+                // Get photos from Drive folder
+                const photos = await getCustomerPhotos(phoneNumber);
+                console.log(`Found ${photos.length} photos for ${phoneNumber}`);
+                
+                if (photos.length === 0) continue;
+
+                // Analyze photos with AI
+                const analysis = await analyzePhotosForDamage(damagePhotoUrl, photos, booking, vehicleInfo);
+                
+                if (analysis.hasDamage) {
+                    results.push({
+                        booking: booking,
+                        phoneNumber: phoneNumber,
+                        analysis: analysis
+                    });
+                }
+            }
+
+            // Sort by confidence
+            results.sort((a, b) => b.analysis.confidence - a.analysis.confidence);
+            
+            return results;
+        }
+
+        function extractPhoneNumber(description) {
+            if (!description) return null;
+            
+            // Try WhatsApp link format
+            const waMatch = description.match(/https:\/\/wa\.me\/(\d+)/);
+            if (waMatch) return '+' + waMatch[1];
+            
+            // Try direct phone number
+            const phoneMatch = description.match(/\+?\d{10,15}/);
+            if (phoneMatch) return phoneMatch[0];
+            
+            return null;
+        }
+
+        async function getCustomerPhotos(phoneNumber) {
+            console.log(`Getting photos for ${phoneNumber}...`);
+            
+            return new Promise((resolve, reject) => {
+                const callback = 'photosCallback_' + Date.now();
+                
+                window[callback] = function(response) {
+                    delete window[callback];
+                    
+                    if (response.success) {
+                        console.log(`Found ${response.data.length} photos for ${phoneNumber}`);
+                        resolve(response.data);
+                    } else {
+                        console.error('Failed to get photos:', response.error);
+                        resolve([]); // Return empty array on error, don't reject
+                    }
+                };
+                
+                const script = document.createElement('script');
+                script.src = `${window.CONFIG.scriptUrl}?function=getCustomerPhotosJsonp&authToken=${encodeURIComponent(window.CONFIG.authToken)}&phone=${encodeURIComponent(phoneNumber)}&callback=${callback}&_=${Date.now()}`;
+                script.onerror = () => {
+                    console.error('Failed to load customer photos script');
+                    delete window[callback];
+                    resolve([]); // Return empty array on error
+                };
+                document.body.appendChild(script);
+                
+                // Cleanup script after 10 seconds
+                setTimeout(() => {
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                }, 10000);
+            });
+        }
+
+        async function analyzePhotosForDamage(damagePhotoUrl, customerPhotos, booking, vehicleInfo) {
+            // Call backend to analyze with OpenAI Vision API
+            console.log('Analyzing photos with AI...');
+            
+            // This would call the backend AI analysis
+            // For now, return mock result
+            
+            return {
+                hasDamage: Math.random() > 0.7, // Mock: 30% chance of finding damage
+                confidence: Math.random() * 0.5 + 0.5, // 50-100%
+                matchingPhotos: [],
+                description: 'Mock analysis result'
+            };
+        }
+
+        function displayResults(results, vehicleInfo) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (results.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✅ Nessun danno precedente trovato</strong>
+                        <p>L'AI non ha trovato danni corrispondenti nelle ultime 20 prenotazioni del veicolo ${vehicleInfo.displayName}.</p>
+                    </div>
+                `;
+            } else {
+                let html = `<h2 style="color: #667eea; margin-bottom: 20px;">📊 Risultati Analisi - ${results.length} possibili responsabili trovati</h2>`;
+                
+                results.forEach((result, index) => {
+                    const confidence = (result.analysis.confidence * 100).toFixed(1);
+                    const confidenceClass = confidence > 75 ? 'high' : (confidence > 50 ? 'medium' : '');
+                    
+                    html += `
+                        <div class="result-card ${confidence > 75 ? 'match' : ''}">
+                            <div class="result-header">
+                                <h3>Match #${index + 1}: ${escapeHtml(result.booking.title)}</h3>
+                                <span class="confidence-badge ${confidenceClass}">${confidence}% sicuro</span>
+                            </div>
+                            <p><strong>📱 Telefono:</strong> ${result.phoneNumber}</p>
+                            <p><strong>📅 Periodo:</strong> ${formatDate(result.booking.start)} - ${formatDate(result.booking.end)}</p>
+                            <p><strong>🔍 Analisi:</strong> ${result.analysis.description}</p>
+                            
+                            ${result.analysis.matchingPhotos.length > 0 ? `
+                                <div class="image-comparison">
+                                    ${result.analysis.matchingPhotos.map(photo => `
+                                        <div class="comparison-image">
+                                            <img src="${photo.url}" alt="Comparison">
+                                            <div class="comparison-label">${photo.label}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+            }
+            
+            resultsDiv.classList.add('active');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function sendWhatsAppNotification(phoneNumber, results, vehicleInfo) {
+            // Placeholder - would call backend to send WhatsApp via Zoko
+            console.log('WhatsApp notification would be sent to:', phoneNumber);
+            console.log('Results:', results);
+            
+            // TODO: Implement WhatsApp sending via backend
+            return Promise.resolve();
+        }
+    </script>
+</body>
+</html>
