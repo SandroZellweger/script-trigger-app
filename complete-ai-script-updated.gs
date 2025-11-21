@@ -6,10 +6,11 @@
 
 // Configurazione - MODIFICA QUESTI VALORI
 function getConfig() {
+  const scriptProperties = PropertiesService.getScriptProperties();
   return {
-    // Inserisci qui i tuoi ID reali
-    VEHICLE_DATA_SHEET_ID: 'TUO_SHEET_ID_VEHICLES',
-    EXPENSE_SHEET_ID: 'TUO_SHEET_ID_EXPENSES'
+    // ID reali dei fogli
+    VEHICLE_DATA_SHEET_ID: '1S4n57yAg1f3oHmZJ0wwQfJduAPRBv_qKWuvjsKOmz4E',
+    EXPENSE_SHEET_ID: scriptProperties.getProperty('EXPENSE_SHEET_ID') || ''
   };
 }
 
@@ -43,6 +44,14 @@ function doGet(e) {
         return testAiEndpointJsonp(e.parameter);
       case "testSimpleJsonp":
         return testSimpleJsonp(e.parameter);
+
+      // --- Google Credentials ---
+      case "getGoogleCredentialsJsonp":
+        return getGoogleCredentialsJsonp(e.parameter);
+
+      // --- Vehicle Management ---
+      case "getVehicleListWithKmJsonp":
+        return getVehicleListWithKmJsonp(e.parameter);
 
       // --- Utilities ---
       case "ping":
@@ -99,6 +108,107 @@ function testAiEndpointJsonp(params) {
 function handleMaintenanceAiRequestJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = handleMaintenanceAiRequest(params);
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+// Google Credentials function
+function getGoogleCredentialsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const apiKey = scriptProperties.getProperty('GOOGLE_API_KEY');
+    const clientId = scriptProperties.getProperty('GOOGLE_CLIENT_ID');
+    // Usa l'auth token dalle properties come appId per Google Picker
+    const appId = scriptProperties.getProperty('AUTH_TOKEN') || 'mySecureVanApp_2025';
+
+    const response = {
+      success: true,
+      apiKey: apiKey,
+      clientId: clientId,
+      appId: appId,
+      timestamp: new Date().toISOString()
+    };
+
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+
+  } catch (error) {
+    const errorResponse = {
+      success: false,
+      error: error.toString(),
+      timestamp: new Date().toISOString()
+    };
+
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
+
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+function getVehicleListWithKm() {
+  try {
+    const config = getConfig();
+    const sheetId = config.VEHICLE_DATA_SHEET_ID;
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Configurazione veicoli') || ss.getSheets()[0];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find column indices - search for different possible names
+    let nameIndex = headers.indexOf('vehicleType');
+    if (nameIndex === -1) nameIndex = headers.indexOf('Nome');
+
+    let idIndex = headers.indexOf('CalendarID');
+    if (idIndex === -1) idIndex = headers.indexOf('calendarId');
+
+    let kmIndex = headers.indexOf('KmNextService');
+    if (kmIndex === -1) kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
+
+    const vehicles = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const vehicleName = row[nameIndex] || '';
+
+      // Check if vehicle has name and calendar ID (skip empty rows)
+      // AND filter: only include vehicles starting with "N"
+      if (row[nameIndex] && row[idIndex] && vehicleName.toString().trim().toUpperCase().startsWith('N')) {
+        vehicles.push({
+          name: row[nameIndex],
+          calendarId: row[idIndex],
+          id: row[idIndex],
+          kmToService: parseInt(row[kmIndex]) || 0
+        });
+      }
+    }
+
+    return {
+      success: true,
+      vehicles: vehicles,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getVehicleListWithKmJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getVehicleListWithKm();
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
