@@ -315,9 +315,10 @@ Rispondi in formato JSON con:
 2. urgency: "low", "medium", "high", o "critical"
 3. canWaitUntilService: true/false (può aspettare fino al prossimo tagliando?)
 4. recommendation: breve consiglio in italiano (max 100 caratteri)
+5. standardizedDescription: riscrivi la descrizione del problema in italiano tecnico corretto e professionale.
 
 Esempio risposta:
-{"category": "Meccanica", "urgency": "medium", "canWaitUntilService": true, "recommendation": "Controlla al prossimo tagliando"}`;
+{"category": "Meccanica", "urgency": "medium", "canWaitUntilService": true, "recommendation": "Controlla al prossimo tagliando", "standardizedDescription": "Rumore anomalo proveniente dal sistema frenante posteriore sinistro in fase di decelerazione."}`;
 
     const payload = {
       model: 'gpt-4o-mini',
