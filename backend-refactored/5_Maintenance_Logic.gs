@@ -311,7 +311,7 @@ Le categorie disponibili sono:
 - Altro (problemi non classificabili nelle altre categorie)
 
 Rispondi in formato JSON con:
-1. category: la categoria più appropriata tra quelle disponibili
+1. category: Seleziona la categoria più appropriata basandoti ESCLUSIVAMENTE sulla descrizione del problema.
 2. urgency: "low", "medium", "high", o "critical"
 3. canWaitUntilService: true/false (può aspettare fino al prossimo tagliando?)
 4. recommendation: breve consiglio in italiano (max 100 caratteri)
