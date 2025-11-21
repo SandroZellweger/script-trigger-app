@@ -2648,11 +2648,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         <label>Notizia</label>
                         <textarea class="issue-note" placeholder="Notizia (opzionale)"></textarea>
                     </div>
-
-                    <div class="ai-recommendation" id="ai-${issueId}" style="display: none;">
-                        <strong>🤖 Raccomandazione AI:</strong>
-                        <p class="ai-text"></p>
-                    </div>
                 </div>
             `;
             
@@ -2874,7 +2869,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             category: response.analysis.category,
                             urgency: response.analysis.urgency,
                             recommendedNote: response.analysis.recommendation,
-                            standardizedDescription: description // Fallback
+                            standardizedDescription: response.analysis.standardizedDescription || description // Fallback
                         };
                     }
 
@@ -2895,18 +2890,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         if (suggestion.urgency) {
                             urgencySelect.value = suggestion.urgency;
                         }
-                        if (noteInput && suggestion.recommendedNote !== undefined) {
-                            const existingNote = (noteInput.value || '').trim();
-                            const recommendedRaw = suggestion.recommendedNote;
-                            const recommended = typeof recommendedRaw === 'string' ? recommendedRaw.trim() : '';
-                            if (recommended) {
-                                if (!existingNote) {
-                                    noteInput.value = recommended;
-                                } else if (!existingNote.toLowerCase().includes(recommended.toLowerCase())) {
-                                    noteInput.value = `${existingNote}\n${recommended}`;
-                                }
-                            }
-                        }
+                        
+                        // Note field is no longer auto-filled by AI as per user request
+                        
                         if (aiStatus) {
                             aiStatus.textContent = 'Suggerimento AI applicato ✅';
                             aiStatus.className = 'ai-status-message success';
