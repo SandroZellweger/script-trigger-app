@@ -2646,13 +2646,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     <div class="form-group">
                         <label>🛠️ Istruzioni per il meccanico (opzionali)</label>
-                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <button type="button" class="generate-note-btn" onclick="generateMechanicNote(${issueId})" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;">
-                                🤖 Genera con AI
-                            </button>
-                            <span id="note-status-${issueId}" style="font-size: 13px; color: #666; align-self: center;"></span>
-                        </div>
-                        <textarea class="issue-note" placeholder="Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm"></textarea>
+                        <textarea class="issue-note" placeholder="Istruzioni manuali per il meccanico (opzionale)"></textarea>
                     </div>
 
                     <div class="ai-recommendation" id="ai-${issueId}" style="display: none;">
@@ -3059,7 +3053,6 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 }
                 delete window[callback];
             };
-            document.body.appendChild(script);
         }
 
         // Handle photo upload
@@ -9568,13 +9561,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     <div class="form-group">
                         <label>🛠️ Istruzioni per il meccanico (opzionali)</label>
-                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <button type="button" class="generate-note-btn" onclick="generateEditMechanicNote()" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;">
-                                🤖 Genera con AI
-                            </button>
-                            <span id="editNoteStatus" style="font-size: 13px; color: #666; align-self: center;"></span>
-                        </div>
-                        <textarea id="editIssueNote" rows="3" placeholder="Es. Pezzo già acquistato, montare entro venerdì / Lampadina H7 da sostituire / Coppia serraggio 110 Nm"></textarea>
+                        <textarea id="editIssueNote" rows="3" placeholder="Istruzioni manuali per il meccanico (opzionale)"></textarea>
                     </div>
 
                     <div class="form-group">

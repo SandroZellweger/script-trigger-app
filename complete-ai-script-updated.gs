@@ -53,6 +53,10 @@ function doGet(e) {
       case "getVehicleListWithKmJsonp":
         return getVehicleListWithKmJsonp(e.parameter);
 
+      // --- Maintenance Reports ---
+      case "getActiveMaintenanceReportsJsonp":
+        return getActiveMaintenanceReportsJsonp(e.parameter);
+
       // --- Utilities ---
       case "ping":
         return createJsonResponse({ result: "Ping successful" });
@@ -209,6 +213,124 @@ function getVehicleListWithKm() {
 function getVehicleListWithKmJsonp(params) {
   const callback = sanitizeJsonpCallback(params.callback || 'callback');
   const response = getVehicleListWithKm();
+
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function getActiveMaintenanceReports() {
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return {
+        success: false,
+        error: 'Maintenance sheet ID not configured'
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!sheet) {
+      return {
+        success: true,
+        reports: []
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Group rows by reportId
+    const reportsMap = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const reportId = row[0];
+      const completed = row[9]; // completed column
+
+      // Only include incomplete reports
+      if (!completed) {
+        if (!reportsMap[reportId]) {
+          reportsMap[reportId] = {
+            reportId: reportId,
+            reportDate: row[1],
+            vehicleName: row[2],
+            vehicleId: row[3],
+            reportedBy: row[4],
+            issues: [],
+            totalIssues: row[18]
+          };
+        }
+
+        // Extract photo URLs from HYPERLINK formulas
+        let photoURLs = [];
+        const photoCell = sheet.getRange(i + 1, 16);
+        const formula = photoCell.getFormula();
+
+        if (formula) {
+          // Extract URLs from HYPERLINK formulas
+          // Format: =HYPERLINK("url1"; "Foto 1") & " | " & HYPERLINK("url2"; "Foto 2")
+          const urlMatches = formula.match(/HYPERLINK\("([^"]+)"/g);
+          if (urlMatches) {
+            photoURLs = urlMatches.map(match => {
+              const urlMatch = match.match(/HYPERLINK\("([^"]+)"/);
+              return urlMatch ? urlMatch[1] : null;
+            }).filter(url => url !== null);
+          }
+        } else if (row[15]) {
+          // Fallback: if no formula, try to split the cell value
+          photoURLs = row[15]
+            .toString()
+            .split('\n')
+            .map(url => url.trim())
+            .filter(url => url && url.startsWith('http'));
+        }
+
+        const photoIds = row[16]
+          ? row[16]
+              .toString()
+              .split('\n')
+              .map(id => id.trim())
+              .filter(id => id)
+          : [];
+
+        reportsMap[reportId].issues.push({
+          issueNumber: row[17],
+          category: row[5],
+          description: row[6],
+          urgency: row[7],
+          status: row[8],
+          completed: row[9],
+          photoURLs: photoURLs,
+          photoIds: photoIds
+        });
+      }
+    }
+
+    const reports = Object.values(reportsMap);
+
+    return {
+      success: true,
+      reports: reports,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function getActiveMaintenanceReportsJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getActiveMaintenanceReports();
 
   const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
 
