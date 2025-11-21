@@ -3,36 +3,107 @@
  * WhatsApp/Zoko Messaging Functions
  *************************************************************/
 
-function sendHowToBookMessageApp(phoneNumber) {
+function sendHowToBookMessageApp(phoneNumber, ...templateArgs) {
+  console.log('🚀 sendHowToBookMessageApp called with:', phoneNumber, templateArgs);
+
+  const url    = "https://chat.zoko.io/v2/message";
+  const apiKey = "0a12096d-cfee-43e2-8360-b66d7b460cd3";
+
+  const payload = {
+    channel:          "whatsapp",
+    recipient:        phoneNumber,
+    type:             "template",
+    templateId:       "how_to_book_new",
+    templateLanguage: "it",
+    templateArgs:     templateArgs
+  };
+
+  console.log('📤 Zoko payload:', JSON.stringify(payload));
+
+  const options = {
+    method:  "POST",
+    headers: {
+      "Accept":       "application/json",
+      "Content-Type": "application/json",
+      "apikey":       apiKey
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
   try {
-    // Placeholder for WhatsApp integration
-    // In a real implementation, this would call the Zoko API
-    return {
-      success: true,
-      message: `How to book message would be sent to ${phoneNumber}`,
-      phoneNumber: phoneNumber
-    };
+    console.log('📡 Making request to Zoko API...');
+    const response     = UrlFetchApp.fetch(url, options);
+    const code         = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    console.log('📡 Zoko response code:', code);
+    console.log('📡 Zoko response text:', responseText);
+
+    const data         = JSON.parse(responseText);
+
+    if (code === 200) {
+      console.log('✅ Message sent successfully');
+      return { success: true, message: "Message sent successfully", data: data };
+    } else {
+      console.error('❌ Zoko API error:', code, responseText);
+      return { success: false, error: `Zoko API error: ${code}`, details: responseText };
+    }
   } catch (error) {
-    return {
-      success: false,
-      error: error.toString()
-    };
+    console.error('❌ Error sending message:', error);
+    return { success: false, error: error.toString() };
   }
 }
 
-function sendDatiMultigiornoApp(phoneNumber) {
+function sendDatiMultigiornoApp(phoneNumber, ...templateArgs) {
+  console.log('🚀 sendDatiMultigiornoApp called with:', phoneNumber, templateArgs);
+
+  const url    = "https://chat.zoko.io/v2/message";
+  const apiKey = "0a12096d-cfee-43e2-8360-b66d7b460cd3";
+
+  const payload = {
+    channel:          "whatsapp",
+    recipient:        phoneNumber,
+    type:             "template",
+    templateId:       "dati_multigiorno",
+    templateLanguage: "it",
+    templateArgs:     templateArgs
+  };
+
+  console.log('📤 Zoko payload:', JSON.stringify(payload));
+
+  const options = {
+    method:  "POST",
+    headers: {
+      "Accept":       "application/json",
+      "Content-Type": "application/json",
+      "apikey":       apiKey
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
   try {
-    // Placeholder for WhatsApp integration
-    return {
-      success: true,
-      message: `Multi-day data would be sent to ${phoneNumber}`,
-      phoneNumber: phoneNumber
-    };
+    console.log('📡 Making request to Zoko API...');
+    const response     = UrlFetchApp.fetch(url, options);
+    const code         = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    console.log('📡 Zoko response code:', code);
+    console.log('📡 Zoko response text:', responseText);
+
+    const data         = JSON.parse(responseText);
+
+    if (code === 200) {
+      console.log('✅ Message sent successfully');
+      return { success: true, message: "Message sent successfully", data: data };
+    } else {
+      console.error('❌ Zoko API error:', code, responseText);
+      return { success: false, error: `Zoko API error: ${code}`, details: responseText };
+    }
   } catch (error) {
-    return {
-      success: false,
-      error: error.toString()
-    };
+    console.error('❌ Error sending message:', error);
+    return { success: false, error: error.toString() };
   }
 }
 
