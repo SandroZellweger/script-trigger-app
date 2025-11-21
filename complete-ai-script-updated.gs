@@ -10,7 +10,8 @@ function getConfig() {
   return {
     // ID reali dei fogli
     VEHICLE_DATA_SHEET_ID: '1S4n57yAg1f3oHmZJ0wwQfJduAPRBv_qKWuvjsKOmz4E',
-    EXPENSE_SHEET_ID: scriptProperties.getProperty('EXPENSE_SHEET_ID') || ''
+    EXPENSE_SHEET_ID: scriptProperties.getProperty('EXPENSE_SHEET_ID') || '',
+    GARAGES_SHEET_ID: scriptProperties.getProperty('GARAGES_SHEET_ID') || ''
   };
 }
 
@@ -58,6 +59,12 @@ function doGet(e) {
       // --- Maintenance Reports ---
       case "getActiveMaintenanceReportsJsonp":
         return getActiveMaintenanceReportsJsonp(e.parameter);
+
+      // --- Garages Management ---
+      case "getGaragesListJsonp":
+        return getGaragesListJsonp(e.parameter);
+      case "addGarageJsonp":
+        return addGarageJsonp(e.parameter);
 
       // --- Zoko Messaging ---
       case "sendHowToBookMessageAppJsonp":
@@ -363,6 +370,137 @@ function getActiveMaintenanceReportsJsonp(params) {
       .createTextOutput(jsonpResponse)
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
+}
+
+// Garage Management Functions
+function getGaragesList() {
+  try {
+    const config = getConfig();
+    const sheetId = config.GARAGES_SHEET_ID;
+
+    if (!sheetId) {
+      return { success: false, error: 'Garages sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Officine') || ss.getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length < 2) {
+      return { success: true, garages: [] };
+    }
+
+    const headers = data[0];
+    const garages = [];
+
+    // Find column indices
+    const nameIndex = headers.indexOf('Nome');
+    const addressIndex = headers.indexOf('Indirizzo');
+    const cityIndex = headers.indexOf('Città');
+    const zipIndex = headers.indexOf('CAP');
+    const phoneIndex = headers.indexOf('Telefono');
+    const mobileIndex = headers.indexOf('Cellulare');
+    const emailIndex = headers.indexOf('Email');
+    const websiteIndex = headers.indexOf('Sito Web');
+    const responsabileIndex = headers.indexOf('Responsabile');
+    const specializationIndex = headers.indexOf('Specializzazione');
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[nameIndex]) {
+        garages.push({
+          name: row[nameIndex] || '',
+          address: row[addressIndex] || '',
+          city: row[cityIndex] || '',
+          zip: row[zipIndex] || '',
+          phone: row[phoneIndex] || '',
+          mobile: row[mobileIndex] || '',
+          email: row[emailIndex] || '',
+          website: row[websiteIndex] || '',
+          responsabile: row[responsabileIndex] || '',
+          specialization: row[specializationIndex] || ''
+        });
+      }
+    }
+
+    return { success: true, garages: garages };
+  } catch (error) {
+    Logger.log('Error in getGaragesList:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getGaragesListJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = getGaragesList();
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function addGarage(garageData) {
+  try {
+    const config = getConfig();
+    const sheetId = config.GARAGES_SHEET_ID;
+
+    if (!sheetId) {
+      return { success: false, error: 'Garages sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Officine');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Officine');
+      sheet.appendRow(['Nome', 'Indirizzo', 'Città', 'CAP', 'Telefono', 'Cellulare', 'Email', 'Sito Web', 'Responsabile', 'Specializzazione', 'Note']);
+    }
+
+    const newRow = [
+      garageData.name || '',
+      garageData.address || '',
+      garageData.city || '',
+      garageData.zip || '',
+      garageData.phone || '',
+      garageData.mobile || '',
+      garageData.email || '',
+      garageData.website || '',
+      garageData.responsabile || '',
+      garageData.specialization || '',
+      garageData.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, message: 'Garage added successfully' };
+  } catch (error) {
+    Logger.log('Error in addGarage:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addGarageJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  
+  let garageData;
+  try {
+    garageData = JSON.parse(params.data);
+  } catch (e) {
+    const errorResponse = { success: false, error: 'Invalid garage data: ' + e.toString() };
+    const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(errorResponse) + ');';
+    return ContentService
+      .createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  const response = addGarage(garageData);
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 // Helper Functions
