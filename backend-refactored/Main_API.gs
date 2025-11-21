@@ -5,16 +5,25 @@
 
 function doGet(e) {
   Logger.log('doGet called - Function: ' + (e.parameter ? e.parameter.function : 'undefined'));
+  
+  // Helper to return error in correct format (JSON or JSONP)
+  const returnError = (msg) => {
+    if (e.parameter && e.parameter.callback) {
+      return createJsonpResponse(e.parameter.callback, { success: false, error: msg });
+    }
+    return createJsonResponse({ error: msg });
+  };
+
   try {
     // Validate authentication
     const authToken = e.parameter.authToken;
     if (!validateAuthToken(authToken)) {
-      return createJsonResponse({ error: "Unauthorized: Invalid auth token" });
+      return returnError("Unauthorized: Invalid auth token");
     }
 
     const functionName = e.parameter.function;
     if (!functionName) {
-      return createJsonResponse({ error: "No function specified" });
+      return returnError("No function specified");
     }
 
     // Routing Logic
@@ -90,11 +99,11 @@ function doGet(e) {
         return testAiEndpointJsonp(e.parameter);
         
       default:
-        return createJsonResponse({ error: `Unknown function: ${functionName}` });
+        return returnError(`Unknown function: ${functionName}`);
     }
 
   } catch (error) {
-    return createJsonResponse({ error: error.toString() });
+    return returnError(error.toString());
   }
 }
 
