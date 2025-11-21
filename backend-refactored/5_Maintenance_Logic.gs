@@ -303,15 +303,19 @@ ${category ? `Categoria suggerita: ${category}` : ''}
 Km fino al prossimo tagliando: ${kmToService} km (circa ${daysToService} giorni)
 
 Le categorie disponibili sono:
-- Meccanica (problemi motore, trasmissione, freni, sospensioni)
-- Carrozzeria (ammaccature, graffi, danni esterni)
-- Elettrica (luci, batteria, sistemi elettronici)
-- Interni (sedili, tappezzeria, accessori interni)
-- Pulizia (sporco, macchie, odori)
-- Altro (problemi non classificabili nelle altre categorie)
+- motore (problemi motore, trasmissione)
+- freni (problemi ai freni)
+- pneumatici (gomme, pressione, cerchi)
+- elettrico (luci, batteria, sistemi elettronici)
+- carrozzeria (ammaccature, graffi, danni esterni)
+- interni (sedili, tappezzeria, accessori interni)
+- fluidi (olio, acqua, livelli)
+- climatizzazione (aria condizionata, riscaldamento)
+- luci (fari, lampadine)
+- altro (problemi non classificabili nelle altre categorie)
 
 Rispondi in formato JSON con:
-1. category: Seleziona la categoria più appropriata basandoti ESCLUSIVAMENTE sulla descrizione del problema.
+1. category: Seleziona la categoria più appropriata basandoti ESCLUSIVAMENTE sulla descrizione del problema. Usa ESATTAMENTE uno dei valori sopra (es. "motore", "freni", "pneumatici", ecc.).
 2. urgency: "low", "medium", "high", o "critical"
 3. canWaitUntilService: true/false (può aspettare fino al prossimo tagliando?)
 4. recommendation: breve consiglio in italiano (max 100 caratteri)
