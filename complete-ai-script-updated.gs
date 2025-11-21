@@ -59,6 +59,8 @@ function doGet(e) {
       // --- Maintenance Reports ---
       case "getActiveMaintenanceReportsJsonp":
         return getActiveMaintenanceReportsJsonp(e.parameter);
+      case "analyzeMaintenanceIssueJsonp":
+        return analyzeMaintenanceIssueJsonp(e.parameter);
 
       // --- Garages Management ---
       case "getGaragesListJsonp":
@@ -244,6 +246,55 @@ function getVehicleListWithKmJsonp(params) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
+function getVehicleList() {
+  try {
+    const vehicleData = getVehicleData();
+    if (vehicleData.error) {
+      return {
+        success: false,
+        error: vehicleData.error
+      };
+    }
+
+    const vehicles = (vehicleData.vehicles || []).map((vehicle, index) => {
+      const labelParts = [];
+      if (vehicle.vehicleType) {
+        labelParts.push(vehicle.vehicleType);
+      }
+      if (vehicle.vehicleNumber && vehicle.vehicleNumber !== vehicle.vehicleType) {
+        labelParts.push(vehicle.vehicleNumber);
+      }
+      if (labelParts.length === 0 && vehicle.calendarName) {
+        labelParts.push(vehicle.calendarName);
+      }
+
+      const displayName = labelParts.length > 0
+        ? labelParts.join(' - ')
+        : (vehicle.calendarName || ('Vehicle ' + (index + 1)));
+
+      return {
+        id: vehicle.calendarId || vehicle.vehicleType || displayName,
+        name: displayName,
+        vehicleType: vehicle.vehicleType || '',
+        vehicleNumber: vehicle.vehicleNumber || '',
+        calendarId: vehicle.calendarId || '',
+        calendarName: vehicle.calendarName || ''
+      };
+    });
+
+    return {
+      success: true,
+      vehicles: vehicles,
+      total: vehicles.length
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Error building vehicle list: ' + error.toString()
+    };
+  }
+}
+
 function getVehicleListJsonp(params) {
   const callback = sanitizeJsonpCallback(params && params.callback);
   const result = getVehicleList();
@@ -370,6 +421,140 @@ function getActiveMaintenanceReportsJsonp(params) {
       .createTextOutput(jsonpResponse)
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
+}
+
+// Maintenance Issue Analysis
+function analyzeMaintenanceIssue(description, category, kmToService) {
+  try {
+    Logger.log('🔍 analyzeMaintenanceIssue called with:', { description, category, kmToService });
+    
+    const apiKey = getOpenAIApiKey();
+    
+    if (!apiKey) {
+      Logger.log('❌ OpenAI API key not configured');
+      return {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
+    }
+    
+    Logger.log('✅ API key found');
+    
+    // Calculate days to service (assuming 100km/day)
+    const daysToService = Math.floor(kmToService / 100);
+    
+    const prompt = `Sei un meccanico esperto. Analizza questo problema di manutenzione:
+
+Descrizione: ${description}
+${category ? `Categoria suggerita: ${category}` : ''}
+Km fino al prossimo tagliando: ${kmToService} km (circa ${daysToService} giorni)
+
+Le categorie disponibili sono:
+- Meccanica (problemi motore, trasmissione, freni, sospensioni)
+- Carrozzeria (ammaccature, graffi, danni esterni)
+- Elettrica (luci, batteria, sistemi elettronici)
+- Interni (sedili, tappezzeria, accessori interni)
+- Pulizia (sporco, macchie, odori)
+- Altro (problemi non classificabili nelle altre categorie)
+
+Rispondi in formato JSON con:
+1. category: la categoria più appropriata tra quelle disponibili
+2. urgency: "low", "medium", "high", o "critical"
+3. canWaitUntilService: true/false (può aspettare fino al prossimo tagliando?)
+4. recommendation: breve consiglio in italiano (max 100 caratteri)
+
+Esempio risposta:
+{"category": "Meccanica", "urgency": "medium", "canWaitUntilService": true, "recommendation": "Controlla al prossimo tagliando"}`;
+
+    const payload = {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Sei un meccanico esperto che analizza problemi di veicoli. Rispondi sempre in italiano e in formato JSON.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 200
+    };
+    
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    Logger.log('📡 Calling OpenAI API...');
+    const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+    
+    Logger.log('📡 OpenAI response code:', responseCode);
+    Logger.log('📡 OpenAI response:', responseText.substring(0, 500));
+    
+    const result = JSON.parse(responseText);
+    
+    if (result.error) {
+      Logger.log('❌ OpenAI API error:', result.error);
+      return {
+        success: false,
+        error: result.error.message || result.error.toString()
+      };
+    }
+    
+    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+      Logger.log('❌ Invalid OpenAI response structure');
+      return {
+        success: false,
+        error: 'Invalid response from OpenAI API'
+      };
+    }
+    
+    let aiResponse = result.choices[0].message.content;
+    Logger.log('🤖 AI response:', aiResponse);
+    
+    // Remove markdown code blocks if present
+    aiResponse = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    
+    const analysis = JSON.parse(aiResponse);
+    
+    Logger.log('✅ Analysis completed successfully');
+    return {
+      success: true,
+      analysis: analysis,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('❌ Error in analyzeMaintenanceIssue:', error);
+    Logger.log('Error stack:', error.stack);
+    return {
+      success: false,
+      error: 'Errore durante l\'analisi: ' + error.toString()
+    };
+  }
+}
+
+function analyzeMaintenanceIssueJsonp(params) {
+  const callback = sanitizeJsonpCallback(params.callback || 'callback');
+  const response = analyzeMaintenanceIssue(
+    params.description,
+    params.category,
+    parseInt(params.kmToService) || 0
+  );
+  
+  const jsonpResponse = '/**/' + callback + '(' + JSON.stringify(response) + ');';
+  
+  return ContentService
+    .createTextOutput(jsonpResponse)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 // Garage Management Functions

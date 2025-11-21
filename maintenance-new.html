@@ -2694,7 +2694,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             setClarifyingMessage(clarifierBox, 'Dettagli sufficienti ✅', 'success');
             
-            if (!category) return;
+            // L'AI analizzerà e suggerirà la categoria automaticamente
+            // Non è più necessario che l'utente la selezioni prima
 
             // Get km to service
             const vehicleSelect = document.getElementById('vehicleSelect');
@@ -2723,6 +2724,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             recText.textContent = analysis.recommendation || 'Analisi completata';
                         }
 
+                        // Auto-set category from AI suggestion
+                        const categorySelect = issueElement.querySelector('.issue-category');
+                        if (categorySelect && analysis.category) {
+                            categorySelect.value = analysis.category;
+                        }
+
                         // Auto-suggest urgency if not set
                         const urgencySelect = issueElement.querySelector('.issue-urgency');
                         if (urgencySelect && !urgencySelect.value && analysis.urgency) {
@@ -2736,7 +2743,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 }
             };
 
-            const url = `${window.APP_CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;
+            const url = `${window.APP_CONFIG.scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category || '')}&kmToService=${kmToService}&callback=${callback}&_=${Date.now()}`;
             
             const script = document.createElement('script');
             script.src = url;
