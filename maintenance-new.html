@@ -2868,6 +2868,16 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 resetAiButton();
 
                 try {
+                    // Adapter for analyzeMaintenanceIssueJsonp response
+                    if (response.success && response.analysis) {
+                        response.suggestion = {
+                            category: response.analysis.category,
+                            urgency: response.analysis.urgency,
+                            recommendedNote: response.analysis.recommendation,
+                            standardizedDescription: description // Fallback
+                        };
+                    }
+
                     if (response.success && response.suggestion) {
                         const suggestion = response.suggestion;
                         if (suggestion.standardizedDescription) {
@@ -2915,7 +2925,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             };
 
             const script = document.createElement('script');
-            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.src = `${scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&category=&kmToService=0&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 resetAiButton();
                 if (aiStatus) {
@@ -2959,6 +2969,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const callback = `generateNote_${issueId.replace(/-/g, '_')}_${Date.now()}`;
             
             window[callback] = function(response) {
+                // Adapter for analyzeMaintenanceIssueJsonp response
+                if (response.success && response.analysis) {
+                    response.suggestion = {
+                        category: response.analysis.category,
+                        urgency: response.analysis.urgency,
+                        recommendedNote: response.analysis.recommendation
+                    };
+                }
+
                 if (response.success && response.suggestion && response.suggestion.recommendedNote) {
                     const recommendedNote = response.suggestion.recommendedNote.trim();
                     if (noteInput && recommendedNote) {
@@ -2989,7 +3008,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             }
 
             const script = document.createElement('script');
-            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.src = `${scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=0&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 if (noteStatus) {
                     noteStatus.textContent = '❌ Errore di rete';
@@ -3026,6 +3045,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const callback = `generateEditNote_${Date.now()}`;
             
             window[callback] = function(response) {
+                // Adapter for analyzeMaintenanceIssueJsonp response
+                if (response.success && response.analysis) {
+                    response.suggestion = {
+                        category: response.analysis.category,
+                        urgency: response.analysis.urgency,
+                        recommendedNote: response.analysis.recommendation
+                    };
+                }
+
                 if (response.success && response.suggestion && response.suggestion.recommendedNote) {
                     const recommendedNote = response.suggestion.recommendedNote.trim();
                     if (noteInput && recommendedNote) {
@@ -3052,7 +3080,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const vehicleName = pdfWizardData.vehicleName || '';
 
             const script = document.createElement('script');
-            script.src = `${scriptUrl}?function=suggestMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&vehicleName=${encodeURIComponent(vehicleName)}&callback=${callback}&_=${Date.now()}`;
+            script.src = `${scriptUrl}?function=analyzeMaintenanceIssueJsonp&authToken=${encodeURIComponent(authToken)}&description=${encodeURIComponent(description)}&category=${encodeURIComponent(category)}&kmToService=0&callback=${callback}&_=${Date.now()}`;
             script.onerror = () => {
                 if (noteStatus) {
                     noteStatus.textContent = '❌ Errore di rete';
