@@ -656,16 +656,49 @@ function generateDraftPdf(draftData) {
     const doc = DocumentApp.create(docName);
     const body = doc.getBody();
     
-    // Title
-    const title = body.appendParagraph('BOZZA LAVORI MANUTENZIONE');
-    title.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    // Professional header with better branding
+    const headerTable = body.appendTable();
+    headerTable.setBorderWidth(0);
     
-    // Date
-    const dateText = body.appendParagraph(`Data: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")}`);
-    dateText.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    const headerRow = headerTable.appendTableRow();
     
-    body.appendParagraph(''); // Empty line
+    // Left side - Company info
+    const leftCell = headerRow.appendTableCell('');
+    leftCell.setPaddingTop(10);
+    leftCell.setPaddingBottom(10);
+    leftCell.setPaddingLeft(0);
+    leftCell.setPaddingRight(20);
+    leftCell.setWidth(300);
+    
+    const companyName = leftCell.appendParagraph('Barbone & Zellweger Sagl');
+    companyName.setBold(true);
+    companyName.setFontSize(14);
+    companyName.setForegroundColor('#2c3e50');
+    
+    const companyDetails = leftCell.appendParagraph('Via Vincenzo d\'Alberti 17\n6600 Locarno\nadmin@noleggiosemplice.com\n091 250 87 87');
+    companyDetails.setFontSize(9);
+    companyDetails.setForegroundColor('#666666');
+    
+    // Right side - Document title
+    const rightCell = headerRow.appendTableCell('');
+    rightCell.setPaddingTop(10);
+    rightCell.setPaddingBottom(10);
+    rightCell.setPaddingLeft(20);
+    rightCell.setPaddingRight(0);
+    rightCell.setWidth(250);
+    
+    const docTitle = rightCell.appendParagraph('BOZZA LAVORI\nMANUTENZIONE');
+    docTitle.setBold(true);
+    docTitle.setFontSize(16);
+    docTitle.setForegroundColor('#2c3e50');
+    docTitle.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    
+    const genDate = rightCell.appendParagraph(`Generato: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")}`);
+    genDate.setFontSize(8);
+    genDate.setForegroundColor('#666666');
+    genDate.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    
+    body.appendParagraph(''); // Space after header
     
     // Process each vehicle
     draftData.vehicles.forEach((vehicle, index) => {
@@ -674,96 +707,197 @@ function generateDraftPdf(draftData) {
         body.appendPageBreak();
       }
       
-      // Vehicle header - BOX COLORATO
-      const vehicleHeader = body.appendParagraph(`VEICOLO ${index + 1}: ${vehicle.name}`);
-      vehicleHeader.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      vehicleHeader.setForegroundColor('#ffffff');
-      vehicleHeader.setBackgroundColor('#667eea');
-      vehicleHeader.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-      vehicleHeader.setSpacingBefore(0);
-      vehicleHeader.setSpacingAfter(15);
+      // Professional vehicle header
+      const vehicleTable = body.appendTable();
+      vehicleTable.setBorderWidth(0.5);
+      vehicleTable.setBorderColor('#2c3e50');
       
-      // Info veicolo
-      if (vehicle.plate) {
-        const plateInfo = body.appendParagraph(`🔖 Targa: ${vehicle.plate}`);
-        plateInfo.setFontSize(11);
-        plateInfo.setBold(true);
-        plateInfo.setSpacingAfter(8);
-      }
+      const vehicleRow = vehicleTable.appendTableRow();
+      const vehicleCell = vehicleRow.appendTableCell(`VEICOLO: ${vehicle.name}${vehicle.plate ? ` - TARGA: ${vehicle.plate}` : ''}`);
+      vehicleCell.setBackgroundColor('#34495e');
+      vehicleCell.setForegroundColor('#ffffff');
+      vehicleCell.setBold(true);
+      vehicleCell.setFontSize(12);
+      vehicleCell.setPaddingTop(8);
+      vehicleCell.setPaddingBottom(8);
+      vehicleCell.setPaddingLeft(12);
+      vehicleCell.setPaddingRight(12);
+      vehicleCell.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
       
-      body.appendParagraph(''); // Empty line
+      body.appendParagraph(''); // Space after vehicle header
       
       // Issues
       if (vehicle.issues && vehicle.issues.length > 0) {
-        // Raggruppa per urgenza
-        const critical = vehicle.issues.filter(i => i.urgency.includes('Critica') || i.urgency === 'critical');
-        const high = vehicle.issues.filter(i => i.urgency.includes('Alta') || i.urgency === 'high');
-        const medium = vehicle.issues.filter(i => i.urgency.includes('Media') || i.urgency === 'medium');
-        const low = vehicle.issues.filter(i => i.urgency.includes('Bassa') || i.urgency === 'low');
+        // Create table for issues - more compact and professional
+        const table = body.appendTable();
+        table.setBorderWidth(0.5);
+        table.setBorderColor('#666666');
         
-        const urgencyGroups = [
-          { label: '🔴 URGENZA CRITICA', issues: critical, color: '#ff4444' },
-          { label: '🟠 URGENZA ALTA', issues: high, color: '#ff8800' },
-          { label: '🟡 URGENZA MEDIA', issues: medium, color: '#ffbb33' },
-          { label: '🟢 URGENZA BASSA', issues: low, color: '#00C851' }
-        ];
+        // Table header - more professional styling
+        const headerRow = table.appendTableRow();
+        const headers = ['N°', 'Categoria', 'Descrizione', 'Urgenza', 'Data Segn.', 'Segnalato da'];
         
-        let totalIssuesShown = 0;
-        
-        urgencyGroups.forEach(group => {
-          if (group.issues.length > 0) {
-            // Titolo urgenza
-            const urgencyTitle = body.appendParagraph(group.label);
-            urgencyTitle.setHeading(DocumentApp.ParagraphHeading.HEADING3);
-            urgencyTitle.setForegroundColor(group.color);
-            urgencyTitle.setBold(true);
-            urgencyTitle.setSpacingBefore(12);
-            urgencyTitle.setSpacingAfter(8);
-            
-            // Lista problemi
-            group.issues.forEach((issue) => {
-              totalIssuesShown++;
-              
-              // Numero e categoria
-              const issueHeader = body.appendParagraph(`${totalIssuesShown}. ${issue.category ? '[' + issue.category.toUpperCase() + ']' : ''}`);
-              issueHeader.setBold(true);
-              issueHeader.setFontSize(11);
-              issueHeader.setSpacingBefore(8);
-              issueHeader.setSpacingAfter(3);
-              
-              // Descrizione
-              const issueDesc = body.appendParagraph(issue.description);
-              issueDesc.setIndentStart(15);
-              issueDesc.setFontSize(10);
-              issueDesc.setSpacingAfter(3);
-              issueDesc.setLineSpacing(1.3);
-              
-              // Segnalato da
-              if (issue.reportedBy) {
-                const reportInfo = body.appendParagraph(`Segnalato da: ${issue.reportedBy}`);
-                reportInfo.setIndentStart(15);
-                reportInfo.setFontSize(9);
-                reportInfo.setForegroundColor('#666666');
-                reportInfo.setItalic(true);
-                reportInfo.setSpacingAfter(10);
-              }
-            });
-          }
+        headers.forEach((headerText, colIndex) => {
+          const cell = headerRow.appendTableCell(headerText);
+          cell.setBackgroundColor('#2c3e50');
+          cell.setForegroundColor('#ffffff');
+          cell.setBold(true);
+          cell.setFontSize(8);
+          cell.setPaddingTop(4);
+          cell.setPaddingBottom(4);
+          cell.setPaddingLeft(3);
+          cell.setPaddingRight(3);
+          cell.setVerticalAlignment(DocumentApp.VerticalAlignment.CENTER);
+          
+          // Set column widths - more compact
+          if (colIndex === 0) cell.setWidth(25); // N°
+          else if (colIndex === 1) cell.setWidth(65); // Categoria
+          else if (colIndex === 2) cell.setWidth(180); // Descrizione
+          else if (colIndex === 3) cell.setWidth(50); // Urgenza
+          else if (colIndex === 4) cell.setWidth(55); // Data
+          else cell.setWidth(70); // Segnalato da
         });
         
-        // Riepilogo
-        body.appendParagraph(''); // Empty line
-        const summary = body.appendParagraph(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        summary.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-        summary.setForegroundColor('#cccccc');
+        // Raggruppa per urgenza per ordinamento, poi ordina per categoria all'interno di ogni gruppo
+        const critical = vehicle.issues.filter(i => i.urgency.includes('Critica') || i.urgency === 'critical')
+          .sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+        const high = vehicle.issues.filter(i => i.urgency.includes('Alta') || i.urgency === 'high')
+          .sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+        const medium = vehicle.issues.filter(i => i.urgency.includes('Media') || i.urgency === 'medium')
+          .sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+        const low = vehicle.issues.filter(i => i.urgency.includes('Bassa') || i.urgency === 'low')
+          .sort((a, b) => (a.category || '').localeCompare(b.category || ''));
         
-        const summaryText = body.appendParagraph(`Totale lavori per ${vehicle.name}: ${vehicle.issues.length}`);
+        const sortedIssues = [...critical, ...high, ...medium, ...low];
+        
+        // Add issues to table - more compact formatting
+        sortedIssues.forEach((issue, issueIndex) => {
+          const row = table.appendTableRow();
+          
+          // Number
+          const numCell = row.appendTableCell((issueIndex + 1).toString());
+          numCell.setFontSize(8);
+          numCell.setPaddingTop(3);
+          numCell.setPaddingBottom(3);
+          numCell.setPaddingLeft(2);
+          numCell.setPaddingRight(2);
+          numCell.setVerticalAlignment(DocumentApp.VerticalAlignment.TOP);
+          
+          // Category
+          const catCell = row.appendTableCell((issue.category || 'N/D').toUpperCase());
+          catCell.setFontSize(7);
+          catCell.setBold(true);
+          catCell.setPaddingTop(3);
+          catCell.setPaddingBottom(3);
+          catCell.setPaddingLeft(2);
+          catCell.setPaddingRight(2);
+          catCell.setVerticalAlignment(DocumentApp.VerticalAlignment.TOP);
+          
+          // Description - more compact
+          const descCell = row.appendTableCell(issue.description || '');
+          descCell.setFontSize(7);
+          descCell.setPaddingTop(3);
+          descCell.setPaddingBottom(3);
+          descCell.setPaddingLeft(2);
+          descCell.setPaddingRight(2);
+          descCell.setVerticalAlignment(DocumentApp.VerticalAlignment.TOP);
+          
+          // Urgency with professional colors
+          const urgencyCell = row.appendTableCell(getUrgencyLabel(issue.urgency));
+          urgencyCell.setFontSize(7);
+          urgencyCell.setBold(true);
+          urgencyCell.setPaddingTop(3);
+          urgencyCell.setPaddingBottom(3);
+          urgencyCell.setPaddingLeft(2);
+          urgencyCell.setPaddingRight(2);
+          urgencyCell.setVerticalAlignment(DocumentApp.VerticalAlignment.TOP);
+          
+          // Set urgency background color - professional palette
+          let urgencyColor = '#ffffff'; // default white
+          let textColor = '#000000';
+          if (issue.urgency.includes('Critica') || issue.urgency === 'critical') {
+            urgencyColor = '#dc3545';
+            textColor = '#ffffff';
+          } else if (issue.urgency.includes('Alta') || issue.urgency === 'high') {
+            urgencyColor = '#fd7e14';
+            textColor = '#ffffff';
+          } else if (issue.urgency.includes('Media') || issue.urgency === 'medium') {
+            urgencyColor = '#ffc107';
+            textColor = '#000000';
+          } else {
+            urgencyColor = '#28a745';
+            textColor = '#ffffff';
+          }
+          urgencyCell.setBackgroundColor(urgencyColor);
+          urgencyCell.setForegroundColor(textColor);
+          
+          // Report Date
+          let dateStr = 'N/D';
+          if (issue.reportDate) {
+            try {
+              const date = new Date(issue.reportDate);
+              dateStr = Utilities.formatDate(date, Session.getScriptTimeZone(), "dd/MM/yy");
+            } catch (e) {
+              dateStr = issue.reportDate.toString();
+            }
+          }
+          const dateCell = row.appendTableCell(dateStr);
+          dateCell.setFontSize(7);
+          dateCell.setPaddingTop(3);
+          dateCell.setPaddingBottom(3);
+          dateCell.setPaddingLeft(2);
+          dateCell.setPaddingRight(2);
+          dateCell.setVerticalAlignment(DocumentApp.VerticalAlignment.TOP);
+          
+          // Reported By
+          const reporterCell = row.appendTableCell(issue.reportedBy || 'N/D');
+          reporterCell.setFontSize(7);
+          reporterCell.setItalic(true);
+          reporterCell.setPaddingTop(3);
+          reporterCell.setPaddingBottom(3);
+          reporterCell.setPaddingLeft(2);
+          reporterCell.setPaddingRight(2);
+          reporterCell.setVerticalAlignment(DocumentApp.VerticalAlignment.TOP);
+        });
+        
+        body.appendParagraph(''); // Space after table
+        
+        // Professional summary section
+        const summaryBox = body.appendParagraph('');
+        summaryBox.setSpacingBefore(15);
+        summaryBox.setSpacingAfter(10);
+        
+        // Summary title
+        const summaryTitle = body.appendParagraph('📊 SINTESI INTERVENTI');
+        summaryTitle.setHeading(DocumentApp.ParagraphHeading.HEADING4);
+        summaryTitle.setBold(true);
+        summaryTitle.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        summaryTitle.setForegroundColor('#2c3e50');
+        summaryTitle.setSpacingAfter(8);
+        
+        // Summary stats in a more professional format
+        const totalIssues = vehicle.issues.length;
+        const summaryText = body.appendParagraph(`Totale interventi richiesti: ${totalIssues}`);
         summaryText.setBold(true);
         summaryText.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-        summaryText.setFontSize(11);
-        summaryText.setForegroundColor('#667eea');
-        summaryText.setSpacingBefore(8);
-        summaryText.setSpacingAfter(8);
+        summaryText.setFontSize(10);
+        summaryText.setForegroundColor('#2c3e50');
+        summaryText.setSpacingAfter(5);
+        
+        // Priority breakdown
+        const priorityStats = [];
+        if (critical.length > 0) priorityStats.push(`🔴 ${critical.length} Critici`);
+        if (high.length > 0) priorityStats.push(`🟠 ${high.length} Alti`);
+        if (medium.length > 0) priorityStats.push(`🟡 ${medium.length} Medi`);
+        if (low.length > 0) priorityStats.push(`🟢 ${low.length} Bassi`);
+        
+        if (priorityStats.length > 0) {
+          const priorityText = body.appendParagraph(`Priorità: ${priorityStats.join(' • ')}`);
+          priorityText.setFontSize(9);
+          priorityText.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+          priorityText.setForegroundColor('#666666');
+          priorityText.setSpacingAfter(15);
+        }
         
       } else {
         const noIssues = body.appendParagraph('✅ Nessun lavoro aperto per questo veicolo.');
@@ -776,12 +910,19 @@ function generateDraftPdf(draftData) {
       }
     });
     
-    // Footer
+    // Professional footer
     body.appendParagraph('').appendPageBreak();
-    body.appendParagraph('Documento generato automaticamente dal Sistema di Manutenzione Noleggio Semplice')
-        .setFontSize(8)
-        .setForegroundColor('#999999')
-        .setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    
+    const footerTable = body.appendTable();
+    footerTable.setBorderWidth(0);
+    
+    const footerRow = footerTable.appendTableRow();
+    const footerCell = footerRow.appendTableCell('Documento generato automaticamente dal Sistema di Gestione Manutenzione\nBarbone & Zellweger Sagl - Noleggio Semplice\nwww.noleggiosemplice.com');
+    footerCell.setFontSize(7);
+    footerCell.setForegroundColor('#666666');
+    footerCell.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    footerCell.setPaddingTop(20);
+    footerCell.setPaddingBottom(10);
     
     // Save and get URL
     doc.saveAndClose();
@@ -823,6 +964,15 @@ function generateDraftPdf(draftData) {
       error: error.toString()
     };
   }
+}
+
+// Helper function to get urgency label
+function getUrgencyLabel(urgency) {
+  if (urgency.includes('Critica') || urgency === 'critical') return 'CRITICA';
+  if (urgency.includes('Alta') || urgency === 'high') return 'ALTA';
+  if (urgency.includes('Media') || urgency === 'medium') return 'MEDIA';
+  if (urgency.includes('Bassa') || urgency === 'low') return 'BASSA';
+  return urgency.toUpperCase();
 }
 
 function generateDraftPdfJsonp(params) {
