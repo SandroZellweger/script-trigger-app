@@ -669,42 +669,111 @@ function generateDraftPdf(draftData) {
     
     // Process each vehicle
     draftData.vehicles.forEach((vehicle, index) => {
-      // Vehicle header
-      const vehicleHeader = body.appendParagraph(`${index + 1}. ${vehicle.name}`);
-      vehicleHeader.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      // Nuova pagina per ogni veicolo (tranne il primo)
+      if (index > 0) {
+        body.appendPageBreak();
+      }
       
+      // Vehicle header - BOX COLORATO
+      const vehicleHeader = body.appendParagraph(`VEICOLO ${index + 1}: ${vehicle.name}`);
+      vehicleHeader.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+      vehicleHeader.setForegroundColor('#ffffff');
+      vehicleHeader.setBackgroundColor('#667eea');
+      vehicleHeader.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      vehicleHeader.setSpacingBefore(0);
+      vehicleHeader.setSpacingAfter(15);
+      
+      // Info veicolo
       if (vehicle.plate) {
-        body.appendParagraph(`Targa: ${vehicle.plate}`).setItalic(true);
+        const plateInfo = body.appendParagraph(`🔖 Targa: ${vehicle.plate}`);
+        plateInfo.setFontSize(11);
+        plateInfo.setBold(true);
+        plateInfo.setSpacingAfter(8);
       }
       
       body.appendParagraph(''); // Empty line
       
       // Issues
       if (vehicle.issues && vehicle.issues.length > 0) {
-        body.appendParagraph('Lavori da eseguire:').setBold(true);
+        // Raggruppa per urgenza
+        const critical = vehicle.issues.filter(i => i.urgency.includes('Critica') || i.urgency === 'critical');
+        const high = vehicle.issues.filter(i => i.urgency.includes('Alta') || i.urgency === 'high');
+        const medium = vehicle.issues.filter(i => i.urgency.includes('Media') || i.urgency === 'medium');
+        const low = vehicle.issues.filter(i => i.urgency.includes('Bassa') || i.urgency === 'low');
         
-        vehicle.issues.forEach((issue, issueIdx) => {
-          const urgencyLabel = issue.urgency === 'critical' ? '🔴 Critica' : 
-                             issue.urgency === 'high' ? '🟠 Alta' : 
-                             issue.urgency === 'medium' ? '🟡 Media' : '🟢 Bassa';
-          
-          const issueText = body.appendParagraph(`   ${issueIdx + 1}. [${urgencyLabel}] ${issue.description}`);
-          issueText.setIndentStart(20);
-          
-          if (issue.reportedBy) {
-            const reportInfo = body.appendParagraph(`      Segnalato da: ${issue.reportedBy}`);
-            reportInfo.setIndentStart(40);
-            reportInfo.setFontSize(9);
-            reportInfo.setForegroundColor('#666666');
+        const urgencyGroups = [
+          { label: '🔴 URGENZA CRITICA', issues: critical, color: '#ff4444' },
+          { label: '🟠 URGENZA ALTA', issues: high, color: '#ff8800' },
+          { label: '🟡 URGENZA MEDIA', issues: medium, color: '#ffbb33' },
+          { label: '🟢 URGENZA BASSA', issues: low, color: '#00C851' }
+        ];
+        
+        let totalIssuesShown = 0;
+        
+        urgencyGroups.forEach(group => {
+          if (group.issues.length > 0) {
+            // Titolo urgenza
+            const urgencyTitle = body.appendParagraph(group.label);
+            urgencyTitle.setHeading(DocumentApp.ParagraphHeading.HEADING3);
+            urgencyTitle.setForegroundColor(group.color);
+            urgencyTitle.setBold(true);
+            urgencyTitle.setSpacingBefore(12);
+            urgencyTitle.setSpacingAfter(8);
+            
+            // Lista problemi
+            group.issues.forEach((issue) => {
+              totalIssuesShown++;
+              
+              // Numero e categoria
+              const issueHeader = body.appendParagraph(`${totalIssuesShown}. ${issue.category ? '[' + issue.category.toUpperCase() + ']' : ''}`);
+              issueHeader.setBold(true);
+              issueHeader.setFontSize(11);
+              issueHeader.setSpacingBefore(8);
+              issueHeader.setSpacingAfter(3);
+              
+              // Descrizione
+              const issueDesc = body.appendParagraph(issue.description);
+              issueDesc.setIndentStart(15);
+              issueDesc.setFontSize(10);
+              issueDesc.setSpacingAfter(3);
+              issueDesc.setLineSpacing(1.3);
+              
+              // Segnalato da
+              if (issue.reportedBy) {
+                const reportInfo = body.appendParagraph(`Segnalato da: ${issue.reportedBy}`);
+                reportInfo.setIndentStart(15);
+                reportInfo.setFontSize(9);
+                reportInfo.setForegroundColor('#666666');
+                reportInfo.setItalic(true);
+                reportInfo.setSpacingAfter(10);
+              }
+            });
           }
         });
+        
+        // Riepilogo
+        body.appendParagraph(''); // Empty line
+        const summary = body.appendParagraph(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+        summary.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        summary.setForegroundColor('#cccccc');
+        
+        const summaryText = body.appendParagraph(`Totale lavori per ${vehicle.name}: ${vehicle.issues.length}`);
+        summaryText.setBold(true);
+        summaryText.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        summaryText.setFontSize(11);
+        summaryText.setForegroundColor('#667eea');
+        summaryText.setSpacingBefore(8);
+        summaryText.setSpacingAfter(8);
+        
       } else {
-        body.appendParagraph('Nessun lavoro aperto per questo veicolo.').setItalic(true).setForegroundColor('#999999');
+        const noIssues = body.appendParagraph('✅ Nessun lavoro aperto per questo veicolo.');
+        noIssues.setItalic(true);
+        noIssues.setForegroundColor('#00C851');
+        noIssues.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        noIssues.setFontSize(12);
+        noIssues.setSpacingBefore(40);
+        noIssues.setSpacingAfter(40);
       }
-      
-      body.appendParagraph(''); // Empty line
-      body.appendHorizontalRule(); // Separator
-      body.appendParagraph(''); // Empty line
     });
     
     // Footer
