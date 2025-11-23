@@ -115,16 +115,43 @@ function doPost(e) {
   try {
     Logger.log('doPost called');
     
-    // Basic POST handling for now
-    if (e.parameter.function === 'logExpense') {
-       // Parse body...
-       return createJsonResponseWithCors({ result: "Expense logged (placeholder)" });
+    // Parse JSON body
+    let requestData;
+    try {
+      const postData = e.postData && e.postData.contents;
+      requestData = postData ? JSON.parse(postData) : e.parameter;
+    } catch (parseError) {
+      Logger.log('Error parsing POST data:', parseError);
+      requestData = e.parameter;
     }
     
-    return createJsonResponseWithCors({ result: "doPost processed" });
+    Logger.log('POST request data:', requestData);
+    
+    // Validate authentication
+    const authToken = requestData.authToken;
+    if (!validateAuthToken(authToken)) {
+      return createJsonResponseWithCors({ success: false, error: "Unauthorized: Invalid auth token" });
+    }
+    
+    const functionName = requestData.function;
+    
+    // Handle specific POST functions
+    switch (functionName) {
+      case 'generateDraftPdf':
+        const result = generateDraftPdf(requestData.data);
+        return createJsonResponseWithCors(result);
+        
+      case 'logExpense':
+        // Parse body...
+        return createJsonResponseWithCors({ result: "Expense logged (placeholder)" });
+        
+      default:
+        return createJsonResponseWithCors({ success: false, error: `Unknown POST function: ${functionName}` });
+    }
 
   } catch (error) {
-    return createJsonResponseWithCors({ error: error.toString() });
+    Logger.log('doPost error:', error);
+    return createJsonResponseWithCors({ success: false, error: error.toString() });
   }
 }
 

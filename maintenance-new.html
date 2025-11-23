@@ -4826,9 +4826,57 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
             const scriptUrl = window.APP_CONFIG.scriptUrl;
             const authToken = window.APP_CONFIG.authToken;
-            const url = `${scriptUrl}?function=generateDraftPdfJsonp&authToken=${encodeURIComponent(authToken)}&data=${encodeURIComponent(JSON.stringify(draftData))}&callback=${callback}&_=${Date.now()}`;
             
-            console.log('🔗 Draft PDF URL:', url.substring(0, 100) + '...');
+            const dataStr = JSON.stringify(draftData);
+            console.log('📏 Data size:', dataStr.length, 'characters');
+            
+            // Se i dati sono troppo grandi (>2000 caratteri), usa POST invece di GET
+            if (dataStr.length > 2000) {
+                console.log('⚠️ Data too large for GET, using POST method');
+                
+                // Usa fetch con POST per dati grandi
+                fetch(scriptUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        function: 'generateDraftPdf',
+                        authToken: authToken,
+                        data: draftData
+                    })
+                })
+                .then(response => response.json())
+                .then(response => {
+                    clearTimeout(timeout);
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = originalText;
+                    
+                    if (response.success) {
+                        alert('✅ PDF Bozza Lavori generato con successo!');
+                        if (response.pdfUrl) {
+                            window.open(response.pdfUrl, '_blank');
+                        }
+                        closeDraftWizard();
+                    } else {
+                        alert('❌ Errore nella generazione del PDF: ' + (response.error || 'Errore sconosciuto'));
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(timeout);
+                    console.error('❌ Fetch error:', error);
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = originalText;
+                    alert('❌ Errore di connessione al server: ' + error.message);
+                });
+                
+                return; // Exit here, don't use JSONP
+            }
+            
+            // Per dati piccoli, usa JSONP (metodo originale)
+            const url = `${scriptUrl}?function=generateDraftPdfJsonp&authToken=${encodeURIComponent(authToken)}&data=${encodeURIComponent(dataStr)}&callback=${callback}&_=${Date.now()}`;
+            
+            console.log('🔗 Draft PDF URL (JSONP):', url.substring(0, 100) + '...');
             
             const script = document.createElement('script');
             script.src = url;
