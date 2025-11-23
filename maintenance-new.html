@@ -1674,6 +1674,9 @@
                     <button class="btn-primary" onclick="openMaintenancePdfWizard()" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
                         📄 Crea Lista Manutenzione (PDF)
                     </button>
+                    <button class="btn-primary" onclick="openDraftWizard()" style="padding: 10px 20px; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        📝 Crea Bozza Lavori
+                    </button>
                 </div>
                 <div id="activeReportsList" class="reports-grid">
                     <div class="loading">
@@ -1958,6 +1961,35 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         <button type="submit" class="edit-issue-btn-save">Salva</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Draft Wizard Modal -->
+        <div id="draftWizardModal" class="modal">
+            <div class="modal-content" style="max-width: 600px;">
+                <button class="modal-close" onclick="closeDraftWizard()">&times;</button>
+                <h2 class="modal-title">📝 Crea Bozza Lavori</h2>
+                <p style="color: #666; margin-bottom: 20px;">Seleziona i veicoli per cui vuoi creare una bozza dei lavori da eseguire.</p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; font-weight: bold; cursor: pointer;">
+                        <input type="checkbox" id="draftSelectAll" onchange="toggleAllDraftVehicles()" style="width: auto; margin-right: 10px;">
+                        Seleziona Tutti
+                    </label>
+                </div>
+
+                <div id="draftVehicleList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 20px;">
+                    <!-- Vehicle checkboxes will be injected here -->
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Caricamento veicoli...</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closeDraftWizard()" class="edit-issue-btn-cancel">Annulla</button>
+                    <button type="button" onclick="createDraftPdf()" class="edit-issue-btn-save" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">📄 Crea PDF Bozza</button>
+                </div>
             </div>
         </div>
 
