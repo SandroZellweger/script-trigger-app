@@ -4633,6 +4633,74 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
         }
 
+        // ===== DRAFT WIZARD FUNCTIONS =====
+
+        function openDraftWizard() {
+            const modal = document.getElementById('draftWizardModal');
+            const listContainer = document.getElementById('draftVehicleList');
+            
+            if (!modal) {
+                console.error('Draft wizard modal not found');
+                return;
+            }
+            
+            modal.style.display = 'block';
+            listContainer.innerHTML = '';
+
+            if (!currentVehicles || currentVehicles.length === 0) {
+                listContainer.innerHTML = '<p>Nessun veicolo disponibile.</p>';
+                return;
+            }
+
+            currentVehicles.forEach(vehicle => {
+                const div = document.createElement('div');
+                div.style.padding = '8px';
+                div.style.borderBottom = '1px solid #eee';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                
+                div.innerHTML = `
+                    <label style="display: flex; align-items: center; width: 100%; cursor: pointer;">
+                        <input type="checkbox" class="draft-vehicle-checkbox" value="${vehicle.id}" data-name="${vehicle.name}" style="width: auto; margin-right: 10px;">
+                        <span>${vehicle.name} <small style="color: #666;">(${vehicle.licencePlate || 'No Targa'})</small></span>
+                    </label>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function closeDraftWizard() {
+            const modal = document.getElementById('draftWizardModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function toggleAllDraftVehicles() {
+            const selectAll = document.getElementById('draftSelectAll');
+            const checkboxes = document.querySelectorAll('.draft-vehicle-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+
+        function createDraftPdf() {
+            const selectedVehicles = [];
+            document.querySelectorAll('.draft-vehicle-checkbox:checked').forEach(cb => {
+                selectedVehicles.push({
+                    id: cb.value,
+                    name: cb.dataset.name
+                });
+            });
+
+            if (selectedVehicles.length === 0) {
+                alert('Seleziona almeno un veicolo.');
+                return;
+            }
+
+            const vehicleNames = selectedVehicles.map(v => v.name).join(', ');
+            if (confirm(`Vuoi creare la bozza lavori per: ${vehicleNames}?`)) {
+                 alert('Funzionalità PDF Bozza in arrivo! (Placeholder)');
+                 closeDraftWizard();
+            }
+        }
+
         function showWizardSummary() {
             // Collect selected damages
             pdfWizardData.selectedDamages = [];
