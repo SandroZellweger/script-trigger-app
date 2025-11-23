@@ -4832,12 +4832,34 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             
             const script = document.createElement('script');
             script.src = url;
-            script.onerror = (error) => {
-                console.error('❌ Script load error:', error);
+            
+            // Set a timeout in case the server never responds
+            const timeout = setTimeout(() => {
+                console.error('⏱️ Request timeout - no response from server');
                 generateBtn.disabled = false;
                 generateBtn.textContent = originalText;
-                alert('❌ Errore di connessione al server. Controlla la console per dettagli.');
+                alert('⏱️ Timeout: il server non ha risposto entro 30 secondi.\n\n⚠️ Se hai appena aggiunto questa funzione, ricorda di:\n1. Copiare il codice backend aggiornato in Google Apps Script\n2. Fare il deploy (Deploy → Manage Deployments → Edit → New Version)\n3. Ricaricare questa pagina');
                 delete window[callback];
+                if (script.parentNode) script.parentNode.removeChild(script);
+            }, 30000);
+            
+            // Override callback to clear timeout
+            const originalCallback = window[callback];
+            window[callback] = function(response) {
+                clearTimeout(timeout);
+                if (script.parentNode) script.parentNode.removeChild(script);
+                originalCallback(response);
+            };
+            
+            script.onerror = (error) => {
+                clearTimeout(timeout);
+                console.error('❌ Script load error:', error);
+                console.error('📍 URL richiesto:', url);
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalText;
+                alert('❌ Errore di connessione al server.\n\n⚠️ Possibili cause:\n1. Il backend non è stato deployato su Google Apps Script\n2. La funzione "generateDraftPdfJsonp" non esiste nel backend\n3. Problema di rete o CORS\n\nControlla la console per maggiori dettagli.');
+                delete window[callback];
+                if (script.parentNode) script.parentNode.removeChild(script);
             };
             document.body.appendChild(script);
         }
