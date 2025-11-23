@@ -404,7 +404,9 @@ function getGaragesList() {
     const garages = [];
 
     // Find column indices
-    const nameIndex = headers.indexOf('Nome');
+    let nameIndex = headers.indexOf('Nome Officina');
+    if (nameIndex === -1) nameIndex = headers.indexOf('Nome');
+    
     const addressIndex = headers.indexOf('Indirizzo');
     const cityIndex = headers.indexOf('Città');
     const zipIndex = headers.indexOf('CAP');
@@ -414,21 +416,23 @@ function getGaragesList() {
     const websiteIndex = headers.indexOf('Sito Web');
     const responsabileIndex = headers.indexOf('Responsabile');
     const specializationIndex = headers.indexOf('Specializzazione');
+    const notesIndex = headers.indexOf('Note');
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (row[nameIndex]) {
+      if (nameIndex !== -1 && row[nameIndex]) {
         garages.push({
           name: row[nameIndex] || '',
-          address: row[addressIndex] || '',
-          city: row[cityIndex] || '',
-          zip: row[zipIndex] || '',
-          phone: row[phoneIndex] || '',
-          mobile: row[mobileIndex] || '',
-          email: row[emailIndex] || '',
-          website: row[websiteIndex] || '',
-          responsabile: row[responsabileIndex] || '',
-          specialization: row[specializationIndex] || ''
+          address: addressIndex !== -1 ? row[addressIndex] : '',
+          city: cityIndex !== -1 ? row[cityIndex] : '',
+          zip: zipIndex !== -1 ? row[zipIndex] : '',
+          phone: phoneIndex !== -1 ? row[phoneIndex] : '',
+          mobile: mobileIndex !== -1 ? row[mobileIndex] : '',
+          email: emailIndex !== -1 ? row[emailIndex] : '',
+          website: websiteIndex !== -1 ? row[websiteIndex] : '',
+          responsabile: responsabileIndex !== -1 ? row[responsabileIndex] : '',
+          specialization: specializationIndex !== -1 ? row[specializationIndex] : '',
+          notes: notesIndex !== -1 ? row[notesIndex] : ''
         });
       }
     }
