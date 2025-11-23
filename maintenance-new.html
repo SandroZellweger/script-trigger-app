@@ -4644,7 +4644,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 return;
             }
             
-            modal.style.display = 'block';
+            modal.classList.add('active');
             listContainer.innerHTML = '';
 
             if (!currentVehicles || currentVehicles.length === 0) {
@@ -4661,7 +4661,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 
                 div.innerHTML = `
                     <label style="display: flex; align-items: center; width: 100%; cursor: pointer;">
-                        <input type="checkbox" class="draft-vehicle-checkbox" value="${vehicle.id}" data-name="${vehicle.name}" style="width: auto; margin-right: 10px;">
+                        <input type="checkbox" class="draft-vehicle-checkbox" value="${vehicle.id}" data-name="${vehicle.name}" data-plate="${vehicle.licencePlate || ''}" style="width: auto; margin-right: 10px;">
                         <span>${vehicle.name} <small style="color: #666;">(${vehicle.licencePlate || 'No Targa'})</small></span>
                     </label>
                 `;
@@ -4671,7 +4671,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
         function closeDraftWizard() {
             const modal = document.getElementById('draftWizardModal');
-            if (modal) modal.style.display = 'none';
+            if (modal) modal.classList.remove('active');
         }
 
         function toggleAllDraftVehicles() {
@@ -4685,7 +4685,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             document.querySelectorAll('.draft-vehicle-checkbox:checked').forEach(cb => {
                 selectedVehicles.push({
                     id: cb.value,
-                    name: cb.dataset.name
+                    name: cb.dataset.name,
+                    plate: cb.dataset.plate
                 });
             });
 
@@ -4694,11 +4695,69 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 return;
             }
 
-            const vehicleNames = selectedVehicles.map(v => v.name).join(', ');
-            if (confirm(`Vuoi creare la bozza lavori per: ${vehicleNames}?`)) {
-                 alert('Funzionalità PDF Bozza in arrivo! (Placeholder)');
-                 closeDraftWizard();
-            }
+            // Show loading
+            const generateBtn = document.querySelector('#draftWizardModal button[onclick="createDraftPdf()"]');
+            const originalText = generateBtn.textContent;
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Generazione PDF...';
+
+            // Collect all open issues for selected vehicles
+            const draftData = {
+                vehicles: selectedVehicles.map(vehicle => {
+                    const vehicleReports = allActiveReports.filter(r => r.vehicleId === vehicle.id);
+                    const issues = [];
+                    
+                    vehicleReports.forEach(report => {
+                        report.issues.forEach(issue => {
+                            issues.push({
+                                category: issue.category,
+                                description: issue.description,
+                                urgency: issue.urgency,
+                                reportDate: report.reportDate,
+                                reportedBy: report.reportedBy
+                            });
+                        });
+                    });
+
+                    return {
+                        name: vehicle.name,
+                        plate: vehicle.plate,
+                        issues: issues
+                    };
+                })
+            };
+
+            // Call backend to generate PDF
+            const callback = 'draftPdfGenerated_' + Date.now();
+            window[callback] = function(response) {
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalText;
+                delete window[callback];
+
+                if (response.success) {
+                    alert('✅ PDF Bozza Lavori generato con successo!');
+                    if (response.pdfUrl) {
+                        window.open(response.pdfUrl, '_blank');
+                    }
+                    closeDraftWizard();
+                } else {
+                    alert('❌ Errore nella generazione del PDF: ' + (response.error || 'Errore sconosciuto'));
+                }
+            };
+
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+            const url = `${scriptUrl}?function=generateDraftPdfJsonp&authToken=${encodeURIComponent(authToken)}&data=${encodeURIComponent(JSON.stringify(draftData))}&callback=${callback}&_=${Date.now()}`;
+            
+            const script = document.createElement('script');
+            script.src = url;
+            script.onerror = () => {
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalText;
+                alert('❌ Errore di connessione al server');
+                delete window[callback];
+            };
+            document.body.appendChild(script);
         }
 
         function showWizardSummary() {

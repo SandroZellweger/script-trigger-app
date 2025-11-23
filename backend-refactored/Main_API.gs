@@ -67,6 +67,8 @@ function doGet(e) {
         return getGaragesListJsonp(e.parameter);
       case "addGarageJsonp":
         return addGarageJsonp(e.parameter);
+      case "generateDraftPdfJsonp":
+        return generateDraftPdfJsonp(e.parameter);
         
       // --- Messaging ---
       case "sendHowToBookMessageApp":

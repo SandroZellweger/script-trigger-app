@@ -641,3 +641,125 @@ function saveMaintenanceReportJsonp(params) {
     return saveMaintenanceReport(reportData);
   });
 }
+
+// Generate Draft PDF for multiple vehicles
+function generateDraftPdf(draftData) {
+  try {
+    Logger.log('📝 generateDraftPdf called with:', draftData);
+    
+    // Create a new Google Doc for the draft
+    const docName = `Bozza Lavori - ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm")}`;
+    const doc = DocumentApp.create(docName);
+    const body = doc.getBody();
+    
+    // Title
+    const title = body.appendParagraph('BOZZA LAVORI MANUTENZIONE');
+    title.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    
+    // Date
+    const dateText = body.appendParagraph(`Data: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")}`);
+    dateText.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    
+    body.appendParagraph(''); // Empty line
+    
+    // Process each vehicle
+    draftData.vehicles.forEach((vehicle, index) => {
+      // Vehicle header
+      const vehicleHeader = body.appendParagraph(`${index + 1}. ${vehicle.name}`);
+      vehicleHeader.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      
+      if (vehicle.plate) {
+        body.appendParagraph(`Targa: ${vehicle.plate}`).setItalic(true);
+      }
+      
+      body.appendParagraph(''); // Empty line
+      
+      // Issues
+      if (vehicle.issues && vehicle.issues.length > 0) {
+        body.appendParagraph('Lavori da eseguire:').setBold(true);
+        
+        vehicle.issues.forEach((issue, issueIdx) => {
+          const urgencyLabel = issue.urgency === 'critical' ? '🔴 Critica' : 
+                             issue.urgency === 'high' ? '🟠 Alta' : 
+                             issue.urgency === 'medium' ? '🟡 Media' : '🟢 Bassa';
+          
+          const issueText = body.appendParagraph(`   ${issueIdx + 1}. [${urgencyLabel}] ${issue.description}`);
+          issueText.setIndentStart(20);
+          
+          if (issue.reportedBy) {
+            const reportInfo = body.appendParagraph(`      Segnalato da: ${issue.reportedBy}`);
+            reportInfo.setIndentStart(40);
+            reportInfo.setFontSize(9);
+            reportInfo.setForegroundColor('#666666');
+          }
+        });
+      } else {
+        body.appendParagraph('Nessun lavoro aperto per questo veicolo.').setItalic(true).setForegroundColor('#999999');
+      }
+      
+      body.appendParagraph(''); // Empty line
+      body.appendHorizontalRule(); // Separator
+      body.appendParagraph(''); // Empty line
+    });
+    
+    // Footer
+    body.appendParagraph('').appendPageBreak();
+    body.appendParagraph('Documento generato automaticamente dal Sistema di Manutenzione Noleggio Semplice')
+        .setFontSize(8)
+        .setForegroundColor('#999999')
+        .setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    
+    // Save and get URL
+    doc.saveAndClose();
+    const docUrl = doc.getUrl();
+    const docId = doc.getId();
+    
+    // Convert to PDF
+    const pdfBlob = DriveApp.getFileById(docId).getAs('application/pdf');
+    pdfBlob.setName(docName + '.pdf');
+    
+    // Save PDF to Drive
+    const config = getConfig();
+    const parentFolderId = config.PARENT_FOLDER_ID || PropertiesService.getScriptProperties().getProperty('PARENT_FOLDER_ID');
+    
+    let pdfFile;
+    if (parentFolderId) {
+      const parentFolder = DriveApp.getFolderById(parentFolderId);
+      pdfFile = parentFolder.createFile(pdfBlob);
+    } else {
+      pdfFile = DriveApp.createFile(pdfBlob);
+    }
+    
+    const pdfUrl = pdfFile.getUrl();
+    
+    // Delete the temporary Google Doc
+    DriveApp.getFileById(docId).setTrashed(true);
+    
+    return {
+      success: true,
+      message: 'PDF Bozza Lavori generato con successo',
+      pdfUrl: pdfUrl,
+      pdfId: pdfFile.getId()
+    };
+    
+  } catch (error) {
+    Logger.log('❌ Error generating draft PDF:', error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+function generateDraftPdfJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, (p) => {
+    let draftData;
+    try {
+      draftData = JSON.parse(p.data);
+    } catch (e) {
+      throw new Error('Invalid draft data: ' + e.toString());
+    }
+    return generateDraftPdf(draftData);
+  });
+}
