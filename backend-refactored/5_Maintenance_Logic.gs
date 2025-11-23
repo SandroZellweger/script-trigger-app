@@ -159,6 +159,9 @@ function getVehicleListWithKm() {
     let kmIndex = headers.indexOf('KmNextService');
     if (kmIndex === -1) kmIndex = headers.indexOf('km fino al prossimo tagliando (colonna M)');
 
+    let plateIndex = headers.indexOf('LicencePlate');
+    if (plateIndex === -1) plateIndex = headers.indexOf('Targa');
+
     // Nuovi indici per KM Attuali (Colonna J -> indice 9) e Data (Colonna K -> indice 10)
     const currentKmIndex = 9; // Colonna J
     const lastUpdateIndex = 10; // Colonna K
@@ -189,7 +192,8 @@ function getVehicleListWithKm() {
           id: row[idIndex],
           kmToService: parseInt(row[kmIndex]) || 0,
           currentKm: parseInt(row[currentKmIndex]) || 0, // Aggiunto KM Attuali
-          lastUpdate: lastUpdate // Aggiunta Data Aggiornamento
+          lastUpdate: lastUpdate, // Aggiunta Data Aggiornamento
+          plate: plateIndex !== -1 ? (row[plateIndex] || '') : '' // Aggiunta Targa
         });
       }
     }
