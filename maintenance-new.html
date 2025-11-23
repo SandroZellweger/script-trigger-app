@@ -8133,75 +8133,85 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
         function loadWizardGaragesList() {
             const select = document.getElementById('wizardGarageSelect');
-            select.innerHTML = '<option value="">Caricamento officine...</option>';
-
-            const callback = 'wizardGaragesCallback_' + Date.now();
+            if (!select) {
+                console.error('Wizard garage select element (wizardGarageSelect) not found');
+                return;
+            }
             
+            // Show loading state
+            select.innerHTML = '<option value="">⏳ Caricamento officine...</option>';
+            select.disabled = true;
+
+            const callback = 'wizardGaragesLoaded_' + Date.now();
             window[callback] = function(response) {
-                if (!response.success) {
-                    select.innerHTML = '<option value="">❌ Errore caricamento</option>';
-                    delete window[callback];
-                    return;
-                }
-
-                const garages = response.garages || [];
-
-                if (garages.length === 0) {
-                    select.innerHTML = '<option value="">Nessuna officina - Aggiungine una</option>';
-                    delete window[callback];
-                    return;
-                }
-
-                select.innerHTML = '<option value="">-- Seleziona officina --</option>';
-                
-                garages.forEach((garage, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = `${garage.name}${garage.city ? ' - ' + garage.city : ''}`;
-                    option.dataset.name = garage.name;
-                    option.dataset.address = garage.address || '';
-                    option.dataset.city = garage.city || '';
-                    option.dataset.zip = garage.zip || '';
-                    option.dataset.phone = garage.phone || '';
-                    option.dataset.mobile = garage.mobile || '';
-                    option.dataset.email = garage.email || '';
-                    option.dataset.website = garage.website || '';
-                    option.dataset.responsabile = garage.responsabile || '';
-                    option.dataset.specialization = garage.specialization || '';
-                    select.appendChild(option);
-                });
-
-                // Add change listener to show preview
-                select.onchange = function() {
-                    const preview = document.getElementById('wizardSelectedGaragePreview');
-                    if (this.value) {
-                        const option = this.options[this.selectedIndex];
-                        preview.style.display = 'block';
-                        preview.innerHTML = `
-                            <h4 style="margin: 0 0 10px 0; color: #4caf50;">✅ Officina Selezionata</h4>
-                            <p style="margin: 5px 0;"><strong>${escapeHtml(option.dataset.name)}</strong></p>
-                            ${option.dataset.address ? `<p style="margin: 5px 0; font-size: 14px;">📍 ${escapeHtml(option.dataset.address)}${option.dataset.city ? ', ' + escapeHtml(option.dataset.city) : ''}</p>` : ''}
-                            ${option.dataset.phone ? `<p style="margin: 5px 0; font-size: 14px;">📞 ${escapeHtml(option.dataset.phone)}</p>` : ''}
-                            ${option.dataset.mobile ? `<p style="margin: 5px 0; font-size: 14px;">📱 ${escapeHtml(option.dataset.mobile)}</p>` : ''}
-                            ${option.dataset.email ? `<p style="margin: 5px 0; font-size: 14px;">📧 ${escapeHtml(option.dataset.email)}</p>` : ''}
-                            ${option.dataset.website ? `<p style="margin: 5px 0; font-size: 14px;">🌐 ${escapeHtml(option.dataset.website)}</p>` : ''}
-                            ${option.dataset.responsabile ? `<p style="margin: 5px 0; font-size: 14px;">👤 ${escapeHtml(option.dataset.responsabile)}</p>` : ''}
-                        `;
-                    } else {
-                        preview.style.display = 'none';
-                    }
-                };
-
                 delete window[callback];
+                select.disabled = false;
+                
+                if (response.success && response.garages && response.garages.length > 0) {
+                    select.innerHTML = '<option value="">Seleziona un\'officina...</option>';
+                    
+                    response.garages.forEach(garage => {
+                        const option = document.createElement('option');
+                        // Store full garage object as JSON string for easy access
+                        option.value = JSON.stringify(garage);
+                        option.textContent = garage.name + (garage.city ? ` (${garage.city})` : '');
+                        select.appendChild(option);
+                    });
+                    
+                    // Restore selection if one was already selected
+                    if (pdfWizardData.selectedGarage) {
+                        for (let i = 0; i < select.options.length; i++) {
+                            try {
+                                const g = JSON.parse(select.options[i].value);
+                                if (g.name === pdfWizardData.selectedGarage.name) {
+                                    select.selectedIndex = i;
+                                    break;
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Nessuna officina trovata</option>';
+                    if (response.error) {
+                        console.error('Error loading garages:', response.error);
+                    }
+                }
             };
 
+            const scriptUrl = window.APP_CONFIG.scriptUrl;
+            const authToken = window.APP_CONFIG.authToken;
+            const url = `${scriptUrl}?function=getGaragesListJsonp&authToken=${encodeURIComponent(authToken)}&callback=${callback}&_=${Date.now()}`;
+            
             const script = document.createElement('script');
-            script.src = `${window.APP_CONFIG.scriptUrl}?function=getGaragesListJsonp&authToken=${encodeURIComponent(window.APP_CONFIG.authToken)}&callback=${callback}&_=${Date.now()}`;
+            script.src = url;
             script.onerror = () => {
-                select.innerHTML = '<option value="">❌ Errore connessione</option>';
-                delete window[callback];
+                select.innerHTML = '<option value="">❌ Errore di connessione</option>';
+                select.disabled = false;
             };
             document.body.appendChild(script);
+            
+            // Handle selection change
+            select.onchange = function() {
+                if (this.value) {
+                    try {
+                        pdfWizardData.selectedGarage = JSON.parse(this.value);
+                        // Update summary if we are on the summary step or going to it
+                        const summaryGarage = document.getElementById('summaryGarage');
+                        if (summaryGarage) {
+                            summaryGarage.innerHTML = `
+                                <strong>${pdfWizardData.selectedGarage.name}</strong><br>
+                                ${pdfWizardData.selectedGarage.address || ''}<br>
+                                ${pdfWizardData.selectedGarage.city || ''} ${pdfWizardData.selectedGarage.zip || ''}
+                            `;
+                        }
+                    } catch(e) {
+                        console.error('Error parsing garage data', e);
+                        pdfWizardData.selectedGarage = null;
+                    }
+                } else {
+                    pdfWizardData.selectedGarage = null;
+                }
+            };
         }
 
         function refreshWizardGaragesList() {
