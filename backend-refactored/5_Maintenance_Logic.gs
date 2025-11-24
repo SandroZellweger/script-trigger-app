@@ -1731,3 +1731,415 @@ function updateMaintenanceReportInvoice(listId, invoiceUrl, invoiceId) {
     Logger.log('Error updating maintenance report invoice:', error);
   }
 }
+
+// ===== WORKSHOP LIST MANAGEMENT FUNCTIONS =====
+
+function deleteWorkshopListJsonp(params) {
+  try {
+    const listId = params.listId;
+    if (!listId) {
+      return { success: false, error: 'List ID is required' };
+    }
+
+    Logger.log('deleteWorkshopListJsonp: Deleting list ' + listId);
+
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+
+    if (!workshopSheet) {
+      return { success: false, error: 'Workshop lists sheet not found' };
+    }
+
+    // Find and delete the workshop list
+    const data = workshopSheet.getDataRange().getValues();
+    let rowToDelete = -1;
+    let issuesToReset = [];
+
+    for (let i = 1; i < data.length; i++) { // Start from row 1 (skip header)
+      if (data[i][0] === listId) { // Column 0 is ID Lista
+        rowToDelete = i + 1; // +1 because array is 0-indexed but sheets are 1-indexed
+
+        // Get issues to reset (column 10 is "Problemi Risolti")
+        const issuesJson = data[i][10];
+        if (issuesJson) {
+          try {
+            issuesToReset = JSON.parse(issuesJson);
+          } catch (e) {
+            Logger.log('Error parsing issues JSON:', e);
+          }
+        }
+        break;
+      }
+    }
+
+    if (rowToDelete === -1) {
+      return { success: false, error: 'Workshop list not found' };
+    }
+
+    // Delete the row
+    workshopSheet.deleteRow(rowToDelete);
+
+    // Reset issues back to active status
+    let issuesReset = 0;
+    if (issuesToReset.length > 0) {
+      const maintenanceSheet = ss.getSheetByName('Difetti e Riparazioni');
+      if (maintenanceSheet) {
+        const maintenanceData = maintenanceSheet.getDataRange().getValues();
+
+        for (let issue of issuesToReset) {
+          // Find the issue by reportId and issueNumber
+          for (let j = 1; j < maintenanceData.length; j++) { // Skip header
+            if (maintenanceData[j][0] === issue.reportId && maintenanceData[j][1] === issue.issueNumber) {
+              // Reset status to "In Attesa" or similar (column 4 is Stato)
+              maintenanceSheet.getRange(j + 1, 5).setValue('In Attesa');
+              issuesReset++;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    Logger.log('deleteWorkshopListJsonp: Successfully deleted list ' + listId + ', reset ' + issuesReset + ' issues');
+    return { success: true, issuesReset: issuesReset };
+
+  } catch (error) {
+    Logger.log('deleteWorkshopListJsonp: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function moveIssueBackToActiveJsonp(params) {
+  try {
+    const reportId = params.reportId;
+    const issueNumber = params.issueNumber;
+
+    if (!reportId || !issueNumber) {
+      return { success: false, error: 'Report ID and issue number are required' };
+    }
+
+    Logger.log('moveIssueBackToActiveJsonp: Moving issue ' + reportId + '-' + issueNumber + ' back to active');
+
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const maintenanceSheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!maintenanceSheet) {
+      return { success: false, error: 'Maintenance issues sheet not found' };
+    }
+
+    // Find and update the issue status
+    const data = maintenanceSheet.getDataRange().getValues();
+    let found = false;
+
+    for (let i = 1; i < data.length; i++) { // Skip header
+      if (data[i][0] === reportId && data[i][1] === issueNumber) {
+        // Reset status to "In Attesa" (column 4 is Stato)
+        maintenanceSheet.getRange(i + 1, 5).setValue('In Attesa');
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return { success: false, error: 'Issue not found' };
+    }
+
+    Logger.log('moveIssueBackToActiveJsonp: Successfully moved issue back to active');
+    return { success: true };
+
+  } catch (error) {
+    Logger.log('moveIssueBackToActiveJsonp: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function completeWorkshopListJsonp(params) {
+  try {
+    const listId = params.listId;
+    if (!listId) {
+      return { success: false, error: 'List ID is required' };
+    }
+
+    Logger.log('completeWorkshopListJsonp: Completing all issues in list ' + listId);
+
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+    const maintenanceSheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!workshopSheet || !maintenanceSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Find the workshop list and get its issues
+    const workshopData = workshopSheet.getDataRange().getValues();
+    let issuesToComplete = [];
+    let listRow = -1;
+
+    for (let i = 1; i < workshopData.length; i++) { // Skip header
+      if (workshopData[i][0] === listId) {
+        listRow = i + 1;
+        const issuesJson = workshopData[i][10]; // Column 10 is "Problemi Risolti"
+        if (issuesJson) {
+          try {
+            issuesToComplete = JSON.parse(issuesJson);
+          } catch (e) {
+            Logger.log('Error parsing issues JSON:', e);
+          }
+        }
+        break;
+      }
+    }
+
+    if (listRow === -1) {
+      return { success: false, error: 'Workshop list not found' };
+    }
+
+    // Complete all issues
+    let issuesCompleted = 0;
+    const maintenanceData = maintenanceSheet.getDataRange().getValues();
+
+    for (let issue of issuesToComplete) {
+      for (let j = 1; j < maintenanceData.length; j++) { // Skip header
+        if (maintenanceData[j][0] === issue.reportId && maintenanceData[j][1] === issue.issueNumber) {
+          // Set status to "Completato" (column 4 is Stato)
+          maintenanceSheet.getRange(j + 1, 5).setValue('Completato');
+          // Set completion date (column 7 is "Data Risoluzione")
+          maintenanceSheet.getRange(j + 1, 8).setValue(new Date());
+          issuesCompleted++;
+          break;
+        }
+      }
+    }
+
+    // Update workshop list status and completion date
+    workshopSheet.getRange(listRow, 6).setValue('Completato'); // Column 5 is Stato
+    workshopSheet.getRange(listRow, 12).setValue(new Date()); // Column 11 is "Data Completamento"
+
+    Logger.log('completeWorkshopListJsonp: Completed ' + issuesCompleted + ' issues in list ' + listId);
+    return { success: true, issuesCompleted: issuesCompleted };
+
+  } catch (error) {
+    Logger.log('completeWorkshopListJsonp: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function archiveWorkshopListJsonp(params) {
+  try {
+    const listId = params.listId;
+    if (!listId) {
+      return { success: false, error: 'List ID is required' };
+    }
+
+    Logger.log('archiveWorkshopListJsonp: Archiving list ' + listId);
+
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+
+    if (!workshopSheet) {
+      return { success: false, error: 'Workshop lists sheet not found' };
+    }
+
+    // Find and update the workshop list status
+    const data = workshopSheet.getDataRange().getValues();
+    let found = false;
+
+    for (let i = 1; i < data.length; i++) { // Skip header
+      if (data[i][0] === listId) {
+        // Set status to "Archiviato" (column 5 is Stato)
+        workshopSheet.getRange(i + 1, 6).setValue('Archiviato');
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return { success: false, error: 'Workshop list not found' };
+    }
+
+    Logger.log('archiveWorkshopListJsonp: Successfully archived list ' + listId);
+    return { success: true };
+
+  } catch (error) {
+    Logger.log('archiveWorkshopListJsonp: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addWorkToListJsonp(params) {
+  try {
+    const listId = params.listId;
+    const workType = params.workType; // 'service' or 'extra'
+    const work = params.work;
+
+    if (!listId || !workType || !work) {
+      return { success: false, error: 'List ID, work type, and work description are required' };
+    }
+
+    if (workType !== 'service' && workType !== 'extra') {
+      return { success: false, error: 'Work type must be "service" or "extra"' };
+    }
+
+    Logger.log('addWorkToListJsonp: Adding ' + workType + ' work to list ' + listId);
+
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+
+    if (!workshopSheet) {
+      return { success: false, error: 'Workshop lists sheet not found' };
+    }
+
+    // Find the workshop list
+    const data = workshopSheet.getDataRange().getValues();
+    let found = false;
+    let rowIndex = -1;
+
+    for (let i = 1; i < data.length; i++) { // Skip header
+      if (data[i][0] === listId) {
+        rowIndex = i + 1;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return { success: false, error: 'Workshop list not found' };
+    }
+
+    // Get current work arrays
+    const serviceWorks = data[rowIndex - 1][7] || ''; // Column 7 is "Lavori Tagliando"
+    const extraWorks = data[rowIndex - 1][8] || ''; // Column 8 is "Lavori Extra"
+
+    let currentWorks = [];
+    if (workType === 'service') {
+      currentWorks = serviceWorks ? serviceWorks.split('\n') : [];
+      currentWorks.push(work.trim());
+      workshopSheet.getRange(rowIndex, 8).setValue(currentWorks.join('\n')); // Column 7
+    } else {
+      currentWorks = extraWorks ? extraWorks.split('\n') : [];
+      currentWorks.push(work.trim());
+      workshopSheet.getRange(rowIndex, 9).setValue(currentWorks.join('\n')); // Column 8
+    }
+
+    Logger.log('addWorkToListJsonp: Successfully added ' + workType + ' work to list ' + listId);
+    return { success: true };
+
+  } catch (error) {
+    Logger.log('addWorkToListJsonp: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function removeWorkFromListJsonp(params) {
+  try {
+    const listId = params.listId;
+    const workType = params.workType; // 'service' or 'extra'
+    const workIndex = parseInt(params.workIndex);
+
+    if (!listId || !workType || isNaN(workIndex)) {
+      return { success: false, error: 'List ID, work type, and work index are required' };
+    }
+
+    if (workType !== 'service' && workType !== 'extra') {
+      return { success: false, error: 'Work type must be "service" or "extra"' };
+    }
+
+    Logger.log('removeWorkFromListJsonp: Removing ' + workType + ' work at index ' + workIndex + ' from list ' + listId);
+
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const workshopSheet = ss.getSheetByName('Liste Officina');
+
+    if (!workshopSheet) {
+      return { success: false, error: 'Workshop lists sheet not found' };
+    }
+
+    // Find the workshop list
+    const data = workshopSheet.getDataRange().getValues();
+    let found = false;
+    let rowIndex = -1;
+
+    for (let i = 1; i < data.length; i++) { // Skip header
+      if (data[i][0] === listId) {
+        rowIndex = i + 1;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return { success: false, error: 'Workshop list not found' };
+    }
+
+    // Get current work arrays
+    const serviceWorks = data[rowIndex - 1][7] || ''; // Column 7 is "Lavori Tagliando"
+    const extraWorks = data[rowIndex - 1][8] || ''; // Column 8 is "Lavori Extra"
+
+    let currentWorks = [];
+    if (workType === 'service') {
+      currentWorks = serviceWorks ? serviceWorks.split('\n') : [];
+      if (workIndex >= 0 && workIndex < currentWorks.length) {
+        currentWorks.splice(workIndex, 1);
+        workshopSheet.getRange(rowIndex, 8).setValue(currentWorks.join('\n')); // Column 7
+      } else {
+        return { success: false, error: 'Invalid work index' };
+      }
+    } else {
+      currentWorks = extraWorks ? extraWorks.split('\n') : [];
+      if (workIndex >= 0 && workIndex < currentWorks.length) {
+        currentWorks.splice(workIndex, 1);
+        workshopSheet.getRange(rowIndex, 9).setValue(currentWorks.join('\n')); // Column 8
+      } else {
+        return { success: false, error: 'Invalid work index' };
+      }
+    }
+
+    Logger.log('removeWorkFromListJsonp: Successfully removed ' + workType + ' work from list ' + listId);
+    return { success: true };
+
+  } catch (error) {
+    Logger.log('removeWorkFromListJsonp: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
