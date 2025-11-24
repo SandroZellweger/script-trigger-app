@@ -6468,7 +6468,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     listCard.className = 'report-card';
                     listCard.style.borderLeft = '4px solid #17a2b8';
                     
-                    const dataCreazione = list.dataCreazione ? new Date(list.dataCreazione).toLocaleDateString('it-CH') : 'N/D';
+                    const dataCreazione = list.creationDate ? new Date(list.creationDate).toLocaleDateString('it-CH') : 'N/D';
                     const invoiceDate = (list.invoiceAnalysis && list.invoiceAnalysis.invoiceData && list.invoiceAnalysis.invoiceData.invoiceDate) ? list.invoiceAnalysis.invoiceData.invoiceDate : '';
                     const invoicePhotoUrl = list.invoicePhotoUrl || '';
                     
@@ -6522,13 +6522,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         
                         <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 2px solid #dc3545;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <h4 style="margin: 0; color: #495057; font-size: 13px;">📋 Problemi da Risolvere (${list.totalIssues})</h4>
+                                <h4 style="margin: 0; color: #495057; font-size: 13px;">📋 Problemi da Risolvere (${list.issues ? list.issues.length : 0})</h4>
                                 <button onclick="addIssueToWorkshopList('${escapeHtml(list.listId)}')" style="background: transparent; color: #dc3545; border: 1px solid #dc3545; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#dc3545'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#dc3545'">
                                     +
                                 </button>
                             </div>
                             <div id="issues-${escapeHtml(list.listId)}" style="display: flex; flex-direction: column; gap: 6px;">
-                                ${list.issues.map((issue, idx) => `
+                                ${(list.issues && list.issues.length > 0) ? list.issues.map((issue, idx) => `
                                     <div style="background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                                         <div style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 6px;">
                                             <input type="checkbox" ${issue.completato ? 'checked' : ''} disabled style="margin: 0;">
@@ -6546,7 +6546,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                             ↩️
                                         </button>
                                     </div>
-                                `).join('')}
+                                `).join('') : '<p style="color: #999; font-style: italic; margin: 10px 0;">Nessun problema assegnato</p>'}
                             </div>
                         </div>
                         
