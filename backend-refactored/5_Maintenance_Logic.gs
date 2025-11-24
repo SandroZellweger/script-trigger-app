@@ -722,7 +722,7 @@ function generateDraftPdf(draftData) {
       vehicleCell.setPaddingBottom(8);
       vehicleCell.setPaddingLeft(12);
       vehicleCell.setPaddingRight(12);
-      vehicleCell.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      vehicleCell.getChild(0).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
       
       body.appendParagraph(''); // Space after vehicle header
       
@@ -920,7 +920,7 @@ function generateDraftPdf(draftData) {
     const footerCell = footerRow.appendTableCell('Documento generato automaticamente dal Sistema di Gestione Manutenzione\nBarbone & Zellweger Sagl - Noleggio Semplice\nwww.noleggiosemplice.com');
     footerCell.setFontSize(7);
     footerCell.setForegroundColor('#666666');
-    footerCell.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    footerCell.getChild(0).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
     footerCell.setPaddingTop(20);
     footerCell.setPaddingBottom(10);
     
