@@ -3887,6 +3887,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         ${report.issues.map((issue, index) => `
                             <li class="issue-list-item" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: ${issue.completed ? '#f5f5f5' : '#fff'}; border-left: 2px solid ${issue.urgency === 'critical' ? '#f44336' : issue.urgency === 'high' ? '#ff9800' : issue.urgency === 'medium' ? '#ffc107' : '#4caf50'}; margin-bottom: 6px; border-radius: 4px; transition: all 0.2s;">
                                 <input type="checkbox" class="issue-checkbox" style="cursor: pointer; width: 18px; height: 18px; flex-shrink: 0;"
+                                    data-report="${report.reportId}" data-issue-number="${issue.issueNumber}"
                                     ${issue.completed ? 'checked' : ''} 
                                     onchange="toggleIssueStatus('${report.reportId}', ${issue.issueNumber}, this.checked)">
                                 <div class="issue-content" style="flex: 1; min-width: 0;">

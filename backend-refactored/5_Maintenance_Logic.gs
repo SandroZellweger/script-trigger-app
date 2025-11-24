@@ -243,9 +243,10 @@ function getActiveMaintenanceReports() {
       const row = data[i];
       const reportId = row[0];
       const completed = row[9]; // completed column
+      const status = row[8]; // status column
 
-      // Only include incomplete reports
-      if (!completed) {
+      // Only include incomplete reports that are not already in workshop
+      if (!completed && status !== 'In Officina') {
         if (!reportsMap[reportId]) {
           reportsMap[reportId] = {
             reportId: reportId,
@@ -1217,12 +1218,23 @@ function findIssueByIdentifier(maintenanceData, maintenanceHeaders, identifier) 
     const statusIndex = maintenanceHeaders.indexOf('Stato');
 
     if (reportIdIndex === -1 || issueNumberIndex === -1) {
+      Logger.log('findIssueByIdentifier: Required columns not found - reportIdIndex: ' + reportIdIndex + ', issueNumberIndex: ' + issueNumberIndex);
       return null;
     }
 
+    Logger.log('findIssueByIdentifier: Looking for reportId: ' + identifier.reportId + ', issueNumber: ' + identifier.issueNumber);
+
     for (let i = 1; i < maintenanceData.length; i++) {
       const row = maintenanceData[i];
-      if (row[reportIdIndex] == identifier.reportId && row[issueNumberIndex] == identifier.issueNumber) {
+      const rowReportId = String(row[reportIdIndex] || '').trim();
+      const rowIssueNumber = Number(row[issueNumberIndex] || 0);
+      const searchReportId = String(identifier.reportId || '').trim();
+      const searchIssueNumber = Number(identifier.issueNumber || 0);
+
+      Logger.log('findIssueByIdentifier: Checking row ' + i + ' - rowReportId: "' + rowReportId + '", rowIssueNumber: ' + rowIssueNumber);
+
+      if (rowReportId === searchReportId && rowIssueNumber === searchIssueNumber) {
+        Logger.log('findIssueByIdentifier: Found matching issue at row ' + i);
         return {
           reportId: identifier.reportId,
           issueNumber: identifier.issueNumber,
@@ -1234,6 +1246,7 @@ function findIssueByIdentifier(maintenanceData, maintenanceHeaders, identifier) 
       }
     }
 
+    Logger.log('findIssueByIdentifier: No matching issue found for reportId: ' + identifier.reportId + ', issueNumber: ' + identifier.issueNumber);
     return null;
   } catch (error) {
     Logger.log('Error in findIssueByIdentifier: ' + error.toString());
