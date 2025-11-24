@@ -1075,23 +1075,32 @@ function createWorkshopListJsonp(params) {
 
 function getWorkshopLists() {
   try {
+    Logger.log('getWorkshopLists: Starting function');
     const config = getConfig();
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
+    Logger.log('getWorkshopLists: Sheet ID = ' + sheetId);
+
     if (!sheetId) {
+      Logger.log('getWorkshopLists: Sheet ID not configured');
       return { success: false, error: 'Maintenance sheet ID not configured' };
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
     const sheet = ss.getSheetByName('Liste Officina');
 
+    Logger.log('getWorkshopLists: Sheet exists = ' + (sheet ? 'true' : 'false'));
+
     if (!sheet) {
+      Logger.log('getWorkshopLists: Sheet does not exist, returning empty array');
       return { success: true, workshopLists: [] };
     }
 
     const data = sheet.getDataRange().getValues();
+    Logger.log('getWorkshopLists: Data rows = ' + data.length);
 
     if (data.length < 2) {
+      Logger.log('getWorkshopLists: No data rows, returning empty array');
       return { success: true, workshopLists: [] };
     }
 
@@ -1111,6 +1120,8 @@ function getWorkshopLists() {
     const notesIndex = headers.indexOf('Note');
     const issuesIndex = headers.indexOf('Problemi Risolti');
     const completionDateIndex = headers.indexOf('Data Completamento');
+
+    Logger.log('getWorkshopLists: Column indices - listId: ' + listIdIndex + ', vehicleName: ' + vehicleNameIndex);
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
@@ -1132,15 +1143,82 @@ function getWorkshopLists() {
       }
     }
 
+    Logger.log('getWorkshopLists: Found ' + workshopLists.length + ' workshop lists');
     return { success: true, workshopLists: workshopLists };
 
   } catch (error) {
+    Logger.log('getWorkshopLists: Error = ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
 
-function getWorkshopListsJsonp(params) {
-  return handleJsonpRequest({ parameter: params }, getWorkshopLists);
+function testGetWorkshopLists() {
+  Logger.log('testGetWorkshopLists: Starting test');
+  const result = getWorkshopLists();
+  Logger.log('testGetWorkshopLists: Result =', JSON.stringify(result));
+  return result;
+}
+
+function createTestWorkshopData() {
+  try {
+    Logger.log('createTestWorkshopData: Starting test data creation');
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      Logger.log('createTestWorkshopData: Sheet ID not configured');
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Liste Officina');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Liste Officina');
+      // Add headers
+      const headerRow = sheet.getRange(1, 1, 1, 12);
+      headerRow.setValues([[
+        'ID Lista', 'Data Creazione', 'Veicolo ID', 'Nome Veicolo', 'Officina',
+        'Stato', 'PDF URL', 'Lavori Tagliando', 'Lavori Extra', 'Note',
+        'Problemi Risolti', 'Data Completamento'
+      ]]);
+      // Format headers
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+
+    // Check if data already exists
+    const data = sheet.getDataRange().getValues();
+    if (data.length > 1) {
+      Logger.log('createTestWorkshopData: Data already exists');
+      return { success: true, message: 'Data already exists' };
+    }
+
+    // Add test data
+    const testData = [
+      ['WL-20251124-174259', new Date(), 'V001', 'Renault Trafic Test', 'Officina Test', 'In Officina', '', 'Cambio olio\nFiltro aria', 'Riparazione freno', 'Veicolo in manutenzione', '[]', ''],
+      ['WL-20251124-175134', new Date(), 'V002', 'Fiat Ducato Test', 'Auto Service', 'In Officina', '', 'Controllo sospensioni', 'Sostituzione batteria', 'Manutenzione programmata', '[]', '']
+    ];
+
+    for (let i = 0; i < testData.length; i++) {
+      sheet.appendRow(testData[i]);
+    }
+
+    Logger.log('createTestWorkshopData: Test data created successfully');
+    return { success: true, message: 'Test data created successfully' };
+
+  } catch (error) {
+    Logger.log('createTestWorkshopData: Error = ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createTestWorkshopDataJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, createTestWorkshopData);
 }
 
 // Helper function to update maintenance issues status

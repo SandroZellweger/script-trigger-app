@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Workshop Lists</title>
+</head>
+<body>
+    <h1>Test Workshop Lists</h1>
+    <button onclick="testWorkshopLists()">Test Workshop Lists</button>
+    <div id="result"></div>
+
+    <script>
+        function testCallback(response) {
+            console.log('Test callback received:', response);
+            document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(response, null, 2) + '</pre>';
+        }
+
+        function testWorkshopLists() {
+            const script = document.createElement('script');
+            script.src = 'https://script.google.com/macros/s/AKfycbzUtXeqja87wTaEEq8Q5Su1utBJnm3z4kj7ub3OCx1RB95Yh0wwVbwLmdSGpTPy08hY/exec?function=testGetWorkshopListsJsonp&authToken=mySecureVanApp_2025&callback=testCallback&_=' + Date.now();
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>

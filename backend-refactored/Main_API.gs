@@ -73,6 +73,10 @@ function doGet(e) {
         return createWorkshopListJsonp(e.parameter);
       case "getWorkshopListsJsonp":
         return getWorkshopListsJsonp(e.parameter);
+      case "testGetWorkshopListsJsonp":
+        return testGetWorkshopListsJsonp(e.parameter);
+      case "createTestWorkshopDataJsonp":
+        return createTestWorkshopDataJsonp(e.parameter);
       case "uploadPdfChunkJsonp":
         return uploadPdfChunkJsonp(e.parameter);
       case "finalizePdfUploadJsonp":

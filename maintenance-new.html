@@ -6442,15 +6442,20 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const callback = 'workshopListsCallback_' + Date.now();
             
             window[callback] = function(response) {
+                console.log('loadWorkshopLists: Received response:', response);
+                
                 if (!response.success) {
+                    console.error('loadWorkshopLists: Backend returned error:', response.error);
                     container.innerHTML = `<div class="error-message">Errore: ${response.error}</div>`;
                     delete window[callback];
                     return;
                 }
 
-                const lists = response.lists || [];
+                const lists = response.workshopLists || response.lists || [];
+                console.log('loadWorkshopLists: Found lists:', lists.length, lists);
 
                 if (lists.length === 0) {
+                    console.log('loadWorkshopLists: No lists found, showing empty message');
                     container.innerHTML = '<p style="text-align: center; color: #666;">Nessun veicolo attualmente in officina.</p>';
                     delete window[callback];
                     return;
