@@ -1087,57 +1087,111 @@ function getWorkshopLists() {
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
-    const sheet = ss.getSheetByName('Liste Officina');
+    const workshopListsSheet = ss.getSheetByName('Liste Officina');
+    const maintenanceSheet = ss.getSheetByName('Difetti e Riparazioni');
 
-    Logger.log('getWorkshopLists: Sheet exists = ' + (sheet ? 'true' : 'false'));
+    Logger.log('getWorkshopLists: Workshop lists sheet exists = ' + (workshopListsSheet ? 'true' : 'false'));
+    Logger.log('getWorkshopLists: Maintenance sheet exists = ' + (maintenanceSheet ? 'true' : 'false'));
 
-    if (!sheet) {
-      Logger.log('getWorkshopLists: Sheet does not exist, returning empty array');
+    if (!workshopListsSheet) {
+      Logger.log('getWorkshopLists: Workshop lists sheet does not exist, returning empty array');
       return { success: true, workshopLists: [] };
     }
 
-    const data = sheet.getDataRange().getValues();
-    Logger.log('getWorkshopLists: Data rows = ' + data.length);
+    const workshopData = workshopListsSheet.getDataRange().getValues();
+    Logger.log('getWorkshopLists: Workshop data rows = ' + workshopData.length);
 
-    if (data.length < 2) {
-      Logger.log('getWorkshopLists: No data rows, returning empty array');
+    if (workshopData.length < 2) {
+      Logger.log('getWorkshopLists: No workshop data rows, returning empty array');
       return { success: true, workshopLists: [] };
     }
 
-    const headers = data[0];
+    const workshopHeaders = workshopData[0];
     const workshopLists = [];
 
-    // Find column indices
-    const listIdIndex = headers.indexOf('ID Lista');
-    const dateIndex = headers.indexOf('Data Creazione');
-    const vehicleIdIndex = headers.indexOf('Veicolo ID');
-    const vehicleNameIndex = headers.indexOf('Nome Veicolo');
-    const workshopIndex = headers.indexOf('Officina');
-    const statusIndex = headers.indexOf('Stato');
-    const pdfUrlIndex = headers.indexOf('PDF URL');
-    const serviceWorksIndex = headers.indexOf('Lavori Tagliando');
-    const extraWorksIndex = headers.indexOf('Lavori Extra');
-    const notesIndex = headers.indexOf('Note');
-    const issuesIndex = headers.indexOf('Problemi Risolti');
-    const completionDateIndex = headers.indexOf('Data Completamento');
+    // Find workshop lists column indices
+    const listIdIndex = workshopHeaders.indexOf('ID Lista');
+    const dateIndex = workshopHeaders.indexOf('Data Creazione');
+    const vehicleIdIndex = workshopHeaders.indexOf('Veicolo ID');
+    const vehicleNameIndex = workshopHeaders.indexOf('Nome Veicolo');
+    const workshopIndex = workshopHeaders.indexOf('Officina');
+    const statusIndex = workshopHeaders.indexOf('Stato');
+    const pdfUrlIndex = workshopHeaders.indexOf('PDF URL');
+    const serviceWorksIndex = workshopHeaders.indexOf('Lavori Tagliando');
+    const extraWorksIndex = workshopHeaders.indexOf('Lavori Extra');
+    const notesIndex = workshopHeaders.indexOf('Note');
+    const issuesIndex = workshopHeaders.indexOf('Problemi Risolti');
+    const completionDateIndex = workshopHeaders.indexOf('Data Completamento');
+    const pdfHistoryIndex = workshopHeaders.indexOf('Storico PDF');
+    const invoiceAnalysisIndex = workshopHeaders.indexOf('Analisi Fattura');
 
     Logger.log('getWorkshopLists: Column indices - listId: ' + listIdIndex + ', vehicleName: ' + vehicleNameIndex);
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
+    // Get maintenance issues data if sheet exists
+    let maintenanceData = [];
+    let maintenanceHeaders = [];
+    if (maintenanceSheet) {
+      maintenanceData = maintenanceSheet.getDataRange().getValues();
+      maintenanceHeaders = maintenanceData[0] || [];
+    }
+
+    for (let i = 1; i < workshopData.length; i++) {
+      const row = workshopData[i];
       if (listIdIndex !== -1 && row[listIdIndex]) {
+        const listId = row[listIdIndex];
+
+        // Get issues for this workshop list
+        const issues = [];
+        if (maintenanceSheet && issuesIndex !== -1 && row[issuesIndex]) {
+          try {
+            const issueIdentifiers = JSON.parse(row[issuesIndex] || '[]');
+            // For each issue identifier, find the actual issue data
+            issueIdentifiers.forEach(identifier => {
+              const issue = findIssueByIdentifier(maintenanceData, maintenanceHeaders, identifier);
+              if (issue) {
+                issues.push(issue);
+              }
+            });
+          } catch (e) {
+            Logger.log('Error parsing issue identifiers for list ' + listId + ': ' + e.toString());
+          }
+        }
+
+        // Get PDF history
+        const pdfHistory = [];
+        if (pdfHistoryIndex !== -1 && row[pdfHistoryIndex]) {
+          try {
+            const historyData = JSON.parse(row[pdfHistoryIndex] || '[]');
+            pdfHistory.push(...historyData);
+          } catch (e) {
+            Logger.log('Error parsing PDF history for list ' + listId + ': ' + e.toString());
+          }
+        }
+
+        // Get invoice analysis
+        let invoiceAnalysis = null;
+        if (invoiceAnalysisIndex !== -1 && row[invoiceAnalysisIndex]) {
+          try {
+            invoiceAnalysis = JSON.parse(row[invoiceAnalysisIndex]);
+          } catch (e) {
+            Logger.log('Error parsing invoice analysis for list ' + listId + ': ' + e.toString());
+          }
+        }
+
         workshopLists.push({
-          listId: row[listIdIndex] || '',
+          listId: listId,
           creationDate: dateIndex !== -1 ? row[dateIndex] : '',
           vehicleId: vehicleIdIndex !== -1 ? row[vehicleIdIndex] : '',
           vehicleName: vehicleNameIndex !== -1 ? row[vehicleNameIndex] : '',
           workshopName: workshopIndex !== -1 ? row[workshopIndex] : '',
           status: statusIndex !== -1 ? row[statusIndex] : '',
           pdfUrl: pdfUrlIndex !== -1 ? row[pdfUrlIndex] : '',
-          serviceWorks: serviceWorksIndex !== -1 ? (row[serviceWorksIndex] ? row[serviceWorksIndex].toString().split('\n') : []) : [],
-          extraWorks: extraWorksIndex !== -1 ? (row[extraWorksIndex] ? row[extraWorksIndex].toString().split('\n') : []) : [],
+          serviceWorks: serviceWorksIndex !== -1 ? (row[serviceWorksIndex] ? row[serviceWorksIndex].toString().split('\n').filter(w => w.trim()) : []) : [],
+          extraWorks: extraWorksIndex !== -1 ? (row[extraWorksIndex] ? row[extraWorksIndex].toString().split('\n').filter(w => w.trim()) : []) : [],
           notes: notesIndex !== -1 ? row[notesIndex] : '',
-          issueIdentifiers: issuesIndex !== -1 ? (row[issuesIndex] ? JSON.parse(row[issuesIndex]) : []) : [],
+          issues: issues,
+          pdfHistory: pdfHistory,
+          invoiceAnalysis: invoiceAnalysis,
           completionDate: completionDateIndex !== -1 ? row[completionDateIndex] : ''
         });
       }
@@ -1149,6 +1203,41 @@ function getWorkshopLists() {
   } catch (error) {
     Logger.log('getWorkshopLists: Error = ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+// Helper function to find issue by identifier
+function findIssueByIdentifier(maintenanceData, maintenanceHeaders, identifier) {
+  try {
+    const reportIdIndex = maintenanceHeaders.indexOf('ID Report');
+    const issueNumberIndex = maintenanceHeaders.indexOf('N. Problema');
+    const categoryIndex = maintenanceHeaders.indexOf('Categoria');
+    const descriptionIndex = maintenanceHeaders.indexOf('Descrizione');
+    const urgencyIndex = maintenanceHeaders.indexOf('Urgenza');
+    const statusIndex = maintenanceHeaders.indexOf('Stato');
+
+    if (reportIdIndex === -1 || issueNumberIndex === -1) {
+      return null;
+    }
+
+    for (let i = 1; i < maintenanceData.length; i++) {
+      const row = maintenanceData[i];
+      if (row[reportIdIndex] == identifier.reportId && row[issueNumberIndex] == identifier.issueNumber) {
+        return {
+          reportId: identifier.reportId,
+          issueNumber: identifier.issueNumber,
+          category: categoryIndex !== -1 ? row[categoryIndex] : '',
+          description: descriptionIndex !== -1 ? row[descriptionIndex] : '',
+          urgency: urgencyIndex !== -1 ? row[urgencyIndex] : '',
+          completato: statusIndex !== -1 ? (row[statusIndex] === 'Risolto' || row[statusIndex] === 'Completato') : false
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    Logger.log('Error in findIssueByIdentifier: ' + error.toString());
+    return null;
   }
 }
 
