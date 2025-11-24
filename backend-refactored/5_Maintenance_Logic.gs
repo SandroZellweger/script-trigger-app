@@ -1221,6 +1221,10 @@ function createTestWorkshopDataJsonp(params) {
   return handleJsonpRequest({ parameter: params }, createTestWorkshopData);
 }
 
+function getWorkshopListsJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, getWorkshopLists);
+}
+
 // Helper function to update maintenance issues status
 function updateMaintenanceIssuesStatus(issueIdentifiers, newStatus, workshopName) {
   try {
