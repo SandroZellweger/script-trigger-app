@@ -14,7 +14,8 @@ function getConfig() {
     PARENT_FOLDER_ID: scriptProperties.getProperty('PARENT_FOLDER_ID') || '',
     EXPENSE_SHEET_ID: scriptProperties.getProperty('EXPENSE_SHEET_ID') || '',
     VEHICLE_DATA_SHEET_ID: '1S4n57yAg1f3oHmZJ0wwQfJduAPRBv_qKWuvjsKOmz4E',
-    GARAGES_SHEET_ID: '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA'
+    GARAGES_SHEET_ID: '1e4jz3L_hV5nAic6QwxW2D9BZZYggvAPeLH9tcGpHAYA',
+    MAINTENANCE_SHEET_ID: scriptProperties.getProperty('MAINTENANCE_SHEET_ID') || ''
   };
 }
 

@@ -986,3 +986,215 @@ function generateDraftPdfJsonp(params) {
     return generateDraftPdf(draftData);
   });
 }
+
+// Workshop List Management Functions
+function createWorkshopList(workshopData) {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Liste Officina');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Liste Officina');
+      // Add headers
+      const headerRow = sheet.getRange(1, 1, 1, 12);
+      headerRow.setValues([[
+        'ID Lista', 'Data Creazione', 'Veicolo ID', 'Nome Veicolo', 'Officina',
+        'Stato', 'PDF URL', 'Lavori Tagliando', 'Lavori Extra', 'Note',
+        'Problemi Risolti', 'Data Completamento'
+      ]]);
+      // Format headers
+      headerRow.setBackground('#667eea');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+
+    // Generate unique list ID
+    const listId = 'WL-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss');
+
+    // Prepare data
+    const serviceWorks = workshopData.serviceWorks ? workshopData.serviceWorks.join('\n') : '';
+    const extraWorks = workshopData.extraWorks ? workshopData.extraWorks.join('\n') : '';
+    const issueIdentifiers = workshopData.issueIdentifiers ? JSON.stringify(workshopData.issueIdentifiers) : '';
+
+    // Add row
+    const newRow = [
+      listId,
+      new Date(),
+      workshopData.vehicleId || '',
+      workshopData.vehicleName || '',
+      workshopData.workshopName || '',
+      'In Officina',
+      workshopData.pdfUrl || '',
+      serviceWorks,
+      extraWorks,
+      workshopData.notes || '',
+      issueIdentifiers,
+      ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    // Update maintenance issues to mark them as "In Officina"
+    if (workshopData.issueIdentifiers && workshopData.issueIdentifiers.length > 0) {
+      updateMaintenanceIssuesStatus(workshopData.issueIdentifiers, 'In Officina', workshopData.workshopName);
+    }
+
+    return {
+      success: true,
+      listId: listId,
+      message: 'Workshop list created successfully',
+      issuesUpdated: workshopData.issueIdentifiers ? workshopData.issueIdentifiers.length : 0
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createWorkshopListJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, (p) => {
+    let workshopData;
+    try {
+      workshopData = JSON.parse(p.data);
+    } catch (e) {
+      throw new Error('Invalid workshop data: ' + e.toString());
+    }
+    return createWorkshopList(workshopData);
+  });
+}
+
+function getWorkshopLists() {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Liste Officina');
+
+    if (!sheet) {
+      return { success: true, workshopLists: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length < 2) {
+      return { success: true, workshopLists: [] };
+    }
+
+    const headers = data[0];
+    const workshopLists = [];
+
+    // Find column indices
+    const listIdIndex = headers.indexOf('ID Lista');
+    const dateIndex = headers.indexOf('Data Creazione');
+    const vehicleIdIndex = headers.indexOf('Veicolo ID');
+    const vehicleNameIndex = headers.indexOf('Nome Veicolo');
+    const workshopIndex = headers.indexOf('Officina');
+    const statusIndex = headers.indexOf('Stato');
+    const pdfUrlIndex = headers.indexOf('PDF URL');
+    const serviceWorksIndex = headers.indexOf('Lavori Tagliando');
+    const extraWorksIndex = headers.indexOf('Lavori Extra');
+    const notesIndex = headers.indexOf('Note');
+    const issuesIndex = headers.indexOf('Problemi Risolti');
+    const completionDateIndex = headers.indexOf('Data Completamento');
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (listIdIndex !== -1 && row[listIdIndex]) {
+        workshopLists.push({
+          listId: row[listIdIndex] || '',
+          creationDate: dateIndex !== -1 ? row[dateIndex] : '',
+          vehicleId: vehicleIdIndex !== -1 ? row[vehicleIdIndex] : '',
+          vehicleName: vehicleNameIndex !== -1 ? row[vehicleNameIndex] : '',
+          workshopName: workshopIndex !== -1 ? row[workshopIndex] : '',
+          status: statusIndex !== -1 ? row[statusIndex] : '',
+          pdfUrl: pdfUrlIndex !== -1 ? row[pdfUrlIndex] : '',
+          serviceWorks: serviceWorksIndex !== -1 ? (row[serviceWorksIndex] ? row[serviceWorksIndex].toString().split('\n') : []) : [],
+          extraWorks: extraWorksIndex !== -1 ? (row[extraWorksIndex] ? row[extraWorksIndex].toString().split('\n') : []) : [],
+          notes: notesIndex !== -1 ? row[notesIndex] : '',
+          issueIdentifiers: issuesIndex !== -1 ? (row[issuesIndex] ? JSON.parse(row[issuesIndex]) : []) : [],
+          completionDate: completionDateIndex !== -1 ? row[completionDateIndex] : ''
+        });
+      }
+    }
+
+    return { success: true, workshopLists: workshopLists };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getWorkshopListsJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, getWorkshopLists);
+}
+
+// Helper function to update maintenance issues status
+function updateMaintenanceIssuesStatus(issueIdentifiers, newStatus, workshopName) {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      Logger.log('Maintenance sheet ID not configured for status update');
+      return;
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!sheet) {
+      Logger.log('Maintenance issues sheet not found');
+      return;
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    // Find column indices
+    const headers = data[0];
+    const reportIdIndex = headers.indexOf('ID Report');
+    const issueNumberIndex = headers.indexOf('N. Problema');
+    const statusIndex = headers.indexOf('Stato');
+    const garageIndex = headers.indexOf('Garage/Officina');
+
+    if (reportIdIndex === -1 || issueNumberIndex === -1) {
+      Logger.log('Required columns not found in maintenance sheet');
+      return;
+    }
+
+    // Update each issue
+    issueIdentifiers.forEach(identifier => {
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (row[reportIdIndex] == identifier.reportId && row[issueNumberIndex] == identifier.issueNumber) {
+          // Update status
+          if (statusIndex !== -1) {
+            sheet.getRange(i + 1, statusIndex + 1).setValue(newStatus);
+          }
+          // Update garage
+          if (garageIndex !== -1 && workshopName) {
+            sheet.getRange(i + 1, garageIndex + 1).setValue(workshopName);
+          }
+          break;
+        }
+      }
+    });
+
+  } catch (error) {
+    Logger.log('Error updating maintenance issues status:', error);
+  }
+}
