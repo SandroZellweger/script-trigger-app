@@ -5473,18 +5473,18 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                     doc.text('OFFICINA:', rightX, 45, { align: 'right' });
                     doc.setFont('helvetica', 'bold');
-                    doc.text(garage.name, rightX, 50, { align: 'right' });
+                    doc.text(String(garage.name || ''), rightX, 50, { align: 'right' });
                     doc.setFont('helvetica', 'normal');
 
                     if (garage.phone) {
-                        doc.text(`Tel: ${garage.phone}`, rightX, 55, { align: 'right' });
+                        doc.text(`Tel: ${String(garage.phone)}`, rightX, 55, { align: 'right' });
                     }
                     if (garage.address) {
-                        const addressText = `${garage.address}${garage.city ? ', ' + garage.city : ''}`;
+                        const addressText = `${String(garage.address || '')}${garage.city ? ', ' + String(garage.city) : ''}`;
                         doc.text(addressText, rightX, 60, { align: 'right' });
                     }
                     if (garage.email && garage.email !== 'http://garagevosti.ch/') {
-                        doc.text(garage.email, rightX, 65, { align: 'right' });
+                        doc.text(String(garage.email), rightX, 65, { align: 'right' });
                     }
                 }
 
