@@ -1260,6 +1260,11 @@ function createTestWorkshopData() {
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
+
+    // First, create test maintenance issues
+    createTestMaintenanceIssues(ss);
+
+    // Then create workshop lists
     let sheet = ss.getSheetByName('Liste Officina');
 
     // Create sheet if it doesn't exist
@@ -1287,10 +1292,10 @@ function createTestWorkshopData() {
       return { success: true, message: 'Data already exists' };
     }
 
-    // Add test data
+    // Add test data with some issues
     const testData = [
-      ['WL-20251124-174259', new Date(), 'V001', 'Renault Trafic Test', 'Officina Test', 'In Officina', '', 'Cambio olio\nFiltro aria', 'Riparazione freno', 'Veicolo in manutenzione', '[]', ''],
-      ['WL-20251124-175134', new Date(), 'V002', 'Fiat Ducato Test', 'Auto Service', 'In Officina', '', 'Controllo sospensioni', 'Sostituzione batteria', 'Manutenzione programmata', '[]', '']
+      ['WL-20251124-174259', new Date(), 'noleggiosemplice23@gmail.com', 'N01 - Opel Vivaro (Losone)', 'Non specificata', 'In Officina', 'https://drive.google.com/file/d/1KAzutk4Gcua6W7U4l4ln1deLhKHyDNBw/view?usp=drivesdk', '', '', 'Lista generata automaticamente dal wizard PDF', '[{"reportId":"TEST-001","issueNumber":1},{"reportId":"TEST-001","issueNumber":2}]', ''],
+      ['WL-20251124-175134', new Date(), 'noleggiosemplice23@gmail.com', 'N01 - Opel Vivaro (Losone)', 'Noleggio-Semplice', 'In Officina', 'https://drive.google.com/file/d/17HvuoFbJSW5WoqrFGK6hFBF49AMTREQR/view?usp=drivesdk', '', '', 'Lista generata automaticamente dal wizard PDF', '[{"reportId":"TEST-002","issueNumber":1}]', '']
     ];
 
     for (let i = 0; i < testData.length; i++) {
@@ -1303,6 +1308,53 @@ function createTestWorkshopData() {
   } catch (error) {
     Logger.log('createTestWorkshopData: Error = ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+// Helper function to create test maintenance issues
+function createTestMaintenanceIssues(ss) {
+  try {
+    let sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('Difetti e Riparazioni');
+      // Add headers (assuming standard maintenance sheet structure)
+      const headerRow = sheet.getRange(1, 1, 1, 15);
+      headerRow.setValues([[
+        'ID Report', 'N. Problema', 'Categoria', 'Descrizione', 'Urgenza',
+        'Stato', 'Garage/Officina', 'Data Creazione', 'Data Risoluzione',
+        'Note', 'Foto URL', 'Veicolo ID', 'Veicolo Nome', 'Cliente', 'Telefono'
+      ]]);
+      // Format headers
+      headerRow.setBackground('#28a745');
+      headerRow.setFontColor('#ffffff');
+      headerRow.setFontWeight('bold');
+      headerRow.setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+    }
+
+    // Check if test data already exists
+    const data = sheet.getDataRange().getValues();
+    if (data.length > 1) {
+      Logger.log('createTestMaintenanceIssues: Test issues already exist');
+      return;
+    }
+
+    // Add test maintenance issues
+    const testIssues = [
+      ['TEST-001', 1, 'Meccanica', 'Cambio olio motore necessario', 'Media', 'In Officina', 'Non specificata', new Date(), '', 'Da fare urgentemente', '', 'noleggiosemplice23@gmail.com', 'N01 - Opel Vivaro (Losone)', 'Cliente Test', '123456789'],
+      ['TEST-001', 2, 'Elettrico', 'Controllo batteria e alternatore', 'Alta', 'In Officina', 'Non specificata', new Date(), '', 'Batteria debole', '', 'noleggiosemplice23@gmail.com', 'N01 - Opel Vivaro (Losone)', 'Cliente Test', '123456789'],
+      ['TEST-002', 1, 'Carrozzeria', 'Riparazione paraurti anteriore', 'Bassa', 'In Officina', 'Noleggio-Semplice', new Date(), '', 'Piccolo danno estetico', '', 'noleggiosemplice23@gmail.com', 'N01 - Opel Vivaro (Losone)', 'Cliente Test', '123456789']
+    ];
+
+    for (let i = 0; i < testIssues.length; i++) {
+      sheet.appendRow(testIssues[i]);
+    }
+
+    Logger.log('createTestMaintenanceIssues: Test issues created successfully');
+  } catch (error) {
+    Logger.log('createTestMaintenanceIssues: Error = ' + error.toString());
   }
 }
 
