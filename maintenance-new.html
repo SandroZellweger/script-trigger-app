@@ -4353,20 +4353,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     alert('Seleziona un\'officina prima di continuare');
                     return;
                 }
-                // Store selected garage data
-                const selectedOption = garageSelect.options[garageSelect.selectedIndex];
-                pdfWizardData.selectedGarage = {
-                    name: selectedOption.dataset.name,
-                    address: selectedOption.dataset.address,
-                    city: selectedOption.dataset.city,
-                    zip: selectedOption.dataset.zip,
-                    phone: selectedOption.dataset.phone,
-                    mobile: selectedOption.dataset.mobile,
-                    email: selectedOption.dataset.email,
-                    website: selectedOption.dataset.website,
-                    responsabile: selectedOption.dataset.responsabile,
-                    specialization: selectedOption.dataset.specialization
-                };
+                // selectedGarage is already set by the onchange handler in loadWizardGaragesList()
+                // No need to re-set it here
             }
 
             if (pdfWizardData.step < 6) {

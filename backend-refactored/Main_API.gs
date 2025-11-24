@@ -73,6 +73,14 @@ function doGet(e) {
         return createWorkshopListJsonp(e.parameter);
       case "getWorkshopListsJsonp":
         return getWorkshopListsJsonp(e.parameter);
+      case "uploadPdfChunkJsonp":
+        return uploadPdfChunkJsonp(e.parameter);
+      case "finalizePdfUploadJsonp":
+        return finalizePdfUploadJsonp(e.parameter);
+      case "uploadInvoiceChunkJsonp":
+        return uploadInvoiceChunkJsonp(e.parameter);
+      case "finalizeInvoiceUploadJsonp":
+        return finalizeInvoiceUploadJsonp(e.parameter);
         
       // --- Messaging ---
       case "sendHowToBookMessageApp":

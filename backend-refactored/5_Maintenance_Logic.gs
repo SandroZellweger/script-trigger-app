@@ -1198,3 +1198,313 @@ function updateMaintenanceIssuesStatus(issueIdentifiers, newStatus, workshopName
     Logger.log('Error updating maintenance issues status:', error);
   }
 }
+
+// ===== CHUNKED FILE UPLOAD FUNCTIONS =====
+
+// PDF Chunk Upload
+function uploadPdfChunk(params) {
+  try {
+    const sessionId = params.sessionId;
+    const chunkIndex = parseInt(params.chunkIndex);
+    const chunkData = params.chunkData;
+
+    if (!sessionId || chunkData === undefined) {
+      return { success: false, error: 'Missing sessionId or chunkData' };
+    }
+
+    // Use CacheService for persistent storage
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `pdf_upload_${sessionId}`;
+
+    // Get existing session data or create new
+    let sessionData = cache.get(cacheKey);
+    if (sessionData) {
+      sessionData = JSON.parse(sessionData);
+    } else {
+      sessionData = {
+        chunks: [],
+        timestamp: new Date().getTime()
+      };
+    }
+
+    // Store chunk
+    sessionData.chunks[chunkIndex] = chunkData;
+    sessionData.timestamp = new Date().getTime(); // Update timestamp
+
+    // Save back to cache (1 hour expiry)
+    cache.put(cacheKey, JSON.stringify(sessionData), 3600);
+
+    return { success: true, message: `Chunk ${chunkIndex} uploaded successfully` };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function uploadPdfChunkJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, uploadPdfChunk);
+}
+
+// Finalize PDF Upload
+function finalizePdfUpload(params) {
+  try {
+    const sessionId = params.sessionId;
+    const fileName = params.fileName;
+    const listId = params.listId;
+    const totalChunks = parseInt(params.totalChunks);
+
+    if (!sessionId) {
+      return { success: false, error: 'Missing sessionId' };
+    }
+
+    // Use CacheService to get session data
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `pdf_upload_${sessionId}`;
+    const sessionDataStr = cache.get(cacheKey);
+
+    if (!sessionDataStr) {
+      return { success: false, error: 'Invalid or expired session' };
+    }
+
+    const sessionData = JSON.parse(sessionDataStr);
+
+    // Check if all chunks are received
+    for (let i = 0; i < totalChunks; i++) {
+      if (!sessionData.chunks[i]) {
+        return { success: false, error: `Missing chunk ${i}` };
+      }
+    }
+
+    // Reassemble the PDF
+    const pdfBase64 = sessionData.chunks.join('');
+
+    // Convert base64 to blob
+    const pdfBlob = Utilities.newBlob(Utilities.base64Decode(pdfBase64), 'application/pdf', fileName);
+
+    // Save to Drive
+    const config = getConfig();
+    const parentFolderId = config.PARENT_FOLDER_ID || PropertiesService.getScriptProperties().getProperty('PARENT_FOLDER_ID');
+
+    let pdfFile;
+    if (parentFolderId) {
+      const parentFolder = DriveApp.getFolderById(parentFolderId);
+      pdfFile = parentFolder.createFile(pdfBlob);
+    } else {
+      pdfFile = DriveApp.createFile(pdfBlob);
+    }
+
+    const pdfUrl = pdfFile.getUrl();
+    const pdfId = pdfFile.getId();
+
+    // Update workshop list with PDF URL
+    if (listId) {
+      updateWorkshopListPdfUrl(listId, pdfUrl);
+    }
+
+    // Clean up session
+    cache.remove(cacheKey);
+
+    return {
+      success: true,
+      message: 'PDF uploaded successfully',
+      pdfUrl: pdfUrl,
+      pdfId: pdfId
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function finalizePdfUploadJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, finalizePdfUpload);
+}
+
+// Invoice Chunk Upload
+function uploadInvoiceChunk(params) {
+  try {
+    const sessionId = params.sessionId;
+    const chunkIndex = parseInt(params.chunkIndex);
+    const chunkData = params.chunkData;
+
+    if (!sessionId || chunkData === undefined) {
+      return { success: false, error: 'Missing sessionId or chunkData' };
+    }
+
+    // Use CacheService for persistent storage
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `invoice_upload_${sessionId}`;
+
+    // Get existing session data or create new
+    let sessionData = cache.get(cacheKey);
+    if (sessionData) {
+      sessionData = JSON.parse(sessionData);
+    } else {
+      sessionData = {
+        chunks: [],
+        timestamp: new Date().getTime()
+      };
+    }
+
+    // Store chunk
+    sessionData.chunks[chunkIndex] = chunkData;
+    sessionData.timestamp = new Date().getTime(); // Update timestamp
+
+    // Save back to cache (1 hour expiry)
+    cache.put(cacheKey, JSON.stringify(sessionData), 3600);
+
+    return { success: true, message: `Invoice chunk ${chunkIndex} uploaded successfully` };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function uploadInvoiceChunkJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, uploadInvoiceChunk);
+}
+
+// Finalize Invoice Upload
+function finalizeInvoiceUpload(params) {
+  try {
+    const sessionId = params.sessionId;
+    const fileName = params.fileName;
+    const listId = params.listId;
+    const totalChunks = parseInt(params.totalChunks);
+
+    if (!sessionId) {
+      return { success: false, error: 'Missing sessionId' };
+    }
+
+    // Use CacheService to get session data
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `invoice_upload_${sessionId}`;
+    const sessionDataStr = cache.get(cacheKey);
+
+    if (!sessionDataStr) {
+      return { success: false, error: 'Invalid or expired session' };
+    }
+
+    const sessionData = JSON.parse(sessionDataStr);
+
+    // Check if all chunks are received
+    for (let i = 0; i < totalChunks; i++) {
+      if (!sessionData.chunks[i]) {
+        return { success: false, error: `Missing chunk ${i}` };
+      }
+    }
+
+    // Reassemble the invoice
+    const invoiceBase64 = sessionData.chunks.join('');
+
+    // Convert base64 to blob
+    const invoiceBlob = Utilities.newBlob(Utilities.base64Decode(invoiceBase64), 'application/pdf', fileName);
+
+    // Save to Drive
+    const config = getConfig();
+    const parentFolderId = config.PARENT_FOLDER_ID || PropertiesService.getScriptProperties().getProperty('PARENT_FOLDER_ID');
+
+    let invoiceFile;
+    if (parentFolderId) {
+      const parentFolder = DriveApp.getFolderById(parentFolderId);
+      invoiceFile = parentFolder.createFile(invoiceBlob);
+    } else {
+      invoiceFile = DriveApp.createFile(invoiceBlob);
+    }
+
+    const invoiceUrl = invoiceFile.getUrl();
+    const invoiceId = invoiceFile.getId();
+
+    // Update maintenance report with invoice info
+    if (listId) {
+      updateMaintenanceReportInvoice(listId, invoiceUrl, invoiceId);
+    }
+
+    // Clean up session
+    cache.remove(cacheKey);
+
+    return {
+      success: true,
+      message: 'Invoice uploaded successfully',
+      invoiceUrl: invoiceUrl,
+      invoiceId: invoiceId
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function finalizeInvoiceUploadJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, finalizeInvoiceUpload);
+}
+
+// Helper function to update workshop list with PDF URL
+function updateWorkshopListPdfUrl(listId, pdfUrl) {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      Logger.log('Maintenance sheet ID not configured for PDF URL update');
+      return;
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Liste Officina');
+
+    if (!sheet) {
+      Logger.log('Workshop lists sheet not found');
+      return;
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const listIdIndex = headers.indexOf('ID Lista');
+    const pdfUrlIndex = headers.indexOf('PDF URL');
+
+    if (listIdIndex === -1 || pdfUrlIndex === -1) {
+      Logger.log('Required columns not found in workshop lists sheet');
+      return;
+    }
+
+    // Find and update the row
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][listIdIndex] === listId) {
+        sheet.getRange(i + 1, pdfUrlIndex + 1).setValue(pdfUrl);
+        break;
+      }
+    }
+
+  } catch (error) {
+    Logger.log('Error updating workshop list PDF URL:', error);
+  }
+}
+
+// Helper function to update maintenance report with invoice info
+function updateMaintenanceReportInvoice(listId, invoiceUrl, invoiceId) {
+  try {
+    const config = getConfig();
+    const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      Logger.log('Maintenance sheet ID not configured for invoice update');
+      return;
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!sheet) {
+      Logger.log('Maintenance issues sheet not found');
+      return;
+    }
+
+    // This would need to be implemented based on how invoices are linked to reports
+    // For now, just log that invoice was uploaded
+    Logger.log(`Invoice uploaded for list ${listId}: ${invoiceUrl}`);
+
+  } catch (error) {
+    Logger.log('Error updating maintenance report invoice:', error);
+  }
+}
