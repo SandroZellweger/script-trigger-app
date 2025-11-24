@@ -6468,7 +6468,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     listCard.className = 'report-card';
                     listCard.style.borderLeft = '4px solid #17a2b8';
                     
-                    const dataCreazione = list.creationDate ? new Date(list.creationDate).toLocaleDateString('it-CH') : 'N/D';
+                    const dataCreazione = list.creationDate ? new Date(list.creationDate).toLocaleString('it-CH', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : 'N/D';
                     const invoiceDate = (list.invoiceAnalysis && list.invoiceAnalysis.invoiceData && list.invoiceAnalysis.invoiceData.invoiceDate) ? list.invoiceAnalysis.invoiceData.invoiceDate : '';
                     const invoicePhotoUrl = list.invoicePhotoUrl || '';
                     
