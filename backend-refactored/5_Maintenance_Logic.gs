@@ -1736,25 +1736,33 @@ function updateMaintenanceReportInvoice(listId, invoiceUrl, invoiceId) {
 
 function deleteWorkshopListJsonp(params) {
   try {
+    Logger.log('deleteWorkshopListJsonp: Starting with params:', params);
     const listId = params.listId;
     if (!listId) {
-      return { success: false, error: 'List ID is required' };
+      Logger.log('deleteWorkshopListJsonp: No listId provided');
+      return createJsonpResponse(params.callback, { success: false, error: 'List ID is required' });
     }
 
     Logger.log('deleteWorkshopListJsonp: Deleting list ' + listId);
 
     const config = getConfig();
+    Logger.log('deleteWorkshopListJsonp: Got config:', config);
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
+    Logger.log('deleteWorkshopListJsonp: Sheet ID:', sheetId);
 
     if (!sheetId) {
-      return { success: false, error: 'Maintenance sheet ID not configured' };
+      Logger.log('deleteWorkshopListJsonp: No sheet ID configured');
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance sheet ID not configured' });
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
+    Logger.log('deleteWorkshopListJsonp: Opened spreadsheet');
     const workshopSheet = ss.getSheetByName('Liste Officina');
+    Logger.log('deleteWorkshopListJsonp: Got workshop sheet:', workshopSheet ? 'found' : 'not found');
 
     if (!workshopSheet) {
-      return { success: false, error: 'Workshop lists sheet not found' };
+      Logger.log('deleteWorkshopListJsonp: Workshop sheet not found');
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop lists sheet not found' });
     }
 
     // Find and delete the workshop list
@@ -1780,7 +1788,8 @@ function deleteWorkshopListJsonp(params) {
     }
 
     if (rowToDelete === -1) {
-      return { success: false, error: 'Workshop list not found' };
+      Logger.log('deleteWorkshopListJsonp: Workshop list not found');
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop list not found' });
     }
 
     // Delete the row
@@ -1808,11 +1817,11 @@ function deleteWorkshopListJsonp(params) {
     }
 
     Logger.log('deleteWorkshopListJsonp: Successfully deleted list ' + listId + ', reset ' + issuesReset + ' issues');
-    return { success: true, issuesReset: issuesReset };
+    return createJsonpResponse(params.callback, { success: true, issuesReset: issuesReset });
 
   } catch (error) {
     Logger.log('deleteWorkshopListJsonp: Error = ' + error.toString());
-    return { success: false, error: error.toString() };
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
 
@@ -1822,7 +1831,7 @@ function moveIssueBackToActiveJsonp(params) {
     const issueNumber = params.issueNumber;
 
     if (!reportId || !issueNumber) {
-      return { success: false, error: 'Report ID and issue number are required' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Report ID and issue number are required' });
     }
 
     Logger.log('moveIssueBackToActiveJsonp: Moving issue ' + reportId + '-' + issueNumber + ' back to active');
@@ -1831,14 +1840,14 @@ function moveIssueBackToActiveJsonp(params) {
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
     if (!sheetId) {
-      return { success: false, error: 'Maintenance sheet ID not configured' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance sheet ID not configured' });
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
     const maintenanceSheet = ss.getSheetByName('Difetti e Riparazioni');
 
     if (!maintenanceSheet) {
-      return { success: false, error: 'Maintenance issues sheet not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance issues sheet not found' });
     }
 
     // Find and update the issue status
@@ -1855,15 +1864,15 @@ function moveIssueBackToActiveJsonp(params) {
     }
 
     if (!found) {
-      return { success: false, error: 'Issue not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Issue not found' });
     }
 
     Logger.log('moveIssueBackToActiveJsonp: Successfully moved issue back to active');
-    return { success: true };
+    return createJsonpResponse(params.callback, { success: true });
 
   } catch (error) {
     Logger.log('moveIssueBackToActiveJsonp: Error = ' + error.toString());
-    return { success: false, error: error.toString() };
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
 
@@ -1871,7 +1880,7 @@ function completeWorkshopListJsonp(params) {
   try {
     const listId = params.listId;
     if (!listId) {
-      return { success: false, error: 'List ID is required' };
+      return createJsonpResponse(params.callback, { success: false, error: 'List ID is required' });
     }
 
     Logger.log('completeWorkshopListJsonp: Completing all issues in list ' + listId);
@@ -1880,7 +1889,7 @@ function completeWorkshopListJsonp(params) {
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
     if (!sheetId) {
-      return { success: false, error: 'Maintenance sheet ID not configured' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance sheet ID not configured' });
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
@@ -1888,7 +1897,7 @@ function completeWorkshopListJsonp(params) {
     const maintenanceSheet = ss.getSheetByName('Difetti e Riparazioni');
 
     if (!workshopSheet || !maintenanceSheet) {
-      return { success: false, error: 'Required sheets not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Required sheets not found' });
     }
 
     // Find the workshop list and get its issues
@@ -1912,7 +1921,7 @@ function completeWorkshopListJsonp(params) {
     }
 
     if (listRow === -1) {
-      return { success: false, error: 'Workshop list not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop list not found' });
     }
 
     // Complete all issues
@@ -1937,11 +1946,11 @@ function completeWorkshopListJsonp(params) {
     workshopSheet.getRange(listRow, 12).setValue(new Date()); // Column 11 is "Data Completamento"
 
     Logger.log('completeWorkshopListJsonp: Completed ' + issuesCompleted + ' issues in list ' + listId);
-    return { success: true, issuesCompleted: issuesCompleted };
+    return createJsonpResponse(params.callback, { success: true, issuesCompleted: issuesCompleted });
 
   } catch (error) {
     Logger.log('completeWorkshopListJsonp: Error = ' + error.toString());
-    return { success: false, error: error.toString() };
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
 
@@ -1949,7 +1958,7 @@ function archiveWorkshopListJsonp(params) {
   try {
     const listId = params.listId;
     if (!listId) {
-      return { success: false, error: 'List ID is required' };
+      return createJsonpResponse(params.callback, { success: false, error: 'List ID is required' });
     }
 
     Logger.log('archiveWorkshopListJsonp: Archiving list ' + listId);
@@ -1958,14 +1967,14 @@ function archiveWorkshopListJsonp(params) {
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
     if (!sheetId) {
-      return { success: false, error: 'Maintenance sheet ID not configured' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance sheet ID not configured' });
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
     const workshopSheet = ss.getSheetByName('Liste Officina');
 
     if (!workshopSheet) {
-      return { success: false, error: 'Workshop lists sheet not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop lists sheet not found' });
     }
 
     // Find and update the workshop list status
@@ -1982,15 +1991,15 @@ function archiveWorkshopListJsonp(params) {
     }
 
     if (!found) {
-      return { success: false, error: 'Workshop list not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop list not found' });
     }
 
     Logger.log('archiveWorkshopListJsonp: Successfully archived list ' + listId);
-    return { success: true };
+    return createJsonpResponse(params.callback, { success: true });
 
   } catch (error) {
     Logger.log('archiveWorkshopListJsonp: Error = ' + error.toString());
-    return { success: false, error: error.toString() };
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
 
@@ -2001,11 +2010,11 @@ function addWorkToListJsonp(params) {
     const work = params.work;
 
     if (!listId || !workType || !work) {
-      return { success: false, error: 'List ID, work type, and work description are required' };
+      return createJsonpResponse(params.callback, { success: false, error: 'List ID, work type, and work description are required' });
     }
 
     if (workType !== 'service' && workType !== 'extra') {
-      return { success: false, error: 'Work type must be "service" or "extra"' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Work type must be "service" or "extra"' });
     }
 
     Logger.log('addWorkToListJsonp: Adding ' + workType + ' work to list ' + listId);
@@ -2014,14 +2023,14 @@ function addWorkToListJsonp(params) {
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
     if (!sheetId) {
-      return { success: false, error: 'Maintenance sheet ID not configured' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance sheet ID not configured' });
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
     const workshopSheet = ss.getSheetByName('Liste Officina');
 
     if (!workshopSheet) {
-      return { success: false, error: 'Workshop lists sheet not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop lists sheet not found' });
     }
 
     // Find the workshop list
@@ -2038,7 +2047,7 @@ function addWorkToListJsonp(params) {
     }
 
     if (!found) {
-      return { success: false, error: 'Workshop list not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop list not found' });
     }
 
     // Get current work arrays
@@ -2057,11 +2066,11 @@ function addWorkToListJsonp(params) {
     }
 
     Logger.log('addWorkToListJsonp: Successfully added ' + workType + ' work to list ' + listId);
-    return { success: true };
+    return createJsonpResponse(params.callback, { success: true });
 
   } catch (error) {
     Logger.log('addWorkToListJsonp: Error = ' + error.toString());
-    return { success: false, error: error.toString() };
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
 
@@ -2072,11 +2081,11 @@ function removeWorkFromListJsonp(params) {
     const workIndex = parseInt(params.workIndex);
 
     if (!listId || !workType || isNaN(workIndex)) {
-      return { success: false, error: 'List ID, work type, and work index are required' };
+      return createJsonpResponse(params.callback, { success: false, error: 'List ID, work type, and work index are required' });
     }
 
     if (workType !== 'service' && workType !== 'extra') {
-      return { success: false, error: 'Work type must be "service" or "extra"' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Work type must be "service" or "extra"' });
     }
 
     Logger.log('removeWorkFromListJsonp: Removing ' + workType + ' work at index ' + workIndex + ' from list ' + listId);
@@ -2085,14 +2094,14 @@ function removeWorkFromListJsonp(params) {
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
     if (!sheetId) {
-      return { success: false, error: 'Maintenance sheet ID not configured' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Maintenance sheet ID not configured' });
     }
 
     const ss = SpreadsheetApp.openById(sheetId);
     const workshopSheet = ss.getSheetByName('Liste Officina');
 
     if (!workshopSheet) {
-      return { success: false, error: 'Workshop lists sheet not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop lists sheet not found' });
     }
 
     // Find the workshop list
@@ -2109,7 +2118,7 @@ function removeWorkFromListJsonp(params) {
     }
 
     if (!found) {
-      return { success: false, error: 'Workshop list not found' };
+      return createJsonpResponse(params.callback, { success: false, error: 'Workshop list not found' });
     }
 
     // Get current work arrays
@@ -2123,7 +2132,7 @@ function removeWorkFromListJsonp(params) {
         currentWorks.splice(workIndex, 1);
         workshopSheet.getRange(rowIndex, 8).setValue(currentWorks.join('\n')); // Column 7
       } else {
-        return { success: false, error: 'Invalid work index' };
+        return createJsonpResponse(params.callback, { success: false, error: 'Invalid work index' });
       }
     } else {
       currentWorks = extraWorks ? extraWorks.split('\n') : [];
@@ -2131,15 +2140,15 @@ function removeWorkFromListJsonp(params) {
         currentWorks.splice(workIndex, 1);
         workshopSheet.getRange(rowIndex, 9).setValue(currentWorks.join('\n')); // Column 8
       } else {
-        return { success: false, error: 'Invalid work index' };
+        return createJsonpResponse(params.callback, { success: false, error: 'Invalid work index' });
       }
     }
 
     Logger.log('removeWorkFromListJsonp: Successfully removed ' + workType + ' work from list ' + listId);
-    return { success: true };
+    return createJsonpResponse(params.callback, { success: true });
 
   } catch (error) {
     Logger.log('removeWorkFromListJsonp: Error = ' + error.toString());
-    return { success: false, error: error.toString() };
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
