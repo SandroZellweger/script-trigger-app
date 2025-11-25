@@ -89,6 +89,8 @@ function doGet(e) {
         return addWorkToListJsonp(e.parameter);
       case "removeWorkFromListJsonp":
         return removeWorkFromListJsonp(e.parameter);
+      case "getMaintenancePhotoBase64Jsonp":
+        return getMaintenancePhotoBase64Jsonp(e.parameter);
       case "uploadPdfChunkJsonp":
         return uploadPdfChunkJsonp(e.parameter);
       case "finalizePdfUploadJsonp":

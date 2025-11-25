@@ -5388,6 +5388,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
         // ===== PROFESSIONAL PDF GENERATION HELPER =====
         // Generates professional workshop PDF with company branding
+        // Corporate colors: Green rgb(134, 182, 69), Black, White
         async function generateProfessionalPDF(pdfData, progressCallback) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -5397,19 +5398,34 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             const contentWidth = pageWidth - (margin * 2);
             let yPos = margin;
 
+            // Corporate colors
+            const GREEN = [134, 182, 69];
+            const BLACK = [0, 0, 0];
+            const DARK_GRAY = [60, 60, 60];
+            const GRAY = [120, 120, 120];
+            const LIGHT_GRAY = [200, 200, 200];
+            const WHITE = [255, 255, 255];
+
+            // Helper to draw checkbox
+            function drawCheckbox(x, y, size = 4) {
+                doc.setDrawColor(...BLACK);
+                doc.setLineWidth(0.4);
+                doc.rect(x, y - size + 1, size, size);
+            }
+
             // Helper to get urgency indicator
             function getUrgencyDot(urgency) {
                 switch(urgency) {
-                    case 'critical': return { color: [220, 53, 69], label: 'CRITICA', dot: '●' };
-                    case 'high': return { color: [255, 140, 0], label: 'ALTA', dot: '●' };
-                    case 'medium': return { color: [255, 193, 7], label: 'MEDIA', dot: '●' };
-                    default: return { color: [40, 167, 69], label: 'BASSA', dot: '●' };
+                    case 'critical': return { color: [220, 53, 69], label: 'CRITICA' };
+                    case 'high': return { color: [255, 140, 0], label: 'ALTA' };
+                    case 'medium': return { color: [255, 193, 7], label: 'MEDIA' };
+                    default: return { color: [40, 167, 69], label: 'BASSA' };
                 }
             }
 
             // Helper to check page break
             function checkPageBreak(neededSpace = 40) {
-                if (yPos + neededSpace > pageHeight - 30) {
+                if (yPos + neededSpace > pageHeight - 25) {
                     doc.addPage();
                     yPos = margin;
                     return true;
@@ -5418,179 +5434,215 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             }
 
             // ===== HEADER SECTION =====
-            // White background header with logo on right
-            doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, pageWidth, 50, 'F');
+            if (progressCallback) progressCallback('📄 Creazione intestazione...', 5);
             
-            // Header border line at bottom
-            doc.setDrawColor(102, 126, 234);
-            doc.setLineWidth(2);
-            doc.line(0, 50, pageWidth, 50);
-
-            // Company info on left
+            // Green header bar
+            doc.setFillColor(...GREEN);
+            doc.rect(0, 0, pageWidth, 8, 'F');
+            
+            // Company info
+            yPos = 18;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(14);
-            doc.setTextColor(51, 51, 51);
-            doc.text('Barbone & Zellweger Sagl', margin, 15);
+            doc.setFontSize(16);
+            doc.setTextColor(...BLACK);
+            doc.text('Barbone & Zellweger Sagl', margin, yPos);
             
+            yPos += 7;
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            doc.text('Via Vincenzo d\'Alberti 17', margin, 22);
-            doc.text('6600 Locarno', margin, 28);
-            doc.text('admin@noleggiosemplice.com', margin, 34);
+            doc.setFontSize(10);
+            doc.setTextColor(...DARK_GRAY);
+            doc.text('Via Vincenzo d\'Alberti 17, 6600 Locarno', margin, yPos);
             
+            yPos += 6;
+            doc.text('admin@noleggiosemplice.com', margin, yPos);
+            
+            yPos += 6;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.setTextColor(102, 126, 234);
-            doc.text('091 250 87 87', margin, 42);
-
-            // Logo on right - try to load it
-            try {
-                if (progressCallback) progressCallback('🖼️ Caricamento logo...', 5);
-                const logoBase64 = await fetchPhotoBase64ById('1LZgfNs9vTkCYHTTE__fbpfILKiw2gzob');
-                if (logoBase64) {
-                    // Logo approximately 30x30 on the right side
-                    doc.addImage(logoBase64, 'PNG', pageWidth - 45, 8, 35, 35);
-                }
-            } catch (e) {
-                console.warn('Could not load logo:', e);
-            }
-
-            yPos = 58;
+            doc.setTextColor(...BLACK);
+            doc.text('Tel: 091 250 87 87', margin, yPos);
 
             // ===== TITLE SECTION =====
-            doc.setFillColor(102, 126, 234);
-            doc.rect(0, 52, pageWidth, 30, 'F');
+            yPos += 15;
+            doc.setFillColor(...GREEN);
+            doc.rect(0, yPos - 5, pageWidth, 22, 'F');
             
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(20);
-            doc.setTextColor(255, 255, 255);
-            doc.text('SERVIZIO / RIPARAZIONE', pageWidth / 2, 65, { align: 'center' });
+            doc.setFontSize(18);
+            doc.setTextColor(...WHITE);
+            doc.text('SERVIZIO / RIPARAZIONE', pageWidth / 2, yPos + 5, { align: 'center' });
             
+            // Vehicle name and plate
             doc.setFontSize(12);
             doc.setFont('helvetica', 'normal');
-            const vehicleTitle = `${pdfData.vehicleName}${pdfData.vehicleLicencePlate ? ' - ' + pdfData.vehicleLicencePlate : ''}`;
-            doc.text(vehicleTitle, pageWidth / 2, 75, { align: 'center' });
+            let vehicleText = pdfData.vehicleName || '';
+            if (pdfData.vehicleLicencePlate) {
+                vehicleText += ' - ' + pdfData.vehicleLicencePlate;
+            }
+            doc.text(vehicleText, pageWidth / 2, yPos + 13, { align: 'center' });
 
-            yPos = 90;
+            yPos += 25;
 
             // ===== DATE & WORKSHOP INFO =====
             doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...DARK_GRAY);
             doc.text(`Data: ${new Date().toLocaleDateString('it-CH')}`, margin, yPos);
             
-            if (pdfData.workshopName) {
-                doc.text(`Officina: ${pdfData.workshopName}`, pageWidth - margin, yPos, { align: 'right' });
+            // Workshop info on right (more complete)
+            if (pdfData.workshop) {
+                const ws = pdfData.workshop;
+                let wsY = yPos;
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...BLACK);
+                doc.text('Officina:', pageWidth - margin - 60, wsY);
+                doc.setFont('helvetica', 'normal');
+                doc.text(ws.name || '', pageWidth - margin, wsY, { align: 'right' });
+                
+                if (ws.address || ws.city) {
+                    wsY += 5;
+                    const addr = [ws.address, ws.city].filter(x => x).join(', ');
+                    doc.setTextColor(...DARK_GRAY);
+                    doc.text(addr, pageWidth - margin, wsY, { align: 'right' });
+                }
+                if (ws.phone) {
+                    wsY += 5;
+                    doc.text('Tel: ' + ws.phone, pageWidth - margin, wsY, { align: 'right' });
+                }
+                if (ws.email) {
+                    wsY += 5;
+                    doc.text(ws.email, pageWidth - margin, wsY, { align: 'right' });
+                }
+            } else if (pdfData.workshopName) {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...BLACK);
+                doc.text('Officina: ' + pdfData.workshopName, pageWidth - margin, yPos, { align: 'right' });
             }
             
-            yPos += 10;
+            yPos += 15;
 
             // ===== VEHICLE DETAILS BOX =====
-            doc.setDrawColor(200, 200, 200);
+            doc.setDrawColor(...LIGHT_GRAY);
             doc.setLineWidth(0.5);
-            doc.setFillColor(248, 249, 250);
-            doc.roundedRect(margin, yPos, contentWidth, 35, 3, 3, 'FD');
+            doc.setFillColor(250, 250, 250);
+            doc.roundedRect(margin, yPos, contentWidth, 28, 2, 2, 'FD');
             
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
-            doc.setTextColor(102, 126, 234);
-            doc.text('DETTAGLI VEICOLO', margin + 5, yPos + 8);
+            doc.setTextColor(...GREEN);
+            doc.text('DETTAGLI VEICOLO', margin + 5, yPos + 7);
             
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
-            doc.setTextColor(51, 51, 51);
+            doc.setTextColor(...BLACK);
             
-            let detailY = yPos + 16;
+            let detailY = yPos + 15;
+            let detailX = margin + 5;
+            
             if (pdfData.vehicleLicencePlate) {
-                doc.text(`Targa: ${pdfData.vehicleLicencePlate}`, margin + 5, detailY);
-                detailY += 6;
+                doc.setFont('helvetica', 'bold');
+                doc.text('Targa: ', detailX, detailY);
+                doc.setFont('helvetica', 'normal');
+                doc.text(pdfData.vehicleLicencePlate, detailX + 18, detailY);
+                detailX += 55;
             }
+            
             if (pdfData.currentKm && pdfData.currentKm > 0) {
-                doc.text(`KM Attuali: ${pdfData.currentKm.toLocaleString('it-IT')} km`, margin + 5, detailY);
+                doc.setFont('helvetica', 'bold');
+                doc.text('KM: ', detailX, detailY);
+                doc.setFont('helvetica', 'normal');
+                doc.text(pdfData.currentKm.toLocaleString('it-IT'), detailX + 12, detailY);
+                detailX += 45;
             }
-            if (pdfData.kmToService !== undefined) {
-                const kmText = pdfData.kmToService < 0 
-                    ? `KM al tagliando: ${Math.abs(pdfData.kmToService).toLocaleString('it-IT')} km SUPERATI` 
-                    : `KM al tagliando: ${pdfData.kmToService.toLocaleString('it-IT')} km`;
-                doc.text(kmText, pageWidth / 2, detailY);
+            
+            if (pdfData.kmToService !== undefined && pdfData.kmToService !== null) {
+                doc.setFont('helvetica', 'bold');
+                doc.text('Prossimo tagliando: ', detailX, detailY);
+                doc.setFont('helvetica', 'normal');
+                const kmVal = pdfData.kmToService < 0 
+                    ? Math.abs(pdfData.kmToService).toLocaleString('it-IT') + ' km SUPERATI'
+                    : pdfData.kmToService.toLocaleString('it-IT') + ' km';
+                doc.text(kmVal, detailX + 42, detailY);
             }
 
-            yPos += 42;
+            yPos += 35;
 
             // ===== CARTA GRIGIA LINK =====
             if (pdfData.cartaGrigiaUrl) {
-                doc.setFillColor(230, 242, 255);
-                doc.roundedRect(margin, yPos, contentWidth, 12, 2, 2, 'F');
+                doc.setFillColor(240, 248, 240);
+                doc.setDrawColor(...GREEN);
+                doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'FD');
                 
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
-                doc.setTextColor(0, 102, 204);
-                doc.text('📄 Carta Grigia: ', margin + 5, yPos + 8);
+                doc.setTextColor(...GREEN);
+                doc.text('Carta Grigia: ', margin + 5, yPos + 7);
                 
-                // Add clickable link
                 doc.setFont('helvetica', 'normal');
-                const linkText = 'Clicca qui per visualizzare';
-                doc.textWithLink(linkText, margin + 40, yPos + 8, { url: pdfData.cartaGrigiaUrl });
+                doc.setTextColor(0, 102, 204);
+                doc.textWithLink('Clicca qui per visualizzare', margin + 35, yPos + 7, { url: pdfData.cartaGrigiaUrl });
                 
-                yPos += 18;
+                yPos += 15;
             }
 
             // ===== DAMAGES SECTION =====
             if (pdfData.damages && pdfData.damages.length > 0) {
                 if (progressCallback) progressCallback('🔧 Aggiunta danni...', 20);
                 
-                checkPageBreak(50);
+                checkPageBreak(40);
                 
                 // Section header
-                doc.setFillColor(102, 126, 234);
+                doc.setFillColor(...GREEN);
                 doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'F');
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(11);
+                doc.setTextColor(...WHITE);
                 doc.text('DANNI DA RIPARARE', margin + 5, yPos + 7);
-                yPos += 16;
+                yPos += 15;
 
                 for (let i = 0; i < pdfData.damages.length; i++) {
                     const damage = pdfData.damages[i];
                     if (progressCallback) progressCallback(`📸 Elaborazione danno ${i + 1}/${pdfData.damages.length}...`, 20 + Math.round((i / pdfData.damages.length) * 40));
                     
-                    checkPageBreak(60);
+                    checkPageBreak(50);
 
-                    // Urgency dot and category
+                    // Urgency dot
                     const urgency = getUrgencyDot(damage.urgency);
                     doc.setFillColor(...urgency.color);
-                    doc.circle(margin + 4, yPos + 2, 3, 'F');
+                    doc.circle(margin + 3, yPos, 2.5, 'F');
                     
+                    // Checkbox
+                    drawCheckbox(margin + 10, yPos);
+                    
+                    // Category
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(11);
-                    doc.setTextColor(51, 51, 51);
-                    doc.text(`[ ] ${damage.category || 'Danno'}`, margin + 12, yPos + 4);
+                    doc.setFontSize(10);
+                    doc.setTextColor(...BLACK);
+                    doc.text(damage.category || 'Danno', margin + 18, yPos);
                     
-                    // Urgency label
+                    // Urgency label on right
                     doc.setFontSize(8);
                     doc.setTextColor(...urgency.color);
-                    doc.text(urgency.label, pageWidth - margin, yPos + 4, { align: 'right' });
+                    doc.text(urgency.label, pageWidth - margin, yPos, { align: 'right' });
                     
-                    yPos += 10;
+                    yPos += 7;
 
                     // Description
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(10);
-                    doc.setTextColor(80, 80, 80);
-                    const descLines = doc.splitTextToSize(damage.description || '', contentWidth - 15);
-                    doc.text(descLines, margin + 12, yPos);
-                    yPos += descLines.length * 5 + 3;
+                    doc.setTextColor(...DARK_GRAY);
+                    const descLines = doc.splitTextToSize(damage.description || '', contentWidth - 20);
+                    doc.text(descLines, margin + 18, yPos);
+                    yPos += descLines.length * 5 + 2;
 
                     // Note if exists
                     if (damage.note) {
-                        checkPageBreak(20);
+                        checkPageBreak(15);
                         doc.setFont('helvetica', 'italic');
                         doc.setFontSize(9);
-                        doc.setTextColor(76, 110, 245);
-                        const noteLines = doc.splitTextToSize(`📝 Nota: ${damage.note}`, contentWidth - 15);
-                        doc.text(noteLines, margin + 12, yPos);
-                        yPos += noteLines.length * 4 + 3;
+                        doc.setTextColor(...GRAY);
+                        const noteLines = doc.splitTextToSize('Nota: ' + damage.note, contentWidth - 20);
+                        doc.text(noteLines, margin + 18, yPos);
+                        yPos += noteLines.length * 4 + 2;
                     }
 
                     // Photos
@@ -5603,12 +5655,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                             try {
                                 const imageData = await loadDamagePhoto(photo.id, photo.url);
                                 if (imageData) {
-                                    checkPageBreak(70);
+                                    checkPageBreak(60);
                                     
-                                    const maxWidth = 70;
-                                    const maxHeight = 50;
+                                    const maxWidth = 65;
+                                    const maxHeight = 45;
                                     let displayWidth = maxWidth;
-                                    let displayHeight = 40;
+                                    let displayHeight = 35;
                                     
                                     try {
                                         const dims = await getImageDimensions(imageData);
@@ -5619,8 +5671,8 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                         }
                                     } catch(e) {}
                                     
-                                    doc.addImage(imageData, 'JPEG', margin + 12, yPos, displayWidth, displayHeight);
-                                    yPos += displayHeight + 8;
+                                    doc.addImage(imageData, 'JPEG', margin + 18, yPos, displayWidth, displayHeight);
+                                    yPos += displayHeight + 5;
                                 }
                             } catch (e) {
                                 console.warn('Could not load photo:', e);
@@ -5629,11 +5681,11 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     }
 
                     // Separator line
-                    yPos += 3;
-                    doc.setDrawColor(220, 220, 220);
-                    doc.setLineWidth(0.3);
-                    doc.line(margin + 10, yPos, pageWidth - margin - 10, yPos);
-                    yPos += 8;
+                    yPos += 2;
+                    doc.setDrawColor(...LIGHT_GRAY);
+                    doc.setLineWidth(0.2);
+                    doc.line(margin + 15, yPos, pageWidth - margin - 15, yPos);
+                    yPos += 6;
                 }
             }
 
@@ -5641,24 +5693,25 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             if (pdfData.serviceWorks && pdfData.serviceWorks.length > 0) {
                 if (progressCallback) progressCallback('🔧 Lavori tagliando...', 70);
                 
-                checkPageBreak(40);
+                checkPageBreak(35);
                 
-                doc.setFillColor(40, 167, 69);
+                doc.setFillColor(...GREEN);
                 doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'F');
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(11);
+                doc.setTextColor(...WHITE);
                 doc.text('LAVORI TAGLIANDO', margin + 5, yPos + 7);
-                yPos += 16;
+                yPos += 15;
 
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
-                doc.setTextColor(51, 51, 51);
+                doc.setTextColor(...BLACK);
 
                 pdfData.serviceWorks.forEach(work => {
-                    checkPageBreak(12);
-                    doc.text(`☐ ${work}`, margin + 5, yPos);
-                    yPos += 7;
+                    checkPageBreak(10);
+                    drawCheckbox(margin + 5, yPos);
+                    doc.text(work, margin + 13, yPos);
+                    yPos += 8;
                 });
 
                 yPos += 5;
@@ -5668,24 +5721,25 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             if (pdfData.extraWorks && pdfData.extraWorks.length > 0) {
                 if (progressCallback) progressCallback('🛠️ Lavori extra...', 75);
                 
-                checkPageBreak(40);
+                checkPageBreak(35);
                 
-                doc.setFillColor(255, 140, 0);
+                doc.setFillColor(...DARK_GRAY);
                 doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'F');
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(11);
+                doc.setTextColor(...WHITE);
                 doc.text('LAVORI EXTRA', margin + 5, yPos + 7);
-                yPos += 16;
+                yPos += 15;
 
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
-                doc.setTextColor(51, 51, 51);
+                doc.setTextColor(...BLACK);
 
                 pdfData.extraWorks.forEach(work => {
-                    checkPageBreak(12);
-                    doc.text(`☐ ${work}`, margin + 5, yPos);
-                    yPos += 7;
+                    checkPageBreak(10);
+                    drawCheckbox(margin + 5, yPos);
+                    doc.text(work, margin + 13, yPos);
+                    yPos += 8;
                 });
 
                 yPos += 5;
@@ -5694,25 +5748,25 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             // ===== NOTES SECTION FOR WORKSHOP =====
             if (progressCallback) progressCallback('📝 Sezione note...', 80);
             
-            checkPageBreak(60);
+            checkPageBreak(50);
             
-            doc.setFillColor(248, 249, 250);
-            doc.setDrawColor(200, 200, 200);
-            doc.roundedRect(margin, yPos, contentWidth, 45, 3, 3, 'FD');
+            doc.setFillColor(250, 250, 250);
+            doc.setDrawColor(...LIGHT_GRAY);
+            doc.roundedRect(margin, yPos, contentWidth, 40, 2, 2, 'FD');
             
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.setTextColor(102, 126, 234);
-            doc.text('NOTE OFFICINA', margin + 5, yPos + 8);
+            doc.setFontSize(10);
+            doc.setTextColor(...GREEN);
+            doc.text('NOTE OFFICINA', margin + 5, yPos + 7);
             
             // Lines for writing
-            doc.setDrawColor(180, 180, 180);
+            doc.setDrawColor(...LIGHT_GRAY);
             doc.setLineWidth(0.2);
-            for (let lineY = yPos + 18; lineY < yPos + 42; lineY += 8) {
+            for (let lineY = yPos + 15; lineY < yPos + 38; lineY += 8) {
                 doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
             }
             
-            yPos += 50;
+            yPos += 45;
 
             // ===== FOOTER ON ALL PAGES =====
             if (progressCallback) progressCallback('📄 Finalizzazione...', 90);
@@ -5721,21 +5775,16 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             for (let i = 1; i <= totalPages; i++) {
                 doc.setPage(i);
                 
-                // Footer background
-                doc.setFillColor(248, 249, 250);
-                doc.rect(0, pageHeight - 18, pageWidth, 18, 'F');
-                
-                // Footer line
-                doc.setDrawColor(102, 126, 234);
-                doc.setLineWidth(0.5);
-                doc.line(0, pageHeight - 18, pageWidth, pageHeight - 18);
+                // Green footer bar
+                doc.setFillColor(...GREEN);
+                doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
                 
                 // Footer text
                 doc.setFontSize(8);
-                doc.setTextColor(120, 120, 120);
+                doc.setTextColor(...WHITE);
                 doc.setFont('helvetica', 'normal');
-                doc.text(`Pagina ${i} di ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-                doc.text('Noleggio Semplice - www.noleggiosemplice.com', pageWidth / 2, pageHeight - 5, { align: 'center' });
+                doc.text(`Pagina ${i} di ${totalPages}`, margin, pageHeight - 5);
+                doc.text('Noleggio Semplice - www.noleggiosemplice.com', pageWidth - margin, pageHeight - 5, { align: 'right' });
             }
 
             if (progressCallback) progressCallback('✅ PDF completato!', 100);
@@ -5817,6 +5866,13 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     kmToService: pdfWizardData.vehicleKmToService,
                     cartaGrigiaUrl: pdfWizardData.vehicleCartaGrigia,
                     workshopName: pdfWizardData.selectedGarage?.name,
+                    workshop: pdfWizardData.selectedGarage ? {
+                        name: pdfWizardData.selectedGarage.name || '',
+                        address: pdfWizardData.selectedGarage.address || '',
+                        city: pdfWizardData.selectedGarage.city || '',
+                        phone: pdfWizardData.selectedGarage.phone || '',
+                        email: pdfWizardData.selectedGarage.email || ''
+                    } : null,
                     damages: damagesWithPhotos,
                     serviceWorks: pdfWizardData.serviceWorks || [],
                     extraWorks: pdfWizardData.extraWorks || []

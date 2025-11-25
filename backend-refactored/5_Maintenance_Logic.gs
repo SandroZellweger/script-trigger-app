@@ -2226,3 +2226,38 @@ function removeWorkFromListJsonp(params) {
     return createJsonpResponse(params.callback, { success: false, error: error.toString() });
   }
 }
+
+// ===== GET PHOTO BASE64 FOR PDF =====
+// Retrieves a photo from Google Drive and returns it as base64
+function getMaintenancePhotoBase64Jsonp(params) {
+  try {
+    const fileId = params.fileId;
+    
+    if (!fileId) {
+      return createJsonpResponse(params.callback, { success: false, error: 'File ID is required' });
+    }
+    
+    Logger.log('getMaintenancePhotoBase64Jsonp: Getting file ' + fileId);
+    
+    // Get file from Drive
+    const file = DriveApp.getFileById(fileId);
+    const blob = file.getBlob();
+    const mimeType = blob.getContentType();
+    const base64 = Utilities.base64Encode(blob.getBytes());
+    
+    // Return as data URI (using 'dataUrl' to match frontend expectation)
+    const dataUrl = 'data:' + mimeType + ';base64,' + base64;
+    
+    Logger.log('getMaintenancePhotoBase64Jsonp: Successfully retrieved file, size: ' + base64.length);
+    
+    return createJsonpResponse(params.callback, { 
+      success: true, 
+      dataUrl: dataUrl,
+      mimeType: mimeType
+    });
+    
+  } catch (error) {
+    Logger.log('getMaintenancePhotoBase64Jsonp: Error = ' + error.toString());
+    return createJsonpResponse(params.callback, { success: false, error: error.toString() });
+  }
+}
