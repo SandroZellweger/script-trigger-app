@@ -7958,12 +7958,12 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             window[callback] = async function(response) {
                 delete window[callback];
                 
-                if (!response.success || !response.lists || response.lists.length === 0) {
+                if (!response.success || !response.workshopLists || response.workshopLists.length === 0) {
                     alert('❌ Errore: Lista non trovata');
                     return;
                 }
 
-                const list = response.lists[0];
+                const list = response.workshopLists[0];
                 
                 // Generate PDF using existing function
                 try {

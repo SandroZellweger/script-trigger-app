@@ -1025,7 +1025,19 @@ function createWorkshopList(workshopData) {
     // Prepare data
     const serviceWorks = workshopData.serviceWorks ? workshopData.serviceWorks.join('\n') : '';
     const extraWorks = workshopData.extraWorks ? workshopData.extraWorks.join('\n') : '';
-    const issueIdentifiers = workshopData.issueIdentifiers ? JSON.stringify(workshopData.issueIdentifiers) : '';
+    // issueIdentifiers arrives as JSON string from frontend, or as array - handle both cases
+    let issueIdentifiers = '';
+    if (workshopData.issueIdentifiers) {
+      if (typeof workshopData.issueIdentifiers === 'string') {
+        // Already a JSON string from frontend
+        issueIdentifiers = workshopData.issueIdentifiers;
+      } else if (Array.isArray(workshopData.issueIdentifiers)) {
+        // Array - need to stringify
+        issueIdentifiers = JSON.stringify(workshopData.issueIdentifiers);
+      }
+    }
+    
+    Logger.log('createWorkshopList: issueIdentifiers = ' + issueIdentifiers);
 
     // Add row
     const newRow = [
@@ -1046,15 +1058,25 @@ function createWorkshopList(workshopData) {
     sheet.appendRow(newRow);
 
     // Update maintenance issues to mark them as "In Officina"
-    if (workshopData.issueIdentifiers && workshopData.issueIdentifiers.length > 0) {
-      updateMaintenanceIssuesStatus(workshopData.issueIdentifiers, 'In Officina', workshopData.workshopName);
+    // Parse issueIdentifiers if it's a string
+    let issueIdentifiersArray = [];
+    if (issueIdentifiers) {
+      try {
+        issueIdentifiersArray = JSON.parse(issueIdentifiers);
+      } catch (e) {
+        Logger.log('createWorkshopList: Error parsing issueIdentifiers: ' + e.toString());
+      }
+    }
+    
+    if (issueIdentifiersArray && issueIdentifiersArray.length > 0) {
+      updateMaintenanceIssuesStatus(issueIdentifiersArray, 'In Officina', workshopData.workshopName);
     }
 
     return {
       success: true,
       listId: listId,
       message: 'Workshop list created successfully',
-      issuesUpdated: workshopData.issueIdentifiers ? workshopData.issueIdentifiers.length : 0
+      issuesUpdated: issueIdentifiersArray ? issueIdentifiersArray.length : 0
     };
 
   } catch (error) {
@@ -1074,9 +1096,9 @@ function createWorkshopListJsonp(params) {
   });
 }
 
-function getWorkshopLists() {
+function getWorkshopLists(filterListId) {
   try {
-    Logger.log('getWorkshopLists: Starting function');
+    Logger.log('getWorkshopLists: Starting function, filterListId = ' + filterListId);
     const config = getConfig();
     const sheetId = config.MAINTENANCE_SHEET_ID || PropertiesService.getScriptProperties().getProperty('MAINTENANCE_SHEET_ID');
 
@@ -1140,6 +1162,11 @@ function getWorkshopLists() {
       const row = workshopData[i];
       if (listIdIndex !== -1 && row[listIdIndex]) {
         const listId = row[listIdIndex];
+        
+        // If filtering by listId, skip non-matching rows
+        if (filterListId && listId !== filterListId) {
+          continue;
+        }
 
         // Get issues for this workshop list
         const issues = [];
@@ -1376,7 +1403,10 @@ function createTestWorkshopDataJsonp(params) {
 }
 
 function getWorkshopListsJsonp(params) {
-  return handleJsonpRequest({ parameter: params }, getWorkshopLists);
+  return handleJsonpRequest({ parameter: params }, (p) => {
+    const listId = p.listId || null;
+    return getWorkshopLists(listId);
+  });
 }
 
 // Helper function to update maintenance issues status
