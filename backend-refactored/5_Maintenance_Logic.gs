@@ -1213,7 +1213,7 @@ function findIssueByIdentifier(maintenanceData, maintenanceHeaders, identifier) 
     const reportIdIndex = maintenanceHeaders.indexOf('ID Report');
     const issueNumberIndex = maintenanceHeaders.indexOf('N. Problema');
     const categoryIndex = maintenanceHeaders.indexOf('Categoria');
-    const descriptionIndex = maintenanceHeaders.indexOf('Descrizione');
+    const descriptionIndex = maintenanceHeaders.indexOf('Descrizione Problema');
     const urgencyIndex = maintenanceHeaders.indexOf('Urgenza');
     const statusIndex = maintenanceHeaders.indexOf('Stato');
 
