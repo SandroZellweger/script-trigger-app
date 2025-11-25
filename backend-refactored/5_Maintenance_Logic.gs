@@ -1005,11 +1005,11 @@ function createWorkshopList(workshopData) {
     if (!sheet) {
       sheet = ss.insertSheet('Liste Officina');
       // Add headers
-      const headerRow = sheet.getRange(1, 1, 1, 12);
+      const headerRow = sheet.getRange(1, 1, 1, 13);
       headerRow.setValues([[
         'ID Lista', 'Data Creazione', 'Veicolo ID', 'Nome Veicolo', 'Officina',
         'Stato', 'PDF URL', 'Lavori Tagliando', 'Lavori Extra', 'Note',
-        'Problemi Risolti', 'Data Completamento'
+        'Problemi Risolti', 'Data Completamento', 'Storico PDF'
       ]]);
       // Format headers
       headerRow.setBackground('#667eea');
@@ -1052,7 +1052,8 @@ function createWorkshopList(workshopData) {
       extraWorks,
       workshopData.notes || '',
       issueIdentifiers,
-      ''
+      '',
+      '[]'  // Storico PDF - empty JSON array
     ];
 
     sheet.appendRow(newRow);
@@ -1311,11 +1312,11 @@ function createTestWorkshopData() {
     if (!sheet) {
       sheet = ss.insertSheet('Liste Officina');
       // Add headers
-      const headerRow = sheet.getRange(1, 1, 1, 12);
+      const headerRow = sheet.getRange(1, 1, 1, 13);
       headerRow.setValues([[
         'ID Lista', 'Data Creazione', 'Veicolo ID', 'Nome Veicolo', 'Officina',
         'Stato', 'PDF URL', 'Lavori Tagliando', 'Lavori Extra', 'Note',
-        'Problemi Risolti', 'Data Completamento'
+        'Problemi Risolti', 'Data Completamento', 'Storico PDF'
       ]]);
       // Format headers
       headerRow.setBackground('#667eea');
@@ -1705,7 +1706,7 @@ function finalizeInvoiceUploadJsonp(params) {
   return handleJsonpRequest({ parameter: params }, finalizeInvoiceUpload);
 }
 
-// Helper function to update workshop list with PDF URL
+// Helper function to update workshop list with PDF URL and add to history
 function updateWorkshopListPdfUrl(listId, pdfUrl) {
   try {
     const config = getConfig();
@@ -1728,6 +1729,14 @@ function updateWorkshopListPdfUrl(listId, pdfUrl) {
     const headers = data[0];
     const listIdIndex = headers.indexOf('ID Lista');
     const pdfUrlIndex = headers.indexOf('PDF URL');
+    let pdfHistoryIndex = headers.indexOf('Storico PDF');
+    
+    // If Storico PDF column doesn't exist, add it
+    if (pdfHistoryIndex === -1) {
+      const lastCol = headers.length + 1;
+      sheet.getRange(1, lastCol).setValue('Storico PDF');
+      pdfHistoryIndex = lastCol - 1;
+    }
 
     if (listIdIndex === -1 || pdfUrlIndex === -1) {
       Logger.log('Required columns not found in workshop lists sheet');
@@ -1737,13 +1746,35 @@ function updateWorkshopListPdfUrl(listId, pdfUrl) {
     // Find and update the row
     for (let i = 1; i < data.length; i++) {
       if (data[i][listIdIndex] === listId) {
-        sheet.getRange(i + 1, pdfUrlIndex + 1).setValue(pdfUrl);
+        const rowIndex = i + 1;
+        
+        // Get existing PDF history
+        let pdfHistory = [];
+        if (pdfHistoryIndex !== -1 && data[i][pdfHistoryIndex]) {
+          try {
+            pdfHistory = JSON.parse(data[i][pdfHistoryIndex] || '[]');
+          } catch (e) {
+            pdfHistory = [];
+          }
+        }
+        
+        // Add new PDF to history
+        pdfHistory.push({
+          url: pdfUrl,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Update PDF URL and history
+        sheet.getRange(rowIndex, pdfUrlIndex + 1).setValue(pdfUrl);
+        sheet.getRange(rowIndex, pdfHistoryIndex + 1).setValue(JSON.stringify(pdfHistory));
+        
+        Logger.log('Updated PDF URL and history for list ' + listId + ', history count: ' + pdfHistory.length);
         break;
       }
     }
 
   } catch (error) {
-    Logger.log('Error updating workshop list PDF URL:', error);
+    Logger.log('Error updating workshop list PDF URL: ' + error.toString());
   }
 }
 

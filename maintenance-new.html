@@ -6489,6 +6489,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 </p>
                             </div>
                             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                                ${list.pdfUrl ? `
+                                <a href="${escapeHtml(list.pdfUrl)}" target="_blank"
+                                        style="background: white; color: #17a2b8; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px; text-decoration: none;" 
+                                        onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#17a2b8'" 
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#dee2e6'"
+                                        title="Visualizza PDF corrente">
+                                    👁️ Vedi PDF
+                                </a>
+                                ` : ''}
                                 <button onclick="regenerateWorkshopPDF('${escapeHtml(list.listId)}')" 
                                         style="background: white; color: #667eea; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 4px;" 
                                         onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#667eea'" 
@@ -8049,7 +8058,10 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     // Convert to base64
                     const pdfBase64 = doc.output('datauristring').split(',')[1];
 
-                    // Upload PDF
+                    // Download PDF locally
+                    doc.save(fileName);
+
+                    // Upload PDF to Drive
                     if (btn) btn.textContent = '☁️ Caricamento su Drive...';
                     
                     const uploadResponse = await uploadMaintenancePDFViaPost(fileName, pdfBase64, listId);
@@ -8060,7 +8072,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     }
 
                     if (uploadResponse.success) {
-                        alert('✅ Nuovo PDF generato e caricato su Drive!');
+                        alert('✅ Nuovo PDF generato, scaricato e caricato su Drive!');
                         loadWorkshopLists();
                     } else {
                         alert('❌ Errore nel caricamento: ' + uploadResponse.error);
