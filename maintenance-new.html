@@ -5386,6 +5386,363 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             });
         }
 
+        // ===== PROFESSIONAL PDF GENERATION HELPER =====
+        // Generates professional workshop PDF with company branding
+        async function generateProfessionalPDF(pdfData, progressCallback) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 15;
+            const contentWidth = pageWidth - (margin * 2);
+            let yPos = margin;
+
+            // Helper to get urgency indicator
+            function getUrgencyDot(urgency) {
+                switch(urgency) {
+                    case 'critical': return { color: [220, 53, 69], label: 'CRITICA', dot: '●' };
+                    case 'high': return { color: [255, 140, 0], label: 'ALTA', dot: '●' };
+                    case 'medium': return { color: [255, 193, 7], label: 'MEDIA', dot: '●' };
+                    default: return { color: [40, 167, 69], label: 'BASSA', dot: '●' };
+                }
+            }
+
+            // Helper to check page break
+            function checkPageBreak(neededSpace = 40) {
+                if (yPos + neededSpace > pageHeight - 30) {
+                    doc.addPage();
+                    yPos = margin;
+                    return true;
+                }
+                return false;
+            }
+
+            // ===== HEADER SECTION =====
+            // White background header with logo on right
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, pageWidth, 50, 'F');
+            
+            // Header border line at bottom
+            doc.setDrawColor(102, 126, 234);
+            doc.setLineWidth(2);
+            doc.line(0, 50, pageWidth, 50);
+
+            // Company info on left
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(51, 51, 51);
+            doc.text('Barbone & Zellweger Sagl', margin, 15);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Via Vincenzo d\'Alberti 17', margin, 22);
+            doc.text('6600 Locarno', margin, 28);
+            doc.text('admin@noleggiosemplice.com', margin, 34);
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(102, 126, 234);
+            doc.text('091 250 87 87', margin, 42);
+
+            // Logo on right - try to load it
+            try {
+                if (progressCallback) progressCallback('🖼️ Caricamento logo...', 5);
+                const logoBase64 = await fetchPhotoBase64ById('1LZgfNs9vTkCYHTTE__fbpfILKiw2gzob');
+                if (logoBase64) {
+                    // Logo approximately 30x30 on the right side
+                    doc.addImage(logoBase64, 'PNG', pageWidth - 45, 8, 35, 35);
+                }
+            } catch (e) {
+                console.warn('Could not load logo:', e);
+            }
+
+            yPos = 58;
+
+            // ===== TITLE SECTION =====
+            doc.setFillColor(102, 126, 234);
+            doc.rect(0, 52, pageWidth, 30, 'F');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(20);
+            doc.setTextColor(255, 255, 255);
+            doc.text('SERVIZIO / RIPARAZIONE', pageWidth / 2, 65, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            const vehicleTitle = `${pdfData.vehicleName}${pdfData.vehicleLicencePlate ? ' - ' + pdfData.vehicleLicencePlate : ''}`;
+            doc.text(vehicleTitle, pageWidth / 2, 75, { align: 'center' });
+
+            yPos = 90;
+
+            // ===== DATE & WORKSHOP INFO =====
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Data: ${new Date().toLocaleDateString('it-CH')}`, margin, yPos);
+            
+            if (pdfData.workshopName) {
+                doc.text(`Officina: ${pdfData.workshopName}`, pageWidth - margin, yPos, { align: 'right' });
+            }
+            
+            yPos += 10;
+
+            // ===== VEHICLE DETAILS BOX =====
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.5);
+            doc.setFillColor(248, 249, 250);
+            doc.roundedRect(margin, yPos, contentWidth, 35, 3, 3, 'FD');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(102, 126, 234);
+            doc.text('DETTAGLI VEICOLO', margin + 5, yPos + 8);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(51, 51, 51);
+            
+            let detailY = yPos + 16;
+            if (pdfData.vehicleLicencePlate) {
+                doc.text(`Targa: ${pdfData.vehicleLicencePlate}`, margin + 5, detailY);
+                detailY += 6;
+            }
+            if (pdfData.currentKm && pdfData.currentKm > 0) {
+                doc.text(`KM Attuali: ${pdfData.currentKm.toLocaleString('it-IT')} km`, margin + 5, detailY);
+            }
+            if (pdfData.kmToService !== undefined) {
+                const kmText = pdfData.kmToService < 0 
+                    ? `KM al tagliando: ${Math.abs(pdfData.kmToService).toLocaleString('it-IT')} km SUPERATI` 
+                    : `KM al tagliando: ${pdfData.kmToService.toLocaleString('it-IT')} km`;
+                doc.text(kmText, pageWidth / 2, detailY);
+            }
+
+            yPos += 42;
+
+            // ===== CARTA GRIGIA LINK =====
+            if (pdfData.cartaGrigiaUrl) {
+                doc.setFillColor(230, 242, 255);
+                doc.roundedRect(margin, yPos, contentWidth, 12, 2, 2, 'F');
+                
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(0, 102, 204);
+                doc.text('📄 Carta Grigia: ', margin + 5, yPos + 8);
+                
+                // Add clickable link
+                doc.setFont('helvetica', 'normal');
+                const linkText = 'Clicca qui per visualizzare';
+                doc.textWithLink(linkText, margin + 40, yPos + 8, { url: pdfData.cartaGrigiaUrl });
+                
+                yPos += 18;
+            }
+
+            // ===== DAMAGES SECTION =====
+            if (pdfData.damages && pdfData.damages.length > 0) {
+                if (progressCallback) progressCallback('🔧 Aggiunta danni...', 20);
+                
+                checkPageBreak(50);
+                
+                // Section header
+                doc.setFillColor(102, 126, 234);
+                doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(255, 255, 255);
+                doc.text('DANNI DA RIPARARE', margin + 5, yPos + 7);
+                yPos += 16;
+
+                for (let i = 0; i < pdfData.damages.length; i++) {
+                    const damage = pdfData.damages[i];
+                    if (progressCallback) progressCallback(`📸 Elaborazione danno ${i + 1}/${pdfData.damages.length}...`, 20 + Math.round((i / pdfData.damages.length) * 40));
+                    
+                    checkPageBreak(60);
+
+                    // Urgency dot and category
+                    const urgency = getUrgencyDot(damage.urgency);
+                    doc.setFillColor(...urgency.color);
+                    doc.circle(margin + 4, yPos + 2, 3, 'F');
+                    
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.setTextColor(51, 51, 51);
+                    doc.text(`[ ] ${damage.category || 'Danno'}`, margin + 12, yPos + 4);
+                    
+                    // Urgency label
+                    doc.setFontSize(8);
+                    doc.setTextColor(...urgency.color);
+                    doc.text(urgency.label, pageWidth - margin, yPos + 4, { align: 'right' });
+                    
+                    yPos += 10;
+
+                    // Description
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(80, 80, 80);
+                    const descLines = doc.splitTextToSize(damage.description || '', contentWidth - 15);
+                    doc.text(descLines, margin + 12, yPos);
+                    yPos += descLines.length * 5 + 3;
+
+                    // Note if exists
+                    if (damage.note) {
+                        checkPageBreak(20);
+                        doc.setFont('helvetica', 'italic');
+                        doc.setFontSize(9);
+                        doc.setTextColor(76, 110, 245);
+                        const noteLines = doc.splitTextToSize(`📝 Nota: ${damage.note}`, contentWidth - 15);
+                        doc.text(noteLines, margin + 12, yPos);
+                        yPos += noteLines.length * 4 + 3;
+                    }
+
+                    // Photos
+                    const photos = damage.photos || [];
+                    if (photos.length > 0) {
+                        for (let photoIdx = 0; photoIdx < photos.length; photoIdx++) {
+                            const photo = photos[photoIdx];
+                            if (progressCallback) progressCallback(`📷 Foto ${photoIdx + 1}/${photos.length} del danno ${i + 1}...`, 25 + Math.round((i / pdfData.damages.length) * 35));
+                            
+                            try {
+                                const imageData = await loadDamagePhoto(photo.id, photo.url);
+                                if (imageData) {
+                                    checkPageBreak(70);
+                                    
+                                    const maxWidth = 70;
+                                    const maxHeight = 50;
+                                    let displayWidth = maxWidth;
+                                    let displayHeight = 40;
+                                    
+                                    try {
+                                        const dims = await getImageDimensions(imageData);
+                                        if (dims.width && dims.height) {
+                                            const scale = Math.min(maxWidth / dims.width, maxHeight / dims.height, 1);
+                                            displayWidth = dims.width * scale;
+                                            displayHeight = dims.height * scale;
+                                        }
+                                    } catch(e) {}
+                                    
+                                    doc.addImage(imageData, 'JPEG', margin + 12, yPos, displayWidth, displayHeight);
+                                    yPos += displayHeight + 8;
+                                }
+                            } catch (e) {
+                                console.warn('Could not load photo:', e);
+                            }
+                        }
+                    }
+
+                    // Separator line
+                    yPos += 3;
+                    doc.setDrawColor(220, 220, 220);
+                    doc.setLineWidth(0.3);
+                    doc.line(margin + 10, yPos, pageWidth - margin - 10, yPos);
+                    yPos += 8;
+                }
+            }
+
+            // ===== SERVICE WORKS SECTION =====
+            if (pdfData.serviceWorks && pdfData.serviceWorks.length > 0) {
+                if (progressCallback) progressCallback('🔧 Lavori tagliando...', 70);
+                
+                checkPageBreak(40);
+                
+                doc.setFillColor(40, 167, 69);
+                doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(255, 255, 255);
+                doc.text('LAVORI TAGLIANDO', margin + 5, yPos + 7);
+                yPos += 16;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(51, 51, 51);
+
+                pdfData.serviceWorks.forEach(work => {
+                    checkPageBreak(12);
+                    doc.text(`☐ ${work}`, margin + 5, yPos);
+                    yPos += 7;
+                });
+
+                yPos += 5;
+            }
+
+            // ===== EXTRA WORKS SECTION =====
+            if (pdfData.extraWorks && pdfData.extraWorks.length > 0) {
+                if (progressCallback) progressCallback('🛠️ Lavori extra...', 75);
+                
+                checkPageBreak(40);
+                
+                doc.setFillColor(255, 140, 0);
+                doc.roundedRect(margin, yPos, contentWidth, 10, 2, 2, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(255, 255, 255);
+                doc.text('LAVORI EXTRA', margin + 5, yPos + 7);
+                yPos += 16;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(51, 51, 51);
+
+                pdfData.extraWorks.forEach(work => {
+                    checkPageBreak(12);
+                    doc.text(`☐ ${work}`, margin + 5, yPos);
+                    yPos += 7;
+                });
+
+                yPos += 5;
+            }
+
+            // ===== NOTES SECTION FOR WORKSHOP =====
+            if (progressCallback) progressCallback('📝 Sezione note...', 80);
+            
+            checkPageBreak(60);
+            
+            doc.setFillColor(248, 249, 250);
+            doc.setDrawColor(200, 200, 200);
+            doc.roundedRect(margin, yPos, contentWidth, 45, 3, 3, 'FD');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(102, 126, 234);
+            doc.text('NOTE OFFICINA', margin + 5, yPos + 8);
+            
+            // Lines for writing
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineWidth(0.2);
+            for (let lineY = yPos + 18; lineY < yPos + 42; lineY += 8) {
+                doc.line(margin + 5, lineY, pageWidth - margin - 5, lineY);
+            }
+            
+            yPos += 50;
+
+            // ===== FOOTER ON ALL PAGES =====
+            if (progressCallback) progressCallback('📄 Finalizzazione...', 90);
+            
+            const totalPages = doc.internal.pages.length - 1;
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                
+                // Footer background
+                doc.setFillColor(248, 249, 250);
+                doc.rect(0, pageHeight - 18, pageWidth, 18, 'F');
+                
+                // Footer line
+                doc.setDrawColor(102, 126, 234);
+                doc.setLineWidth(0.5);
+                doc.line(0, pageHeight - 18, pageWidth, pageHeight - 18);
+                
+                // Footer text
+                doc.setFontSize(8);
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Pagina ${i} di ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                doc.text('Noleggio Semplice - www.noleggiosemplice.com', pageWidth / 2, pageHeight - 5, { align: 'center' });
+            }
+
+            if (progressCallback) progressCallback('✅ PDF completato!', 100);
+            
+            return doc;
+        }
+
         async function generateMaintenancePDF() {
             // DIAGNOSTIC: Check config before starting
             console.log('🔧 PDF Generation Started');
@@ -5421,383 +5778,58 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 generateBtn.disabled = true;
                 generateBtn.textContent = '⏳ Caricamento foto e generazione PDF...';
 
-                const doc = new jsPDF();
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pageHeight = doc.internal.pageSize.getHeight();
-                let yPos = 20;
+                // Prepare damages data with photos
+                const damagesWithPhotos = pdfWizardData.selectedDamages.map(damage => {
+                    const rawPhotoURLs = Array.isArray(damage.photoURLs)
+                        ? damage.photoURLs.map(url => (url || '').trim()).filter(url => url)
+                        : [];
+                    const rawPhotoIds = Array.isArray(damage.photoIds)
+                        ? damage.photoIds.map(id => (id || '').trim()).filter(id => id)
+                        : [];
+                    const photos = [];
 
-                // Set font to Helvetica for better compatibility
-                doc.setFont('helvetica', 'normal');
-
-                // Update progress: Preparazione PDF
-                updatePDFGenerationProgress('📄 Preparazione struttura PDF...', 10, 1);
-
-                // Header with company info on left, garage on right
-                doc.setFillColor(102, 126, 234);
-                doc.rect(0, 0, pageWidth, 60, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(18);
-                doc.setFont('helvetica', 'bold');
-                doc.text('LISTA MANUTENZIONE', pageWidth / 2, 15, { align: 'center' });
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                doc.text(pdfWizardData.vehicleName, pageWidth / 2, 25, { align: 'center' });
-                doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, 33, { align: 'center' });
-
-                // Company info on left with better spacing
-                doc.setFontSize(10);
-                doc.setTextColor(255, 255, 255);
-                doc.text('Barbone & Zellweger Sagl', 15, 45);
-                doc.text('Via Vincenzo d\'Alberti 17', 15, 50);
-                doc.text('6600 Locarno', 15, 55);
-                doc.text('admin@noleggiosemplice.com', 15, 60);
-                doc.text('091 250 87 87', 15, 65);
-
-                // Garage info on right (if selected)
-                if (pdfWizardData.selectedGarage) {
-                    doc.setFontSize(10);
-                    doc.setTextColor(255, 255, 255);
-                    const garage = pdfWizardData.selectedGarage;
-                    const rightX = pageWidth - 15;
-
-                    doc.text('OFFICINA:', rightX, 45, { align: 'right' });
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(String(garage.name || ''), rightX, 50, { align: 'right' });
-                    doc.setFont('helvetica', 'normal');
-
-                    if (garage.phone) {
-                        doc.text(`Tel: ${String(garage.phone)}`, rightX, 55, { align: 'right' });
-                    }
-                    if (garage.address) {
-                        const addressText = `${String(garage.address || '')}${garage.city ? ', ' + String(garage.city) : ''}`;
-                        doc.text(addressText, rightX, 60, { align: 'right' });
-                    }
-                    if (garage.email && garage.email !== 'http://garagevosti.ch/') {
-                        doc.text(String(garage.email), rightX, 65, { align: 'right' });
-                    }
-                }
-
-                yPos = 75;
-                doc.setTextColor(0, 0, 0);
-
-                // Add subtle border around content area
-                doc.setDrawColor(200, 200, 200);
-                doc.setLineWidth(0.5);
-                doc.rect(10, 70, pageWidth - 20, pageHeight - 90);
-
-                // Vehicle details section
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(102, 126, 234);
-                doc.text('DETTAGLI VEICOLO', 15, yPos);
-                yPos += 8;
-
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(0, 0, 0);
-
-                if (pdfWizardData.vehicleLicencePlate) {
-                    doc.text(`Targa: ${pdfWizardData.vehicleLicencePlate}`, 15, yPos);
-                    yPos += 6;
-                }
-
-                if (pdfWizardData.vehicleCurrentKm && pdfWizardData.vehicleCurrentKm > 0) {
-                    doc.text(`KM Attuali: ${pdfWizardData.vehicleCurrentKm.toLocaleString('it-IT')} km`, 15, yPos);
-                    yPos += 6;
-                }
-
-                if (pdfWizardData.vehicleKmToService) {
-                    const kmToService = pdfWizardData.vehicleKmToService;
-                    if (kmToService < 0) {
-                        doc.setTextColor(255, 0, 0);
-                        doc.text(`KM al prossimo tagliando: ${Math.abs(kmToService).toLocaleString('it-IT')} km FUORI SERVIZIO`, 15, yPos);
-                        doc.setTextColor(0, 0, 0);
-                    } else {
-                        doc.text(`KM al prossimo tagliando: ${kmToService.toLocaleString('it-IT')} km`, 15, yPos);
-                    }
-                    yPos += 6;
-                }
-
-                // Carta Grigia photo
-                if (pdfWizardData.vehicleCartaGrigia) {
-                    try {
-                        const cartaGrigiaBase64 = await loadImageAsBase64(pdfWizardData.vehicleCartaGrigia);
-                        if (cartaGrigiaBase64) {
-                            yPos += 5;
-                            doc.setFont('helvetica', 'bold');
-                            doc.text('Carta Grigia:', 15, yPos);
-                            yPos += 5;
-
-                            const imgWidth = 80;
-                            const imgHeight = 60;
-
-                            if (yPos + imgHeight > 270) {
-                                doc.addPage();
-                                yPos = 20;
-                            }
-
-                            doc.addImage(cartaGrigiaBase64, 'JPEG', 15, yPos, imgWidth, imgHeight);
-                            yPos += imgHeight + 5;
-                        }
-                    } catch (error) {
-                        console.error('Errore caricamento carta grigia:', error);
-                        doc.setTextColor(150, 150, 150);
-                        doc.text('Carta grigia non disponibile', 15, yPos);
-                        doc.setTextColor(0, 0, 0);
-                        yPos += 6;
-                    }
-                }
-
-                yPos += 10;
-
-                // ===== LAVORI DA FARE =====
-
-                // Update progress: Caricamento foto danni
-                updatePDFGenerationProgress('📸 Caricamento foto danni...', 20, 2);
-
-                // Damages section
-                if (pdfWizardData.selectedDamages.length > 0) {
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(102, 126, 234);
-                    doc.text('DANNI DA RIPARARE', 15, yPos);
-                    yPos += 10;
-
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(0, 0, 0);
-
-                    for (let i = 0; i < pdfWizardData.selectedDamages.length; i++) {
-                        const damage = pdfWizardData.selectedDamages[i];
-
-                        // Check if we need a new page
-                        if (yPos > 250) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-
-                        // Checkbox and damage title
-                        doc.setFont('helvetica', 'bold');
-                        doc.text(`[ ] ${getCategoryLabel(damage.category)}`, 15, yPos);
-                        yPos += 6;
-
-                        doc.setFont('helvetica', 'normal');
-                        const descLines = doc.splitTextToSize(damage.description, pageWidth - 30);
-                        doc.text(descLines, 20, yPos);
-                        yPos += descLines.length * 5;
-
-                        const urgencyLabel = damage.urgency === 'critical' ? 'CRITICA' :
-                                           damage.urgency === 'high' ? 'ALTA' :
-                                           damage.urgency === 'medium' ? 'MEDIA' : 'BASSA';
-                        doc.setTextColor(damage.urgency === 'critical' ? 200 : 100, 100, 100);
-                        doc.text(`Urgenza: ${urgencyLabel}`, 20, yPos);
-                        yPos += 6;
-
-                        doc.setTextColor(0, 0, 0);
-
-                        const customNote = (damage.note || (pdfWizardData.damageNotes && pdfWizardData.damageNotes[damage.id]) || '').trim();
-                        if (customNote) {
-                            const noteText = `Nota officina: ${customNote}`;
-                            const noteLines = doc.splitTextToSize(noteText, pageWidth - 30);
-
-                            if (yPos > pageHeight - 40) {
-                                doc.addPage();
-                                yPos = 20;
-                            }
-
-                            doc.setFont('helvetica', 'italic');
-                            doc.setFontSize(10);
-                            doc.setTextColor(80, 80, 80);
-                            doc.text(noteLines, 20, yPos);
-                            yPos += noteLines.length * 5;
-                            doc.setFont('helvetica', 'normal');
-                            doc.setFontSize(10);
-                            doc.setTextColor(0, 0, 0);
-                        }
-
-                        // Add photos if available
-                        const rawPhotoURLs = Array.isArray(damage.photoURLs)
-                            ? damage.photoURLs.map(url => (url || '').trim()).filter(url => url)
-                            : [];
-                        const rawPhotoIds = Array.isArray(damage.photoIds)
-                            ? damage.photoIds.map(id => (id || '').trim()).filter(id => id)
-                            : [];
-                        const photos = [];
-
-                        if (rawPhotoIds.length > 0) {
-                            rawPhotoIds.forEach((photoId, index) => {
-                                photos.push({
-                                    id: photoId || null,
-                                    url: rawPhotoURLs[index] || null
-                                });
-                            });
-                        } else if (rawPhotoURLs.length > 0) {
-                            rawPhotoURLs.forEach(photoUrl => {
-                                photos.push({ id: null, url: photoUrl });
-                            });
-                        }
-
-                        if (photos.length > 0) {
-                            doc.setFontSize(9);
-                            doc.setTextColor(102, 126, 234);
-                            doc.setFont('helvetica', 'bold');
-                            doc.text(`Foto (${photos.length}):`, 20, yPos);
-                            yPos += 7;
-                            doc.setFont('helvetica', 'normal');
-                            doc.setTextColor(0, 0, 0);
-
-                            for (let photoIdx = 0; photoIdx < photos.length; photoIdx++) {
-                                const currentPhoto = photos[photoIdx];
-
-                                generateBtn.textContent = `⏳ Caricamento foto ${photoIdx + 1}/${photos.length} del danno ${i + 1}...`;
-
-                                // Update progress for photo loading
-                                const photoProgress = 20 + Math.round((photoIdx + 1) / photos.length * 30); // 20-50% for photo loading
-                                updatePDFGenerationProgress(`📸 Caricamento foto ${photoIdx + 1}/${photos.length} del danno ${i + 1}...`, photoProgress, 2);
-
-                                const imageData = await loadDamagePhoto(currentPhoto.id, currentPhoto.url);
-
-                                if (imageData) {
-                                    const maxWidth = 80;
-                                    const maxHeight = 60;
-                                    let displayWidth = maxWidth;
-                                    let displayHeight = 50;
-
-                                    try {
-                                        const { width: originalWidth, height: originalHeight } = await getImageDimensions(imageData);
-                                        if (originalWidth && originalHeight) {
-                                            const widthRatio = maxWidth / originalWidth;
-                                            const heightRatio = maxHeight / originalHeight;
-                                            const scale = Math.min(widthRatio, heightRatio, 1);
-                                            displayWidth = originalWidth * scale;
-                                            displayHeight = originalHeight * scale;
-                                        }
-                                    } catch (dimensionError) {
-                                        console.warn('Impossibile calcolare rapporto immagine, uso dimensioni predefinite', dimensionError);
-                                        displayWidth = maxWidth;
-                                        displayHeight = 50;
-                                    }
-
-                                    if (yPos + displayHeight > pageHeight - 20) {
-                                        doc.addPage();
-                                        yPos = 20;
-                                    }
-
-                                    try {
-                                        doc.addImage(imageData, 'JPEG', 20, yPos, displayWidth, displayHeight);
-                                        doc.setFontSize(8);
-                                        doc.setTextColor(100, 100, 100);
-                                        const captionY = yPos + displayHeight + 4;
-                                        doc.text(`Foto ${photoIdx + 1}`, 20 + (displayWidth / 2), captionY, { align: 'center' });
-                                        doc.setFontSize(10);
-                                        doc.setTextColor(0, 0, 0);
-                                        yPos += displayHeight + 12;
-                                    } catch (error) {
-                                        console.error('Errore inserimento foto nel PDF:', error);
-                                        doc.setFontSize(8);
-                                        doc.setTextColor(200, 50, 50);
-                                        doc.text(`Foto ${photoIdx + 1}: Formato non supportato`, 20, yPos);
-                                        yPos += 5;
-                                        doc.setFontSize(10);
-                                        doc.setTextColor(0, 0, 0);
-                                    }
-                                } else {
-                                    // Show message that photo couldn't be loaded
-                                    doc.setFontSize(8);
-                                    doc.setTextColor(200, 50, 50);
-                                    doc.text(`Foto ${photoIdx + 1}: Non disponibile`, 20, yPos);
-                                    yPos += 5;
-                                    doc.setFontSize(10);
-                                    doc.setTextColor(0, 0, 0);
-                                }
-
-                                if (yPos > pageHeight - 30) {
-                                    doc.addPage();
-                                    yPos = 20;
-                                }
-                            }
-
-                            yPos += 5;
-                        }
-
-                        yPos += 8; // Extra space between damages
+                    if (rawPhotoIds.length > 0) {
+                        rawPhotoIds.forEach((photoId, index) => {
+                            photos.push({ id: photoId || null, url: rawPhotoURLs[index] || null });
+                        });
+                    } else if (rawPhotoURLs.length > 0) {
+                        rawPhotoURLs.forEach(photoUrl => {
+                            photos.push({ id: null, url: photoUrl });
+                        });
                     }
 
-                    yPos += 5;
-                }
+                    const customNote = (damage.note || (pdfWizardData.damageNotes && pdfWizardData.damageNotes[damage.id]) || '').trim();
 
-                // Update progress: Aggiunta lavori
-                updatePDFGenerationProgress('🔧 Aggiunta lavori di manutenzione...', 60, 3);
+                    return {
+                        category: getCategoryLabel(damage.category),
+                        description: damage.description,
+                        urgency: damage.urgency,
+                        note: customNote,
+                        photos: photos
+                    };
+                });
 
-                // Service works section
-                if (pdfWizardData.serviceWorks.length > 0) {
-                    if (yPos > 220) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
+                // Prepare PDF data object
+                const pdfDataObj = {
+                    vehicleName: pdfWizardData.vehicleName,
+                    vehicleLicencePlate: pdfWizardData.vehicleLicencePlate,
+                    currentKm: pdfWizardData.vehicleCurrentKm,
+                    kmToService: pdfWizardData.vehicleKmToService,
+                    cartaGrigiaUrl: pdfWizardData.vehicleCartaGrigia,
+                    workshopName: pdfWizardData.selectedGarage?.name,
+                    damages: damagesWithPhotos,
+                    serviceWorks: pdfWizardData.serviceWorks || [],
+                    extraWorks: pdfWizardData.extraWorks || []
+                };
 
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(102, 126, 234);
-                    doc.text('LAVORI TAGLIANDO', 15, yPos);
-                    yPos += 10;
-
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(0, 0, 0);
-
-                    pdfWizardData.serviceWorks.forEach((work, idx) => {
-                        if (yPos > 270) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(`[ ] ${work}`, 15, yPos);
-                        yPos += 7;
-                    });
-
-                    yPos += 5;
-                }
-
-                // Extra works section
-                if (pdfWizardData.extraWorks.length > 0) {
-                    if (yPos > 220) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(102, 126, 234);
-                    doc.text('LAVORI EXTRA', 15, yPos);
-                    yPos += 10;
-
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(0, 0, 0);
-
-                    pdfWizardData.extraWorks.forEach((work, idx) => {
-                        if (yPos > 270) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(`[ ] ${work}`, 15, yPos);
-                        yPos += 7;
-                    });
-                }
-
-                // Footer
-                const totalPages = doc.internal.pages.length - 1;
-                for (let i = 1; i <= totalPages; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(8);
-                    doc.setTextColor(150, 150, 150);
-                    doc.text(`Pagina ${i} di ${totalPages}`, pageWidth / 2, 285, { align: 'center' });
-                    doc.text('Noleggio Semplice - Sistema di Gestione Manutenzione', pageWidth / 2, 290, { align: 'center' });
-                }
+                // Generate professional PDF
+                const doc = await generateProfessionalPDF(pdfDataObj, (message, progress) => {
+                    generateBtn.textContent = message;
+                    updatePDFGenerationProgress(message, progress, Math.ceil(progress / 25));
+                });
 
                 // Save PDF locally
                 generateBtn.textContent = '💾 Salvataggio PDF...';
-                // Create short filename: N07_RenaultTrafic_121125.pdf
                 const now = new Date();
                 const shortDate = now.toLocaleDateString('it-CH', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\./g, '');
                 const cleanVehicleName = pdfWizardData.vehicleName.replace(/\s+/g, '');
@@ -5807,7 +5839,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                 doc.save(fileName);
 
                 // Get PDF as base64 for upload to Drive
-                const pdfBase64 = doc.output('datauristring').split(',')[1]; // Extract base64 part
+                const pdfBase64 = doc.output('datauristring').split(',')[1];
                 
                 // Check if should send to workshop
                 const sendToWorkshop = document.getElementById('sendToWorkshopCheckbox')?.checked;
@@ -5819,7 +5851,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     const issueIdentifiers = [];
                     document.querySelectorAll('#wizardDamagesList input[type="checkbox"]:checked').forEach(cb => {
                         const reportId = cb.dataset.report;
-                        const issueNumber = parseInt(cb.dataset.issueNumber); // Use actual issue number from sheet
+                        const issueNumber = parseInt(cb.dataset.issueNumber);
                         
                         issueIdentifiers.push({
                             reportId: reportId,
@@ -5833,7 +5865,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         vehicleName: pdfWizardData.vehicleName,
                         workshopName: pdfWizardData.selectedGarage?.name || 'Non specificata',
                         issueIdentifiers: JSON.stringify(issueIdentifiers),
-                        pdfUrl: '', // Will be updated after PDF upload
+                        pdfUrl: '',
                         serviceWorks: pdfWizardData.serviceWorks || [],
                         extraWorks: pdfWizardData.extraWorks || [],
                         notes: 'Lista generata automaticamente dal wizard PDF'
@@ -5845,22 +5877,15 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         if (response.success) {
                             const listId = response.listId;
                             
-                            // Now upload PDF to Drive using POST-style approach
                             generateBtn.textContent = '☁️ Caricamento PDF su Drive...';
-                            
-                            // Update progress: Upload to Drive
                             updatePDFGenerationProgress('☁️ Caricamento PDF su Drive...', 70, 4);
                             
-                            // Upload PDF using fetch with POST
                             uploadMaintenancePDFViaPost(fileName, pdfBase64, listId)
                                 .then(uploadResponse => {
-                                    // Update progress: Finalizing
                                     updatePDFGenerationProgress('✅ Finalizzazione...', 100, 5);
                                     
                                     generateBtn.textContent = originalText;
                                     generateBtn.disabled = false;
-                                    
-                                    // Hide progress modal BEFORE showing alert
                                     hidePDFGenerationProgress();
                                     
                                     if (uploadResponse.success) {
@@ -5874,20 +5899,14 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                                 .catch(error => {
                                     generateBtn.textContent = originalText;
                                     generateBtn.disabled = false;
-                                    
-                                    // Hide progress modal on error
                                     hidePDFGenerationProgress();
-                                    
                                     alert('✅ Lista creata ma errore nel caricamento PDF su Drive: ' + error.message);
                                     closeMaintenancePdfWizard();
                                 });
                         } else {
                             generateBtn.textContent = originalText;
                             generateBtn.disabled = false;
-                            
-                            // Hide progress modal on error
                             hidePDFGenerationProgress();
-                            
                             alert('✅ PDF generato ma errore nell\'invio in officina: ' + response.error);
                             closeMaintenancePdfWizard();
                         }
@@ -5900,10 +5919,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     script.onerror = () => {
                         generateBtn.textContent = originalText;
                         generateBtn.disabled = false;
-                        
-                        // Hide progress modal on error
                         hidePDFGenerationProgress();
-                        
                         alert('✅ PDF generato ma errore di connessione per l\'invio in officina');
                         closeMaintenancePdfWizard();
                         delete window[callback];
@@ -5913,10 +5929,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                     // Just PDF generation, no workshop send
                     generateBtn.textContent = originalText;
                     generateBtn.disabled = false;
-                    
-                    // Hide progress modal
                     hidePDFGenerationProgress();
-                    
                     alert('✅ PDF generato con successo con foto incluse!');
                     closeMaintenancePdfWizard();
                 }
@@ -5924,12 +5937,9 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
             } catch (error) {
                 console.error('Errore generazione PDF:', error);
                 
-                // Restore button
                 const generateBtn = document.getElementById('wizardGenerateBtn');
                 generateBtn.textContent = '📄 Genera PDF';
                 generateBtn.disabled = false;
-                
-                // Hide progress modal on error
                 hidePDFGenerationProgress();
                 
                 alert('Errore durante la generazione del PDF: ' + error.message);
@@ -7974,7 +7984,7 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
 
                 const list = response.workshopLists[0];
                 
-                // Generate PDF using existing function
+                // Generate PDF using professional helper
                 try {
                     const btn = document.querySelector(`button[onclick*="regenerateWorkshopPDF('${listId}')"]`);
                     const originalText = btn ? btn.textContent : '';
@@ -7983,77 +7993,38 @@ N789,2024-01-25,Bassa,Controllo luci,Luci posteriori non funzionanti" style="wid
                         btn.textContent = '⏳ Generazione PDF...';
                     }
 
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
-                    
-                    // Generate PDF content (simplified version - copy logic from generateMaintenancePDF)
-                    // Create short filename: N07_RenaultTrafic_121125.pdf
+                    // Prepare damages data from issues
+                    const damages = (list.issues || []).map(issue => ({
+                        category: issue.category || 'Danno',
+                        description: issue.description || '',
+                        urgency: issue.urgency || 'low',
+                        note: '',
+                        photos: [] // Photos not available during regeneration - could be added later
+                    }));
+
+                    // Prepare PDF data object
+                    const pdfDataObj = {
+                        vehicleName: list.vehicleName || '',
+                        vehicleLicencePlate: '', // Not available in list data
+                        currentKm: 0,
+                        kmToService: undefined,
+                        cartaGrigiaUrl: null,
+                        workshopName: list.workshopName || '',
+                        damages: damages,
+                        serviceWorks: list.serviceWorks || [],
+                        extraWorks: list.extraWorks || []
+                    };
+
+                    // Generate professional PDF
+                    const doc = await generateProfessionalPDF(pdfDataObj, (message, progress) => {
+                        if (btn) btn.textContent = message;
+                    });
+
+                    // Create filename
                     const now = new Date();
                     const shortDate = now.toLocaleDateString('it-CH', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\./g, '');
                     const cleanVehicleName = list.vehicleName.replace(/\s+/g, '');
                     const fileName = `${cleanVehicleName}_${shortDate}.pdf`;
-                    
-                    // Header
-                    doc.setFillColor(102, 126, 234);
-                    doc.rect(0, 0, 210, 48, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(18);
-                    doc.setTextColor(255, 255, 255);
-                    doc.text('LISTA MANUTENZIONE', 105, 20, { align: 'center' });
-                    doc.setFontSize(12);
-                    doc.text(`${list.vehicleName}`, 105, 30, { align: 'center' });
-                    doc.text(`Data: ${new Date().toLocaleDateString('it-CH')}`, 105, 37, { align: 'center' });
-
-                    let yPos = 60;
-                    doc.setTextColor(0, 0, 0);
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('DANNI DA RIPARARE', 15, yPos);
-                    
-                    yPos += 10;
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    list.issues.forEach(issue => {
-                        if (yPos > 270) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(`[ ] ${issue.category}: ${issue.description}`, 20, yPos);
-                        yPos += 7;
-                    });
-
-                    if (list.serviceWorks && list.serviceWorks.length > 0) {
-                        yPos += 10;
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('LAVORI TAGLIANDO', 15, yPos);
-                        yPos += 7;
-                        doc.setFont('helvetica', 'normal');
-                        list.serviceWorks.forEach(work => {
-                            if (yPos > 270) {
-                                doc.addPage();
-                                yPos = 20;
-                            }
-                            doc.text(`[ ] ${work}`, 20, yPos);
-                            yPos += 7;
-                        });
-                    }
-
-                    if (list.extraWorks && list.extraWorks.length > 0) {
-                        yPos += 10;
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('LAVORI EXTRA', 15, yPos);
-                        yPos += 7;
-                        doc.setFont('helvetica', 'normal');
-                        list.extraWorks.forEach(work => {
-                            if (yPos > 270) {
-                                doc.addPage();
-                                yPos = 20;
-                            }
-                            doc.text(`[ ] ${work}`, 20, yPos);
-                            yPos += 7;
-                        });
-                    }
 
                     // Convert to base64
                     const pdfBase64 = doc.output('datauristring').split(',')[1];
