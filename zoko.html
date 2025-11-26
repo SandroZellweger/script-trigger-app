@@ -333,6 +333,7 @@
             <div class="template-tab active" data-template="booking">📋 How to Book</div>
             <div class="template-tab" data-template="multiday">📅 Dati Multigiorno</div>
             <div class="template-tab" data-template="iglohome">🔑 Iglohome Code</div>
+            <div class="template-tab" data-template="photocheckin">📸 Foto Check-in</div>
         </div>
 
         <!-- Booking instructions template panel -->
@@ -522,6 +523,66 @@
                 </div>
 
                 <div class="status-message"></div>            </div>
+        </div>
+
+        <!-- Photo Check-in panel -->
+        <div class="template-panel" id="photocheckin-panel">
+            <div class="template-info animate-in">
+                <h3>📸 Foto Check-in Veicolo</h3>
+                <p>Invia al cliente un link per scattare 4 foto del veicolo (fronte, retro, sinistra, destra) prima del ritiro.</p>
+            </div>
+
+            <div class="message-form animate-in">
+                <form id="photocheckinForm">
+                    <div class="form-group">
+                        <label for="photocheckinPhoneNumber" class="form-label">Numero di Telefono</label>
+                        <input 
+                            type="tel" 
+                            id="photocheckinPhoneNumber" 
+                            name="phoneNumber"
+                            class="form-input phone-input" 
+                            placeholder="Es. 0781234567 o +41781234567"
+                            required
+                        >
+                        <small class="phone-hint" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Il cliente riceverà un link WhatsApp per caricare le foto.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="photocheckinVehicle" class="form-label">Veicolo</label>
+                        <select id="photocheckinVehicle" name="vehicle" class="form-input" required>
+                            <option value="">Caricamento veicoli...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="photocheckinBookingRef" class="form-label">Riferimento Prenotazione (opzionale)</label>
+                        <input 
+                            type="text" 
+                            id="photocheckinBookingRef" 
+                            name="bookingRef"
+                            class="form-input" 
+                            placeholder="Es. REF2967"
+                        >
+                    </div>
+
+                    <button type="submit" class="send-button" style="background: linear-gradient(135deg, #86B645 0%, #5a8827 100%);">
+                        <span class="button-text">📨 Invia Link Foto</span>
+                        <span class="button-spinner spinner" style="display: none;"></span>
+                    </button>
+                </form>
+
+                <div class="status-message" id="photocheckinStatus"></div>
+
+                <!-- Recent Sessions -->
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <h4 style="margin-bottom: 15px; color: #333; font-size: 14px;">📋 Sessioni Recenti</h4>
+                    <div id="recentPhotoSessions" style="max-height: 200px; overflow-y: auto;">
+                        <p style="color: #999; font-size: 13px; text-align: center;">Caricamento...</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1165,6 +1226,163 @@
                 eventsList.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc3545;">${message}</div>`;
                 eventsContainer.style.display = 'block';            }
         });
+
+        // ===== Photo Check-in Form Handler =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load vehicles for photo checkin dropdown
+            loadPhotocheckinVehicles();
+            
+            // Load recent sessions
+            loadRecentPhotoSessions();
+            
+            // Handle form submission
+            document.getElementById('photocheckinForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const phoneInput = document.getElementById('photocheckinPhoneNumber');
+                const vehicleSelect = document.getElementById('photocheckinVehicle');
+                const bookingRefInput = document.getElementById('photocheckinBookingRef');
+                const submitBtn = this.querySelector('.send-button');
+                const buttonText = submitBtn.querySelector('.button-text');
+                const spinner = submitBtn.querySelector('.button-spinner');
+                const statusDiv = document.getElementById('photocheckinStatus');
+                
+                const phoneNumber = phoneInput.value.trim();
+                const vehicleId = vehicleSelect.value;
+                const vehicleName = vehicleSelect.options[vehicleSelect.selectedIndex].text;
+                const bookingRef = bookingRefInput.value.trim() || 'CHECKIN_' + Date.now();
+                
+                // Validation
+                if (!phoneNumber) {
+                    showPhotocheckinStatus('❌ Inserisci un numero di telefono', 'error');
+                    return;
+                }
+                
+                if (!vehicleId) {
+                    showPhotocheckinStatus('❌ Seleziona un veicolo', 'error');
+                    return;
+                }
+                
+                // Format phone number
+                let formattedPhone = formatPhoneNumber(phoneNumber);
+                if (!formattedPhone.match(/^\+[0-9]{8,15}$/)) {
+                    showPhotocheckinStatus('❌ Numero di telefono non valido', 'error');
+                    return;
+                }
+                
+                // Show loading
+                submitBtn.disabled = true;
+                buttonText.textContent = '⏳ Generazione link...';
+                spinner.style.display = 'inline-block';
+                statusDiv.style.display = 'none';
+                
+                try {
+                    const settings = getSettings();
+                    const requestUrl = `${settings.scriptUrl}?function=generateAndSendPhotoLinkJsonp&authToken=${settings.authToken}&bookingReference=${encodeURIComponent(bookingRef)}&customerPhone=${encodeURIComponent(formattedPhone)}&vehicleName=${encodeURIComponent(vehicleName)}&vehiclePlate=${encodeURIComponent(vehicleId)}`;
+                    
+                    const result = await makeJsonpRequest(requestUrl);
+                    
+                    if (result.success) {
+                        let message = `✅ Link inviato a ${formattedPhone}`;
+                        if (result.whatsappSent) {
+                            message += ' via WhatsApp';
+                        } else {
+                            message += `\n\n📋 Link da copiare:\n${result.link}`;
+                        }
+                        showPhotocheckinStatus(message, 'success');
+                        
+                        // Clear form
+                        phoneInput.value = '';
+                        bookingRefInput.value = '';
+                        
+                        // Refresh recent sessions
+                        setTimeout(loadRecentPhotoSessions, 1000);
+                    } else {
+                        showPhotocheckinStatus(`❌ Errore: ${result.error || 'Errore sconosciuto'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Photo checkin error:', error);
+                    showPhotocheckinStatus(`❌ Errore di connessione: ${error.message}`, 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    buttonText.textContent = '📨 Invia Link Foto';
+                    spinner.style.display = 'none';
+                }
+            });
+        });
+        
+        async function loadPhotocheckinVehicles() {
+            try {
+                const settings = getSettings();
+                const requestUrl = `${settings.scriptUrl}?function=getVehicleListJsonp&authToken=${settings.authToken}`;
+                
+                const data = await makeJsonpRequest(requestUrl);
+                const selectElement = document.getElementById('photocheckinVehicle');
+                selectElement.innerHTML = '<option value="">Seleziona veicolo...</option>';
+                
+                if (data.success && data.vehicles) {
+                    data.vehicles.forEach(vehicle => {
+                        const option = document.createElement('option');
+                        option.value = vehicle.id;
+                        option.textContent = `${vehicle.id} - ${vehicle.name}`;
+                        selectElement.appendChild(option);
+                    });
+                } else {
+                    console.error('Failed to load vehicles:', data.error);
+                    selectElement.innerHTML = '<option value="">Errore caricamento</option>';
+                }
+            } catch (error) {
+                console.error('Error loading photocheckin vehicles:', error);
+            }
+        }
+        
+        async function loadRecentPhotoSessions() {
+            const container = document.getElementById('recentPhotoSessions');
+            
+            try {
+                const settings = getSettings();
+                const requestUrl = `${settings.scriptUrl}?function=getPhotoCaptureSessionsJsonp&authToken=${settings.authToken}`;
+                
+                const data = await makeJsonpRequest(requestUrl);
+                
+                if (data.success && data.sessions && data.sessions.length > 0) {
+                    // Show only last 5 sessions
+                    const recentSessions = data.sessions.slice(0, 5);
+                    
+                    container.innerHTML = recentSessions.map(session => {
+                        const statusEmoji = session.status === 'completed' ? '✅' : session.status === 'expired' ? '⏰' : '⏳';
+                        const statusColor = session.status === 'completed' ? '#28a745' : session.status === 'expired' ? '#dc3545' : '#ffc107';
+                        const photosCount = Object.values(session.photos).filter(p => p).length;
+                        const createdDate = new Date(session.createdAt).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                        
+                        return `
+                            <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 13px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: 500;">${session.vehicleName || 'N/A'}</span>
+                                    <span style="color: ${statusColor};">${statusEmoji} ${photosCount}/4</span>
+                                </div>
+                                <div style="color: #666; font-size: 11px; margin-top: 3px;">
+                                    📱 ${session.customerPhone || 'N/A'} | 📅 ${createdDate}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p style="color: #999; font-size: 13px; text-align: center;">Nessuna sessione recente</p>';
+                }
+            } catch (error) {
+                console.error('Error loading photo sessions:', error);
+                container.innerHTML = '<p style="color: #dc3545; font-size: 13px; text-align: center;">Errore caricamento</p>';
+            }
+        }
+        
+        function showPhotocheckinStatus(message, type) {
+            const statusDiv = document.getElementById('photocheckinStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type === 'error' ? 'error' : 'success'}`;
+            statusDiv.style.display = 'block';
+            statusDiv.style.whiteSpace = 'pre-wrap';
+        }
 
         // Auto-focus booking phone input on page load
         document.getElementById('bookingPhoneNumber').focus();

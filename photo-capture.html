@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#86B645">
+    <title>📸 Foto Veicolo - Noleggio Semplice</title>
+    
+    <!-- Centralized Configuration -->
+    <script src="config.private.js"></script>
+    <script src="config.public.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #86B645 0%, #5a8827 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .header img {
+            height: 50px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .vehicle-info {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 500;
+            color: #86B645;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .progress-step::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .progress-step:last-child::after {
+            display: none;
+        }
+
+        .progress-step.completed::after {
+            background: #86B645;
+        }
+
+        .progress-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #999;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active .progress-circle {
+            background: #86B645;
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 2px 10px rgba(134,182,69,0.4);
+        }
+
+        .progress-step.completed .progress-circle {
+            background: #86B645;
+            color: white;
+        }
+
+        .progress-label {
+            font-size: 10px;
+            color: #999;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .progress-step.active .progress-label,
+        .progress-step.completed .progress-label {
+            color: #86B645;
+            font-weight: 500;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Photo Step Screens */
+        .photo-step {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+        }
+
+        .photo-step.active {
+            display: flex;
+        }
+
+        /* Intro Screen */
+        .intro-content {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .intro-content h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .intro-content p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .photo-positions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .position-card {
+            background: #f8f9fa;
+            padding: 15px 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .position-card .icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .position-card .label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        /* Camera Screen */
+        .camera-container {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .camera-header {
+            padding: 15px;
+            text-align: center;
+            background: #86B645;
+            color: white;
+        }
+
+        .camera-header h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .camera-header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .camera-preview {
+            flex: 1;
+            position: relative;
+            background: #000;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .camera-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            height: 70%;
+            border: 3px dashed rgba(134,182,69,0.8);
+            border-radius: 15px;
+            pointer-events: none;
+        }
+
+        .camera-guide-text {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .camera-placeholder {
+            color: #999;
+            font-size: 16px;
+        }
+
+        .camera-controls {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: #f8f9fa;
+        }
+
+        /* File Input Styled as Button */
+        .capture-input {
+            display: none;
+        }
+
+        .capture-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #86B645;
+            border: 4px solid white;
+            box-shadow: 0 4px 15px rgba(134,182,69,0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .capture-btn:active {
+            transform: scale(0.95);
+        }
+
+        .capture-btn:disabled {
+            background: #ccc;
+            box-shadow: none;
+        }
+
+        .secondary-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .secondary-btn:hover {
+            background: #f0f0f0;
+        }
+
+        /* Thumbnail preview */
+        .photo-thumbnail {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #86B645;
+        }
+
+        /* Complete Screen */
+        .complete-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .complete-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .complete-content h2 {
+            color: #86B645;
+            margin-bottom: 10px;
+        }
+
+        .complete-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .photos-grid .photo-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+        }
+
+        .photos-grid .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photos-grid .photo-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 11px;
+            padding: 4px;
+            text-align: center;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: #86B645;
+            color: white;
+            box-shadow: 0 4px 15px rgba(134,182,69,0.3);
+        }
+
+        .btn-primary:hover {
+            background: #7aaa3d;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        /* Error Screen */
+        .error-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .error-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .error-content h2 {
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+
+        .error-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #86B645;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-content p {
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Responsive adjustments */
+        @media (max-height: 700px) {
+            .header {
+                padding: 15px;
+            }
+            .header h1 {
+                font-size: 18px;
+            }
+            .progress-container {
+                padding: 10px;
+            }
+            .camera-preview {
+                min-height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📸 Foto Check-in Veicolo</h1>
+            <p class="subtitle">Barbone & Zellweger Sagl</p>
+            <div class="vehicle-info" id="vehicleInfo" style="display: none;">
+                🚗 <span id="vehicleName">-</span>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-step" data-step="1">
+                    <div class="progress-circle">1</div>
+                    <span class="progress-label">Fronte</span>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="progress-circle">2</div>
+                    <span class="progress-label">Retro</span>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="progress-circle">3</div>
+                    <span class="progress-label">Sinistra</span>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="progress-circle">4</div>
+                    <span class="progress-label">Destra</span>
+                </div>
+            </div>
+            <p class="progress-text" id="progressText">Foto 1 di 4</p>
+        </div>
+
+        <!-- Step: Intro -->
+        <div class="photo-step active" id="step-intro">
+            <div class="intro-content">
+                <h2>Benvenuto! 👋</h2>
+                <p>Prima di ritirare il veicolo, ti chiediamo di scattare <strong>4 foto</strong> per documentare le condizioni attuali.</p>
+                
+                <div class="photo-positions">
+                    <div class="position-card">
+                        <div class="icon">🚗</div>
+                        <div class="label">Fronte</div>
+                    </div>
+                    <div class="position-card">
+                        <div class="icon">🚙</div>
+                        <div class="label">Retro</div>
+                    </div>
+                    <div class="position-card">
+                        <div class="icon">🚘</div>
+                        <div class="label">Lato Sinistro</div>
+                    </div>
+                    <div class="position-card">
+                        <div class="icon">🚖</div>
+                        <div class="label">Lato Destro</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="startBtn" onclick="startCapture()">
+                    📷 Inizia
+                </button>
+            </div>
+        </div>
+
+        <!-- Step: Photo Capture (repeated for each position) -->
+        <div class="photo-step" id="step-capture">
+            <div class="camera-container">
+                <div class="camera-header">
+                    <h3 id="captureTitle">📷 Foto Frontale</h3>
+                    <p id="captureHint">Inquadra l'intera parte frontale del veicolo</p>
+                </div>
+                
+                <div class="camera-preview" id="cameraPreview">
+                    <div class="camera-placeholder" id="cameraPlaceholder">
+                        Tocca il pulsante per scattare la foto
+                    </div>
+                    <img id="previewImage" style="display: none;">
+                    <div class="camera-guide" id="cameraGuide"></div>
+                    <div class="camera-guide-text" id="guideText">Centra il veicolo nella guida</div>
+                </div>
+
+                <div class="camera-controls">
+                    <div id="thumbnailContainer" style="width: 60px; height: 60px;"></div>
+                    
+                    <label class="capture-btn" for="photoInput" id="captureBtn">
+                        📷
+                    </label>
+                    <input type="file" 
+                           id="photoInput" 
+                           class="capture-input" 
+                           accept="image/*" 
+                           capture="environment"
+                           onchange="handlePhotoCapture(this)">
+                    
+                    <button class="secondary-btn" id="confirmBtn" onclick="confirmPhoto()" style="display: none;">
+                        ✓
+                    </button>
+                    <button class="secondary-btn" id="retakeBtn" onclick="retakePhoto()" style="display: none;">
+                        ↻
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step: Complete -->
+        <div class="photo-step" id="step-complete">
+            <div class="complete-content">
+                <div class="complete-icon">✅</div>
+                <h2>Grazie!</h2>
+                <p>Tutte le foto sono state caricate con successo. Puoi ora ritirare il veicolo.</p>
+                
+                <div class="photos-grid" id="photosGrid">
+                    <!-- Photos will be inserted here -->
+                </div>
+
+                <p style="font-size: 13px; color: #999;">
+                    Le foto verranno archiviate per la durata del noleggio.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step: Error -->
+        <div class="photo-step" id="step-error">
+            <div class="error-content">
+                <div class="error-icon">⚠️</div>
+                <h2>Link non valido</h2>
+                <p id="errorMessage">Questo link non è valido o è scaduto. Contatta l'assistenza per ricevere un nuovo link.</p>
+                
+                <a href="tel:+41912508787" class="btn btn-primary" style="text-decoration: none;">
+                    📞 Chiama 091 250 87 87
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Caricamento in corso...</p>
+        </div>
+    </div>
+
+    <script>
+        // ===== CONFIGURATION =====
+        const POSITIONS = [
+            { id: 'front', label: 'Frontale', title: '📷 Foto Frontale', hint: 'Inquadra l\'intera parte frontale del veicolo' },
+            { id: 'back', label: 'Posteriore', title: '📷 Foto Posteriore', hint: 'Inquadra l\'intera parte posteriore del veicolo' },
+            { id: 'left', label: 'Lato Sinistro', title: '📷 Lato Sinistro', hint: 'Inquadra l\'intero lato sinistro (guidatore)' },
+            { id: 'right', label: 'Lato Destro', title: '📷 Lato Destro', hint: 'Inquadra l\'intero lato destro (passeggero)' }
+        ];
+
+        // ===== STATE =====
+        let token = null;
+        let bookingData = null;
+        let currentPhotoIndex = 0;
+        let capturedPhotos = {}; // { front: blob, back: blob, ... }
+        let uploadedPhotos = {}; // { front: url, back: url, ... }
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get token from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            token = urlParams.get('token');
+
+            if (!token) {
+                showError('Link non valido. Manca il token di autorizzazione.');
+                return;
+            }
+
+            // Validate token with backend
+            showLoading('Verifica link in corso...');
+            
+            try {
+                const validation = await validateToken(token);
+                hideLoading();
+
+                if (!validation.valid) {
+                    showError(validation.error || 'Link non valido o scaduto.');
+                    return;
+                }
+
+                // Store booking data
+                bookingData = validation;
+
+                // Show vehicle info
+                if (validation.vehicleName) {
+                    document.getElementById('vehicleName').textContent = validation.vehicleName;
+                    document.getElementById('vehicleInfo').style.display = 'block';
+                }
+
+                // Check if some photos already uploaded
+                if (validation.uploadedPositions && validation.uploadedPositions.length > 0) {
+                    validation.uploadedPositions.forEach(pos => {
+                        uploadedPhotos[pos] = true;
+                    });
+                    // Skip to next required photo
+                    while (currentPhotoIndex < POSITIONS.length && uploadedPhotos[POSITIONS[currentPhotoIndex].id]) {
+                        currentPhotoIndex++;
+                    }
+                    if (currentPhotoIndex >= POSITIONS.length) {
+                        showComplete();
+                        return;
+                    }
+                }
+
+            } catch (error) {
+                hideLoading();
+                console.error('Validation error:', error);
+                showError('Errore di connessione. Riprova più tardi.');
+            }
+        });
+
+        // ===== API FUNCTIONS =====
+        function getScriptUrl() {
+            if (window.APP_CONFIG && window.APP_CONFIG.scriptUrl) {
+                return window.APP_CONFIG.scriptUrl;
+            }
+            return 'https://script.google.com/macros/s/AKfycbzUtXeqja87wTaEEq8Q5Su1utBJnm3z4kj7ub3OCx1RB95Yh0wwVbwLmdSGpTPy08hY/exec';
+        }
+
+        function getAuthToken() {
+            if (window.APP_CONFIG && window.APP_CONFIG.authToken) {
+                return window.APP_CONFIG.authToken;
+            }
+            return 'mySecureVanApp_2025';
+        }
+
+        async function validateToken(token) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'validateCallback_' + Date.now();
+                const timeout = setTimeout(() => {
+                    delete window[callbackName];
+                    reject(new Error('Request timeout'));
+                }, 15000);
+
+                window[callbackName] = (response) => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    resolve(response);
+                };
+
+                const script = document.createElement('script');
+                const url = `${getScriptUrl()}?function=validatePhotoTokenJsonp&token=${encodeURIComponent(token)}&authToken=${encodeURIComponent(getAuthToken())}&callback=${callbackName}`;
+                script.src = url;
+                script.onerror = () => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    reject(new Error('Network error'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        async function uploadPhoto(token, position, base64Data) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'uploadCallback_' + Date.now();
+                const timeout = setTimeout(() => {
+                    delete window[callbackName];
+                    reject(new Error('Upload timeout'));
+                }, 60000); // 60 seconds for upload
+
+                window[callbackName] = (response) => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    resolve(response);
+                };
+
+                const script = document.createElement('script');
+                // Split base64 if too long (URL limit workaround - send in chunks)
+                const params = new URLSearchParams({
+                    function: 'uploadCustomerPhotoJsonp',
+                    token: token,
+                    position: position,
+                    photoData: base64Data,
+                    authToken: getAuthToken(),
+                    callback: callbackName
+                });
+                
+                script.src = `${getScriptUrl()}?${params.toString()}`;
+                script.onerror = () => {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    reject(new Error('Upload failed'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        // ===== NAVIGATION =====
+        function showStep(stepId) {
+            document.querySelectorAll('.photo-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.getElementById(stepId).classList.add('active');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            showStep('step-error');
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function showComplete() {
+            // Build photo grid
+            const grid = document.getElementById('photosGrid');
+            grid.innerHTML = '';
+            
+            POSITIONS.forEach(pos => {
+                if (capturedPhotos[pos.id]) {
+                    const item = document.createElement('div');
+                    item.className = 'photo-item';
+                    item.innerHTML = `
+                        <img src="${URL.createObjectURL(capturedPhotos[pos.id])}" alt="${pos.label}">
+                        <div class="photo-label">${pos.label}</div>
+                    `;
+                    grid.appendChild(item);
+                }
+            });
+
+            showStep('step-complete');
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function updateProgress() {
+            const steps = document.querySelectorAll('.progress-step');
+            steps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < currentPhotoIndex) {
+                    step.classList.add('completed');
+                    step.querySelector('.progress-circle').innerHTML = '✓';
+                } else if (index === currentPhotoIndex) {
+                    step.classList.add('active');
+                }
+            });
+
+            document.getElementById('progressText').textContent = `Foto ${currentPhotoIndex + 1} di ${POSITIONS.length}`;
+        }
+
+        // ===== PHOTO CAPTURE =====
+        function startCapture() {
+            showStep('step-capture');
+            document.getElementById('progressContainer').style.display = 'block';
+            setupCaptureStep();
+        }
+
+        function setupCaptureStep() {
+            if (currentPhotoIndex >= POSITIONS.length) {
+                showComplete();
+                return;
+            }
+
+            const position = POSITIONS[currentPhotoIndex];
+            document.getElementById('captureTitle').textContent = position.title;
+            document.getElementById('captureHint').textContent = position.hint;
+            document.getElementById('guideText').textContent = 'Centra il veicolo nella guida';
+
+            // Reset preview
+            document.getElementById('previewImage').style.display = 'none';
+            document.getElementById('cameraPlaceholder').style.display = 'block';
+            document.getElementById('cameraGuide').style.display = 'block';
+            
+            // Reset buttons
+            document.getElementById('captureBtn').style.display = 'flex';
+            document.getElementById('confirmBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'none';
+            document.getElementById('thumbnailContainer').innerHTML = '';
+
+            // Reset file input
+            document.getElementById('photoInput').value = '';
+
+            updateProgress();
+        }
+
+        async function handlePhotoCapture(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            
+            // Compress the image
+            showLoading('Elaborazione foto...');
+            
+            try {
+                const compressedBlob = await compressImage(file);
+                
+                hideLoading();
+
+                // Store temporarily
+                const position = POSITIONS[currentPhotoIndex];
+                capturedPhotos[position.id] = compressedBlob;
+
+                // Show preview
+                const previewUrl = URL.createObjectURL(compressedBlob);
+                document.getElementById('previewImage').src = previewUrl;
+                document.getElementById('previewImage').style.display = 'block';
+                document.getElementById('cameraPlaceholder').style.display = 'none';
+                document.getElementById('cameraGuide').style.display = 'none';
+                document.getElementById('guideText').textContent = 'Conferma o scatta di nuovo';
+
+                // Show confirm/retake buttons
+                document.getElementById('captureBtn').style.display = 'none';
+                document.getElementById('confirmBtn').style.display = 'flex';
+                document.getElementById('retakeBtn').style.display = 'flex';
+
+            } catch (error) {
+                hideLoading();
+                console.error('Compression error:', error);
+                alert('Errore durante l\'elaborazione della foto. Riprova.');
+            }
+        }
+
+        function retakePhoto() {
+            // Reset and allow new capture
+            const position = POSITIONS[currentPhotoIndex];
+            delete capturedPhotos[position.id];
+            setupCaptureStep();
+        }
+
+        async function confirmPhoto() {
+            const position = POSITIONS[currentPhotoIndex];
+            const blob = capturedPhotos[position.id];
+
+            if (!blob) {
+                alert('Nessuna foto da confermare.');
+                return;
+            }
+
+            // Upload to backend
+            showLoading(`Caricamento foto ${position.label}...`);
+
+            try {
+                // Convert blob to base64
+                const base64 = await blobToBase64(blob);
+                const base64Data = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+
+                const result = await uploadPhoto(token, position.id, base64Data);
+
+                hideLoading();
+
+                if (result.success) {
+                    uploadedPhotos[position.id] = result.fileUrl;
+                    
+                    // Show thumbnail
+                    const thumbContainer = document.getElementById('thumbnailContainer');
+                    thumbContainer.innerHTML = `<img src="${URL.createObjectURL(blob)}" class="photo-thumbnail">`;
+
+                    // Move to next position
+                    currentPhotoIndex++;
+                    
+                    if (currentPhotoIndex >= POSITIONS.length) {
+                        showComplete();
+                    } else {
+                        // Small delay before next photo
+                        setTimeout(() => {
+                            setupCaptureStep();
+                        }, 500);
+                    }
+                } else {
+                    alert('Errore durante il caricamento: ' + (result.error || 'Riprova.'));
+                }
+
+            } catch (error) {
+                hideLoading();
+                console.error('Upload error:', error);
+                alert('Errore di connessione durante il caricamento. Riprova.');
+            }
+        }
+
+        // ===== IMAGE UTILITIES =====
+        async function compressImage(file, maxWidth = 1920, quality = 0.75) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    let { width, height } = img;
+                    
+                    // Scale down if needed
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Canvas toBlob failed'));
+                            }
+                        },
+                        'image/jpeg',
+                        quality
+                    );
+                };
+
+                img.onerror = () => reject(new Error('Image load failed'));
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // ===== LOADING OVERLAY =====
+        function showLoading(message = 'Caricamento in corso...') {
+            document.getElementById('loadingText').textContent = message;
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

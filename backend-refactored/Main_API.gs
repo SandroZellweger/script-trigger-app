@@ -126,6 +126,20 @@ function doGet(e) {
       case "getGoogleCredentialsJsonp":
         return getGoogleCredentialsJsonp(e.parameter);
 
+      // --- Customer Photo Capture ---
+      case "generatePhotoLinkJsonp":
+        return generatePhotoLinkJsonp(e.parameter);
+      case "validatePhotoTokenJsonp":
+        return validatePhotoTokenJsonp(e.parameter);
+      case "uploadCustomerPhotoJsonp":
+        return uploadCustomerPhotoJsonp(e.parameter);
+      case "sendPhotoLinkWhatsAppJsonp":
+        return sendPhotoLinkWhatsAppJsonp(e.parameter);
+      case "generateAndSendPhotoLinkJsonp":
+        return generateAndSendPhotoLinkJsonp(e.parameter);
+      case "getPhotoCaptureSessionsJsonp":
+        return getPhotoCaptureSessionsJsonp(e.parameter);
+
       // --- AI Assistant ---
       case "handleMaintenanceAiRequestJsonp":
         return handleMaintenanceAiRequestJsonp(e.parameter);
