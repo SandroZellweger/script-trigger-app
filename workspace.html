@@ -1301,11 +1301,47 @@
             input.value = '';
             msgs.scrollTop = msgs.scrollHeight;
 
-            // Simulate AI response
-            setTimeout(() => {
-                msgs.innerHTML += `<div style="margin-bottom: 10px;"><span style="background: #e3f2fd; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">Ho ricevuto la tua richiesta. Sto elaborando...</span></div>`;
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            msgs.innerHTML += `<div id="${typingId}" style="margin-bottom: 10px;"><span style="background: #e3f2fd; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">...</span></div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+
+            // Call AI API
+            const scriptUrl = window.PRIVATE_CONFIG?.scriptUrl;
+            const authToken = window.PRIVATE_CONFIG?.authToken;
+            
+            if (!scriptUrl) {
+                document.getElementById(typingId).innerHTML = '<span style="background: #ffcdd2; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">Errore: Configurazione mancante</span>';
+                return;
+            }
+
+            const callbackName = 'aiCallback_' + Math.round(100000 * Math.random());
+            const url = `${scriptUrl}?function=handleMaintenanceAiRequestJsonp&query=${encodeURIComponent(text)}&user=${currentUser}&authToken=${authToken}&callback=${callbackName}`;
+
+            window[callbackName] = (response) => {
+                const typingEl = document.getElementById(typingId);
+                if (response.success) {
+                    const content = response.response.content || "Fatto!";
+                    typingEl.innerHTML = `<span style="background: #e3f2fd; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">${content.replace(/\n/g, '<br>')}</span>`;
+                    
+                    // Refresh data if AI performed an action
+                    if (response.response.tool_calls) {
+                        loadWorkspaceData();
+                    }
+                } else {
+                    typingEl.innerHTML = `<span style="background: #ffcdd2; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">Errore: ${response.error}</span>`;
+                }
+                delete window[callbackName];
+                document.body.removeChild(scriptElem);
                 msgs.scrollTop = msgs.scrollHeight;
-            }, 1000);
+            };
+
+            const scriptElem = document.createElement('script');
+            scriptElem.src = url;
+            scriptElem.onerror = () => {
+                document.getElementById(typingId).innerHTML = '<span style="background: #ffcdd2; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">Errore di rete</span>';
+            };
+            document.body.appendChild(scriptElem);
         }
 
         function openNewOrderModal() {

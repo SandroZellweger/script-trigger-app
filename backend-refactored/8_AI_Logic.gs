@@ -121,6 +121,38 @@ function handleMaintenanceAiRequest(params) {
           properties: {}
         }
       }
+    },
+    {
+      type: "function",
+      function: {
+        name: "createWorkspaceTask",
+        description: "Crea un nuovo task nella board del team.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Titolo del task" },
+            description: { type: "string", description: "Descrizione dettagliata (opzionale)" },
+            priority: { type: "string", enum: ["low", "medium", "high"], description: "Priorità" },
+            assignee: { type: "string", enum: ["Sandro", "Alessandro"], description: "A chi assegnare il task" }
+          },
+          required: ["title"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "createWorkspaceNote",
+        description: "Crea una nota o un appunto nel workspace.",
+        parameters: {
+          type: "object",
+          properties: {
+            content: { type: "string", description: "Contenuto della nota" },
+            shared: { type: "boolean", description: "Se condividere con il team (true) o privata (false)" }
+          },
+          required: ["content"]
+        }
+      }
     }
   ];
 
@@ -130,13 +162,15 @@ function handleMaintenanceAiRequest(params) {
     "createPaymentLink": createPaymentLinkForAI,
     "generateIglohomeCode": generateIglohomeCodeForAI,
     "sendMessage": sendMessageForAI,
-    "getVehicleList": getVehicleListForAI
+    "getVehicleList": getVehicleListForAI,
+    "createWorkspaceTask": createWorkspaceTaskForAI,
+    "createWorkspaceNote": createWorkspaceNoteForAI
   };
 
   const messages = [
     {
       role: "system",
-      content: "Sei un assistente AI per la gestione di una flotta di veicoli. Puoi creare report di manutenzione, generare link di pagamento Stripe, creare codici di accesso Igloohome, inviare messaggi WhatsApp e fornire informazioni sui veicoli disponibili. Rispondi sempre in italiano e chiedi chiarimenti se necessario."
+      content: "Sei un assistente AI per la gestione di una flotta di veicoli e per il coordinamento del team (Sandro e Alessandro). Puoi creare report di manutenzione, generare link di pagamento, creare codici Igloohome, inviare messaggi WhatsApp, e gestire il Workspace (creare task e note). Rispondi sempre in italiano."
     },
     {
       role: "user",
@@ -155,12 +189,22 @@ function handleMaintenanceAiRequest(params) {
         const functionToCall = availableFunctions[functionName];
         const functionArgs = JSON.parse(toolCall.function.arguments);
 
-        const functionResponse = functionToCall(
-          functionArgs.vehicle || functionArgs.amount || functionArgs.vehicleType || functionArgs.phoneNumber,
-          functionArgs.description || functionArgs.vehicleType || functionArgs.phoneNumber,
-          functionArgs.cost || functionArgs.account,
-          functionArgs.bookingRef
-        );
+        let functionResponse;
+        
+        // Handle different function signatures
+        if (functionName === 'createWorkspaceTask') {
+          functionResponse = functionToCall(functionArgs.title, functionArgs.description, functionArgs.priority, functionArgs.assignee, params.user);
+        } else if (functionName === 'createWorkspaceNote') {
+          functionResponse = functionToCall(functionArgs.content, functionArgs.shared, params.user);
+        } else {
+          // Legacy signature handling
+          functionResponse = functionToCall(
+            functionArgs.vehicle || functionArgs.amount || functionArgs.vehicleType || functionArgs.phoneNumber,
+            functionArgs.description || functionArgs.vehicleType || functionArgs.phoneNumber,
+            functionArgs.cost || functionArgs.account,
+            functionArgs.bookingRef
+          );
+        }
 
         messages.push({
           tool_call_id: toolCall.id,
@@ -202,6 +246,38 @@ function callOpenAI(url, apiKey, messages, tools) {
 }
 
 // AI Function Wrappers
+function createWorkspaceTaskForAI(title, description, priority, assignee, user) {
+  try {
+    const task = {
+      title: title,
+      description: description || '',
+      priority: priority || 'medium',
+      assignee: assignee || user || 'Sandro',
+      status: 'todo'
+    };
+    // Call saveTask from 10_Workspace_Logic.gs
+    const result = saveTask(task, user || 'AI');
+    return { success: true, message: `Task creato: ${title}`, id: result.data.id };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function createWorkspaceNoteForAI(content, shared, user) {
+  try {
+    const note = {
+      content: content,
+      shared: shared !== false,
+      color: '#ffffff'
+    };
+    // Call saveNote from 10_Workspace_Logic.gs
+    const result = saveNote(note, user || 'AI');
+    return { success: true, message: `Nota creata`, id: result.data.id };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
 function createPaymentLinkForAI(amount, description, account, bookingRef) {
   try {
     // Call the real function from 3_Stripe_Logic.gs

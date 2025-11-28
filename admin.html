@@ -163,6 +163,25 @@
             font-weight: 600;
         }
 
+        .new-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
         @media (max-width: 768px) {
             .header {
                 padding: 15px 20px;
@@ -231,7 +250,8 @@
 
         <h3 class="section-title">Gestione Sistema</h3>
         <div class="admin-grid">
-            <a href="workspace.html" class="admin-card">
+            <a href="workspace.html" class="admin-card" style="position: relative;">
+                <div class="new-badge">NUOVO</div>
                 <div class="card-icon">👥</div>
                 <div class="card-title">Team Workspace</div>
                 <div class="card-description">Hub collaborativo: Task, Note, Ordini e Chat interna</div>
