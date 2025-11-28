@@ -22,6 +22,8 @@ function handleWorkspaceRequest(params) {
         return deleteWorkspaceItem(params.type, params.id, user);
       case 'toggleNoteShare':
         return toggleNoteShare(params.id, user);
+      case 'markNoteSeen':
+        return markNoteSeen(params.id, user);
       default:
         return createErrorResponse('Unknown workspace action: ' + action);
     }
@@ -42,12 +44,21 @@ function getWorkspaceData(user) {
   // Filter notes: Show own notes OR shared notes
   const filteredNotes = notes.filter(n => n.author === user || n.shared === true || n.shared === 'true');
   
+  // Process notes to add 'seen' boolean
+  const processedNotes = filteredNotes.map(n => {
+    const seenBy = n.seen_by ? String(n.seen_by) : '';
+    return {
+      ...n,
+      seen: seenBy.includes(user)
+    };
+  });
+  
   // Sort activity by date desc
   const sortedActivity = activity.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 20);
 
   return createSuccessResponse({
     tasks: tasks,
-    notes: filteredNotes,
+    notes: processedNotes,
     orders: orders,
     activity: sortedActivity
   });
@@ -187,6 +198,30 @@ function toggleNoteShare(id, user) {
       const newVal = !(current === true || current === 'true');
       sheet.getRange(i + 1, sharedIndex + 1).setValue(newVal);
       return createSuccessResponse({ shared: newVal });
+    }
+  }
+  return createErrorResponse('Note not found');
+}
+
+// Mark Note as Seen
+function markNoteSeen(id, user) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName('WS_Notes');
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIndex = headers.indexOf('id');
+  const seenByIndex = headers.indexOf('seen_by');
+  
+  if (seenByIndex === -1) return createErrorResponse('seen_by column missing');
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][idIndex] == id) {
+      const currentSeen = data[i][seenByIndex] ? String(data[i][seenByIndex]) : '';
+      if (!currentSeen.includes(user)) {
+        const newSeen = currentSeen ? currentSeen + ',' + user : user;
+        sheet.getRange(i + 1, seenByIndex + 1).setValue(newSeen);
+      }
+      return createSuccessResponse({ message: 'Marked as seen' });
     }
   }
   return createErrorResponse('Note not found');

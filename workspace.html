@@ -1455,6 +1455,44 @@
             });
         }
 
+        function viewNote(id) {
+            callApi('markNoteSeen', { id: id }, () => {
+                switchTab('notes');
+                loadWorkspaceData();
+            });
+        }
+
+        function showNotifications() {
+            alert('Nessuna nuova notifica');
+        }
+
+        function filterNotes(filter) {
+            const grid = document.getElementById('notesGrid');
+            let notes = workspaceData.notes;
+            
+            if (filter === 'personal') {
+                notes = notes.filter(n => !n.shared);
+            } else if (filter === 'shared') {
+                notes = notes.filter(n => n.shared);
+            }
+            
+            grid.innerHTML = notes.map(n => `
+                <div class="note-card" style="background: ${n.color};">
+                    <div class="note-header">
+                        <span>${n.author}</span>
+                        <span>${n.shared ? '<i class="fas fa-users"></i>' : '<i class="fas fa-lock"></i>'}</span>
+                    </div>
+                    <div class="note-content">${n.content}</div>
+                    <div class="note-footer">
+                        <div class="visibility-toggle ${n.shared ? 'shared' : ''}" onclick="toggleNoteShare('${n.id}')">
+                            <i class="fas fa-eye"></i> ${n.shared ? 'Condivisa' : 'Privata'}
+                        </div>
+                        <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote('${n.id}')"></i>
+                    </div>
+                </div>
+            `).join('');
+        }
+
 
     </script>
 </body>
