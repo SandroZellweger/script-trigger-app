@@ -780,13 +780,11 @@
                     </div>
                     <div class="activity-list" id="todayList">
                         <div class="activity-item">
-                            <div class="activity-icon" style="color: #f39c12;"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="activity-icon" style="color: #ccc;"><i class="fas fa-spinner fa-spin"></i></div>
                             <div class="activity-content">
-                                <div class="activity-text">3 Task in scadenza</div>
-                                <div class="activity-meta">Controlla la board</div>
+                                <div class="activity-text">Caricamento...</div>
                             </div>
                         </div>
-                        <!-- Dynamic content -->
                     </div>
                 </div>
 
@@ -1117,17 +1115,60 @@
         }
 
         function renderDashboard() {
+            // Today's Overview
+            const todayList = document.getElementById('todayList');
+            const myTasks = workspaceData.tasks.filter(t => t.assignee === currentUser && t.status !== 'done');
+            const highPriority = myTasks.filter(t => t.priority === 'high').length;
+            
+            if (myTasks.length > 0) {
+                todayList.innerHTML = `
+                    <div class="activity-item" onclick="switchTab('tasks')" style="cursor: pointer;">
+                        <div class="activity-icon" style="color: #f39c12;"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text">${myTasks.length} Task attivi</div>
+                            <div class="activity-meta">${highPriority} ad alta priorità</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                todayList.innerHTML = `
+                    <div class="activity-item">
+                        <div class="activity-icon" style="color: #27ae60;"><i class="fas fa-check-circle"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text">Tutto fatto!</div>
+                            <div class="activity-meta">Nessun task in sospeso</div>
+                        </div>
+                    </div>
+                `;
+            }
+
             // Activity Feed
             const feed = document.getElementById('activityFeed');
-            feed.innerHTML = workspaceData.activity.map(item => `
+            feed.innerHTML = workspaceData.activity.map(item => {
+                // Format timestamp/time
+                let timeDisplay = item.time;
+                if (!timeDisplay && item.timestamp) {
+                    const date = new Date(item.timestamp);
+                    const timeStr = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+                    timeDisplay = `${dateStr} ${timeStr}`;
+                }
+                
+                // Format text with user if available
+                let textDisplay = item.text;
+                if (item.user && !textDisplay.startsWith(item.user)) {
+                    textDisplay = `<strong>${item.user}</strong> ${textDisplay.charAt(0).toLowerCase() + textDisplay.slice(1)}`;
+                }
+
+                return `
                 <div class="activity-item">
                     <div class="activity-icon" style="color: ${item.color};"><i class="fas fa-${item.icon}"></i></div>
                     <div class="activity-content">
-                        <div class="activity-text">${item.text}</div>
-                        <div class="activity-meta">${item.time}</div>
+                        <div class="activity-text">${textDisplay}</div>
+                        <div class="activity-meta">${timeDisplay || ''}</div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
 
             // Watch List (Unseen shared items)
             const watchList = document.getElementById('watchList');
@@ -1224,11 +1265,30 @@
         function switchTab(tabId) {
             // Update tabs
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            
+            let tabElement = null;
+            // Check if triggered by event and if it's a nav-tab
+            if (typeof event !== 'undefined' && event && event.currentTarget && event.currentTarget.classList && event.currentTarget.classList.contains('nav-tab')) {
+                tabElement = event.currentTarget;
+            } else {
+                // Find by matching onclick attribute
+                const tabs = document.querySelectorAll('.nav-tab');
+                for (let t of tabs) {
+                    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tabId}'`)) {
+                        tabElement = t;
+                        break;
+                    }
+                }
+            }
+            
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
             
             // Update views
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
+            const view = document.getElementById(tabId);
+            if (view) view.classList.add('active');
         }
 
         function toggleFabMenu() {
