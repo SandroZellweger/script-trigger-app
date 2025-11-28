@@ -140,6 +140,10 @@ function doGet(e) {
       case "getPhotoCaptureSessionsJsonp":
         return getPhotoCaptureSessionsJsonp(e.parameter);
 
+      // --- Workspace ---
+      case "workspace":
+        return createJsonpResponse(e.parameter.callback, handleWorkspaceRequest(e.parameter));
+
       // --- AI Assistant ---
       case "handleMaintenanceAiRequestJsonp":
         return handleMaintenanceAiRequestJsonp(e.parameter);

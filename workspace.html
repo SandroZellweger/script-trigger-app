@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Team Hub - Workspace</title>
+    
+    <!-- Centralized Configuration -->
+    <script src="config.private.js"></script>
+    <script src="config.public.js"></script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #86B645;
+            --primary-dark: #5a8827;
+            --secondary: #2c3e50;
+            --bg: #f4f6f8;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-light: #7f8c8d;
+            --border: #e0e0e0;
+            --shadow: 0 2px 10px rgba(0,0,0,0.05);
+            --radius: 12px;
+            
+            /* Status Colors */
+            --status-todo: #f39c12;
+            --status-progress: #3498db;
+            --status-done: #27ae60;
+            --status-archived: #95a5a6;
+            
+            /* User Colors */
+            --user-sandro: #3498db;
+            --user-alessandro: #9b59b6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-avatar.sandro { background: var(--user-sandro); }
+        .user-avatar.alessandro { background: var(--user-alessandro); }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-light);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        /* ===== NAVIGATION ===== */
+        .nav-tabs {
+            display: flex;
+            background: var(--card-bg);
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            gap: 20px;
+        }
+
+        .nav-tab {
+            padding: 15px 5px;
+            color: var(--text-light);
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .nav-tab:hover {
+            color: var(--primary-dark);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .view-section {
+            display: none;
+            height: 100%;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        /* ===== DASHBOARD ===== */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .dash-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .dash-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .activity-meta {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        /* ===== KANBAN BOARD ===== */
+        .kanban-board {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .kanban-column {
+            flex: 1;
+            min-width: 280px;
+            background: #ebecf0;
+            border-radius: var(--radius);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+        }
+
+        .column-header {
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--secondary);
+        }
+
+        .task-count {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 5px;
+        }
+
+        .task-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: grab;
+            border-left: 4px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .task-card.priority-high { border-left-color: #e74c3c; }
+        .task-card.priority-medium { border-left-color: #f39c12; }
+        .task-card.priority-low { border-left-color: #27ae60; }
+
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .task-assignee {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mini-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* ===== NOTES & IDEAS ===== */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .note-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            transition: transform 0.2s;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .note-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .note-content {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+        }
+
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 10px;
+        }
+
+        .visibility-toggle {
+            cursor: pointer;
+            color: var(--text-light);
+            transition: color 0.2s;
+        }
+
+        .visibility-toggle.shared {
+            color: var(--primary);
+        }
+
+        .visibility-toggle:hover {
+            color: var(--text);
+        }
+
+        /* ===== FAB & MODALS ===== */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(134,182,69,0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 1000;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+        }
+
+        .fab-menu {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: flex-end;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .fab-menu.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .fab-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .fab-label {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .fab-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 500px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-light);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* AI Chat */
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 1000;
+        }
+
+        .ai-toggle {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .ai-window {
+            position: absolute;
+            bottom: 70px;
+            left: 0;
+            width: 300px;
+            height: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ai-window.active {
+            display: flex;
+        }
+
+        .ai-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .ai-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .ai-input-area {
+            padding: 10px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-input {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 13px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+            }
+            .logo span {
+                display: none;
+            }
+            .kanban-board {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .kanban-column {
+                min-width: 100%;
+                max-height: none;
+            }
+            .fab {
+                bottom: 20px;
+                right: 20px;
+            }
+            .fab-menu {
+                bottom: 90px;
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <i class="fas fa-users-cog"></i>
+                <span>Team Hub</span>
+            </div>
+            <div class="user-selector" id="userSelector" onclick="toggleUserSwitch()">
+                <div class="user-avatar sandro" id="currentUserAvatar">S</div>
+                <span id="currentUserName">Sandro</span>
+                <i class="fas fa-chevron-down" style="font-size: 10px; color: var(--text-light);"></i>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="notification-bell" onclick="showNotifications()">
+                <i class="far fa-bell"></i>
+                <div class="notification-badge" id="notifCount" style="display: none;">0</div>
+            </div>
+            <a href="admin.html" style="color: var(--text-light); text-decoration: none;">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-tabs">
+        <div class="nav-tab active" onclick="switchTab('dashboard')">
+            <i class="fas fa-home"></i> Dashboard
+        </div>
+        <div class="nav-tab" onclick="switchTab('tasks')">
+            <i class="fas fa-tasks"></i> Task Board
+        </div>
+        <div class="nav-tab" onclick="switchTab('notes')">
+            <i class="fas fa-sticky-note"></i> Note & Idee
+        </div>
+        <div class="nav-tab" onclick="switchTab('orders')">
+            <i class="fas fa-shopping-cart"></i> Ordini
+        </div>
+        <div class="nav-tab" onclick="switchTab('calls')">
+            <i class="fas fa-phone-alt"></i> Chiamate
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard View -->
+        <section id="dashboard" class="view-section active">
+            <div class="dashboard-grid">
+                <!-- Today's Overview -->
+                <div class="dash-card">
+                    <div class="dash-header">
+                        <div class="dash-title"><i class="fas fa-calendar-day"></i> Oggi</div>
+                        <span class="date-badge" id="currentDate">28/11/2025</span>
+                    </div>
+                    <div class="activity-list" id="todayList">
+                        <div class="activity-item">
+                            <div class="activity-icon" style="color: #f39c12;"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="activity-content">
+                                <div class="activity-text">3 Task in scadenza</div>
+                                <div class="activity-meta">Controlla la board</div>
+                            </div>
+                        </div>
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- To Watch -->
+                <div class="dash-card">
+                    <div class="dash-header">
+                        <div class="dash-title"><i class="fas fa-eye"></i> Da Vedere</div>
+                        <span class="notification-badge" style="position: static; width: auto; padding: 0 6px; border-radius: 10px;">2 Nuovi</span>
+                    </div>
+                    <div class="activity-list" id="watchList">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="dash-card">
+                    <div class="dash-header">
+                        <div class="dash-title"><i class="fas fa-history"></i> Attività Recente</div>
+                    </div>
+                    <div class="activity-list" id="activityFeed">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tasks View -->
+        <section id="tasks" class="view-section">
+            <div class="kanban-board" id="kanbanBoard">
+                <!-- Columns will be generated dynamically -->
+            </div>
+        </section>
+
+        <!-- Notes View -->
+        <section id="notes" class="view-section">
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="openNewNoteModal()">+ Nuova Nota</button>
+                <div style="flex: 1;"></div>
+                <select class="form-select" style="width: auto;" onchange="filterNotes(this.value)">
+                    <option value="all">Tutte</option>
+                    <option value="personal">Personali</option>
+                    <option value="shared">Condivise</option>
+                </select>
+            </div>
+            <div class="notes-grid" id="notesGrid">
+                <!-- Notes will be generated dynamically -->
+            </div>
+        </section>
+
+        <!-- Orders View -->
+        <section id="orders" class="view-section">
+            <div class="dash-card">
+                <div class="dash-header">
+                    <div class="dash-title">Lista Ordini</div>
+                    <button class="btn btn-primary" onclick="openNewOrderModal()">+ Nuovo Ordine</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align: left; border-bottom: 2px solid #f0f0f0;">
+                                <th style="padding: 10px;">Stato</th>
+                                <th style="padding: 10px;">Prodotto</th>
+                                <th style="padding: 10px;">Fornitore</th>
+                                <th style="padding: 10px;">Prezzo</th>
+                                <th style="padding: 10px;">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <!-- Orders will be generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Calls View -->
+        <section id="calls" class="view-section">
+            <div class="dash-card">
+                <div class="dash-header">
+                    <div class="dash-title">Log Chiamate</div>
+                    <button class="btn btn-primary" onclick="openNewCallModal()">+ Registra Chiamata</button>
+                </div>
+                <div class="activity-list" id="callsList">
+                    <!-- Calls will be generated dynamically -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Action Button -->
+    <div class="fab" onclick="toggleFabMenu()">
+        <i class="fas fa-plus"></i>
+    </div>
+
+    <div class="fab-menu" id="fabMenu">
+        <div class="fab-item" onclick="openNewTaskModal()">
+            <span class="fab-label">Nuovo Task</span>
+            <div class="fab-btn"><i class="fas fa-check"></i></div>
+        </div>
+        <div class="fab-item" onclick="openNewNoteModal()">
+            <span class="fab-label">Nuova Nota</span>
+            <div class="fab-btn"><i class="fas fa-sticky-note"></i></div>
+        </div>
+        <div class="fab-item" onclick="openNewOrderModal()">
+            <span class="fab-label">Nuovo Ordine</span>
+            <div class="fab-btn"><i class="fas fa-shopping-cart"></i></div>
+        </div>
+        <div class="fab-item" onclick="startVoiceNote()">
+            <span class="fab-label">Nota Vocale</span>
+            <div class="fab-btn" style="background: #e74c3c; color: white;"><i class="fas fa-microphone"></i></div>
+        </div>
+    </div>
+
+    <!-- AI Widget -->
+    <div class="ai-chat-widget">
+        <div class="ai-toggle" onclick="toggleAiChat()">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="ai-window" id="aiWindow">
+            <div class="ai-header">
+                <i class="fas fa-robot"></i> Assistente Team
+            </div>
+            <div class="ai-messages" id="aiMessages">
+                <div style="margin-bottom: 10px; background: #e3f2fd; padding: 8px 12px; border-radius: 12px 12px 12px 0; max-width: 80%;">
+                    Ciao! Come posso aiutarti oggi?
+                </div>
+            </div>
+            <div class="ai-input-area">
+                <input type="text" class="ai-input" placeholder="Chiedi qualcosa..." id="aiInput" onkeypress="handleAiInput(event)">
+                <button class="btn btn-primary" style="padding: 5px 10px; border-radius: 50%;" onclick="sendAiMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Nuovo Task</div>
+                <div class="close-modal" onclick="closeModal('taskModal')">&times;</div>
+            </div>
+            <form id="taskForm" onsubmit="handleTaskSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label">Titolo</label>
+                    <input type="text" class="form-input" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Descrizione</label>
+                    <textarea class="form-textarea" name="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priorità</label>
+                    <select class="form-select" name="priority">
+                        <option value="low">Bassa 🟢</option>
+                        <option value="medium" selected>Media 🟡</option>
+                        <option value="high">Alta 🔴</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assegnato a</label>
+                    <select class="form-select" name="assignee">
+                        <option value="Sandro">Sandro</option>
+                        <option value="Alessandro">Alessandro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Crea Task</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Nuova Nota</div>
+                <div class="close-modal" onclick="closeModal('noteModal')">&times;</div>
+            </div>
+            <form id="noteForm" onsubmit="handleNoteSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label">Contenuto</label>
+                    <textarea class="form-textarea" name="content" required style="min-height: 150px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Colore</label>
+                    <div style="display: flex; gap: 10px;">
+                        <div onclick="selectColor(this, '#ffffff')" style="width: 30px; height: 30px; border-radius: 50%; background: #ffffff; border: 1px solid #ddd; cursor: pointer; box-shadow: 0 0 0 2px var(--primary);"></div>
+                        <div onclick="selectColor(this, '#fff9c4')" style="width: 30px; height: 30px; border-radius: 50%; background: #fff9c4; border: 1px solid #ddd; cursor: pointer;"></div>
+                        <div onclick="selectColor(this, '#e1bee7')" style="width: 30px; height: 30px; border-radius: 50%; background: #e1bee7; border: 1px solid #ddd; cursor: pointer;"></div>
+                        <div onclick="selectColor(this, '#c8e6c9')" style="width: 30px; height: 30px; border-radius: 50%; background: #c8e6c9; border: 1px solid #ddd; cursor: pointer;"></div>
+                        <div onclick="selectColor(this, '#bbdefb')" style="width: 30px; height: 30px; border-radius: 50%; background: #bbdefb; border: 1px solid #ddd; cursor: pointer;"></div>
+                    </div>
+                    <input type="hidden" name="color" value="#ffffff" id="noteColorInput">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="shared">
+                        <span>Condividi con il team (👁️)</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Salva Nota</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // ===== STATE =====
+        let currentUser = localStorage.getItem('workspaceUser') || 'Sandro';
+        let workspaceData = {
+            tasks: [],
+            notes: [],
+            orders: [],
+            calls: [],
+            activity: []
+        };
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUserUI();
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('it-CH');
+            loadWorkspaceData();
+        });
+
+        // ===== USER MANAGEMENT =====
+        function toggleUserSwitch() {
+            const newUser = currentUser === 'Sandro' ? 'Alessandro' : 'Sandro';
+            currentUser = newUser;
+            localStorage.setItem('workspaceUser', newUser);
+            updateUserUI();
+            loadWorkspaceData(); // Reload data for new user context
+        }
+
+        function updateUserUI() {
+            const avatar = document.getElementById('currentUserAvatar');
+            const name = document.getElementById('currentUserName');
+            
+            name.textContent = currentUser;
+            avatar.textContent = currentUser.charAt(0);
+            avatar.className = `user-avatar ${currentUser.toLowerCase()}`;
+        }
+
+        // ===== DATA LOADING =====
+        async function loadWorkspaceData() {
+            showLoading(true);
+            try {
+                // Try to fetch from API
+                const scriptUrl = window.PRIVATE_CONFIG?.scriptUrl;
+                const authToken = window.PRIVATE_CONFIG?.authToken;
+                
+                if (scriptUrl) {
+                    // Using JSONP for GAS
+                    const callbackName = 'wsCallback_' + Math.round(100000 * Math.random());
+                    const url = `${scriptUrl}?function=workspace&action=getData&user=${currentUser}&authToken=${authToken}&callback=${callbackName}`;
+                    
+                    window[callbackName] = (response) => {
+                        if (response.success) {
+                            workspaceData = response.data;
+                            renderAll();
+                        } else {
+                            console.error('API Error:', response.error);
+                            useMockData(); // Fallback
+                        }
+                        delete window[callbackName];
+                        document.body.removeChild(scriptElem);
+                        showLoading(false);
+                    };
+
+                    const scriptElem = document.createElement('script');
+                    scriptElem.src = url;
+                    scriptElem.onerror = () => {
+                        console.warn('Network error, using mock data');
+                        useMockData();
+                        showLoading(false);
+                    };
+                    document.body.appendChild(scriptElem);
+                } else {
+                    console.warn('No script URL, using mock data');
+                    useMockData();
+                    showLoading(false);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                useMockData();
+                showLoading(false);
+            }
+        }
+
+        function useMockData() {
+            workspaceData = getMockData();
+            renderAll();
+        }
+
+        function getMockData() {
+            return {
+                tasks: [
+                    { id: 1, title: 'Ordinare olio motore', status: 'todo', priority: 'high', assignee: 'Sandro' },
+                    { id: 2, title: 'Controllare N03', status: 'in-progress', priority: 'medium', assignee: 'Alessandro' },
+                    { id: 3, title: 'Aggiornare listino', status: 'done', priority: 'low', assignee: 'Sandro' }
+                ],
+                notes: [
+                    { id: 1, content: 'Ricordarsi di chiamare il commercialista', color: '#fff9c4', shared: false, author: 'Sandro' },
+                    { id: 2, content: 'Idea per promo invernale: sconto 10% su weekend', color: '#bbdefb', shared: true, author: 'Alessandro', seen: false }
+                ],
+                orders: [
+                    { id: 1, product: 'Tergicristalli Bosch', status: 'ordered', price: '45.00' }
+                ],
+                activity: [
+                    { text: 'Alessandro ha completato "Pulizia N01"', time: '10:30', icon: 'check', color: '#27ae60' },
+                    { text: 'Sandro ha aggiunto una nota condivisa', time: '09:15', icon: 'sticky-note', color: '#3498db' }
+                ]
+            };
+        }
+
+        // ===== RENDERING =====
+        function renderAll() {
+            renderDashboard();
+            renderKanban();
+            renderNotes();
+            renderOrders();
+            renderCalls();
+        }
+
+        function renderDashboard() {
+            // Activity Feed
+            const feed = document.getElementById('activityFeed');
+            feed.innerHTML = workspaceData.activity.map(item => `
+                <div class="activity-item">
+                    <div class="activity-icon" style="color: ${item.color};"><i class="fas fa-${item.icon}"></i></div>
+                    <div class="activity-content">
+                        <div class="activity-text">${item.text}</div>
+                        <div class="activity-meta">${item.time}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Watch List (Unseen shared items)
+            const watchList = document.getElementById('watchList');
+            const unseenNotes = workspaceData.notes.filter(n => n.shared && n.author !== currentUser && !n.seen);
+            
+            if (unseenNotes.length > 0) {
+                watchList.innerHTML = unseenNotes.map(n => `
+                    <div class="activity-item" onclick="viewNote(${n.id})">
+                        <div class="activity-icon" style="color: var(--primary);"><i class="fas fa-eye"></i></div>
+                        <div class="activity-content">
+                            <div class="activity-text">Nota da ${n.author}</div>
+                            <div class="activity-meta">Clicca per vedere</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                watchList.innerHTML = '<div style="text-align: center; color: #999; padding: 10px;">Niente di nuovo</div>';
+            }
+        }
+
+        function renderKanban() {
+            const board = document.getElementById('kanbanBoard');
+            const columns = [
+                { id: 'todo', title: '📥 Da Fare', color: '#f39c12' },
+                { id: 'in-progress', title: '🔄 In Corso', color: '#3498db' },
+                { id: 'done', title: '✅ Fatto', color: '#27ae60' }
+            ];
+
+            board.innerHTML = columns.map(col => {
+                const tasks = workspaceData.tasks.filter(t => t.status === col.id);
+                return `
+                    <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, '${col.id}')">
+                        <div class="column-header">
+                            <span>${col.title}</span>
+                            <span class="task-count">${tasks.length}</span>
+                        </div>
+                        <div class="task-list">
+                            ${tasks.map(t => `
+                                <div class="task-card priority-${t.priority}" draggable="true" ondragstart="drag(event, ${t.id})">
+                                    <div class="task-title">${t.title}</div>
+                                    <div class="task-meta">
+                                        <div class="task-assignee">
+                                            <div class="mini-avatar" style="background: var(--user-${t.assignee.toLowerCase()})">${t.assignee.charAt(0)}</div>
+                                            <span>${t.assignee}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderNotes() {
+            const grid = document.getElementById('notesGrid');
+            // Filter logic here if needed
+            grid.innerHTML = workspaceData.notes.map(n => `
+                <div class="note-card" style="background: ${n.color};">
+                    <div class="note-header">
+                        <span>${n.author}</span>
+                        <span>${n.shared ? '<i class="fas fa-users"></i>' : '<i class="fas fa-lock"></i>'}</span>
+                    </div>
+                    <div class="note-content">${n.content}</div>
+                    <div class="note-footer">
+                        <div class="visibility-toggle ${n.shared ? 'shared' : ''}" onclick="toggleNoteShare(${n.id})">
+                            <i class="fas fa-eye"></i> ${n.shared ? 'Condivisa' : 'Privata'}
+                        </div>
+                        <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote(${n.id})"></i>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderOrders() {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = workspaceData.orders.map(o => `
+                <tr>
+                    <td><span style="padding: 4px 8px; border-radius: 4px; background: #eee; font-size: 12px;">${o.status}</span></td>
+                    <td>${o.product}</td>
+                    <td>Amazon</td>
+                    <td>CHF ${o.price}</td>
+                    <td><button class="btn" style="padding: 2px 8px;"><i class="fas fa-edit"></i></button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderCalls() {
+            // Placeholder
+            document.getElementById('callsList').innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Nessuna chiamata recente</div>';
+        }
+
+        // ===== UI ACTIONS =====
+        function switchTab(tabId) {
+            // Update tabs
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            // Update views
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function toggleFabMenu() {
+            document.getElementById('fabMenu').classList.toggle('active');
+            document.querySelector('.fab').style.transform = document.getElementById('fabMenu').classList.contains('active') ? 'rotate(45deg)' : 'rotate(0)';
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) overlay.classList.add('active');
+            else overlay.classList.remove('active');
+        }
+
+        // Modals
+        function openNewTaskModal() {
+            document.getElementById('taskModal').classList.add('active');
+            toggleFabMenu();
+        }
+
+        function openNewNoteModal() {
+            document.getElementById('noteModal').classList.add('active');
+            toggleFabMenu();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function selectColor(el, color) {
+            // Reset borders
+            el.parentElement.querySelectorAll('div').forEach(d => d.style.boxShadow = 'none');
+            // Set active
+            el.style.boxShadow = '0 0 0 2px var(--primary)';
+            document.getElementById('noteColorInput').value = color;
+        }
+
+        // Drag & Drop
+        function drag(ev, id) {
+            ev.dataTransfer.setData("text", id);
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drop(ev, status) {
+            ev.preventDefault();
+            const id = ev.dataTransfer.getData("text");
+            // Update task status logic here
+            console.log(`Moved task ${id} to ${status}`);
+            // Refresh UI
+        }
+
+        // AI Chat
+        function toggleAiChat() {
+            document.getElementById('aiWindow').classList.toggle('active');
+        }
+
+        function handleAiInput(e) {
+            if (e.key === 'Enter') sendAiMessage();
+        }
+
+        function sendAiMessage() {
+            const input = document.getElementById('aiInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Add user message
+            const msgs = document.getElementById('aiMessages');
+            msgs.innerHTML += `<div style="margin-bottom: 10px; text-align: right;"><span style="background: var(--primary); color: white; padding: 8px 12px; border-radius: 12px 12px 0 12px; display: inline-block;">${text}</span></div>`;
+            
+            input.value = '';
+            msgs.scrollTop = msgs.scrollHeight;
+
+            // Simulate AI response
+            setTimeout(() => {
+                msgs.innerHTML += `<div style="margin-bottom: 10px;"><span style="background: #e3f2fd; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">Ho ricevuto la tua richiesta. Sto elaborando...</span></div>`;
+                msgs.scrollTop = msgs.scrollHeight;
+            }, 1000);
+        }
+
+        function openNewOrderModal() {
+            const product = prompt("Nome prodotto:");
+            if(product) {
+                const price = prompt("Prezzo stimato:");
+                callApi('saveOrder', { data: { product: product, price: price } }, () => {
+                    loadWorkspaceData();
+                });
+            }
+        }
+
+        function openNewCallModal() {
+            alert("Funzionalità registro chiamate in arrivo!");
+        }
+
+        // Voice Note
+        function startVoiceNote() {
+            alert('🎤 Registrazione vocale avviata... (Simulazione)');
+            // Here we would implement MediaRecorder API
+        }
+
+        // ===== API CALLS =====
+        function callApi(action, params = {}, callback) {
+            showLoading(true);
+            const scriptUrl = window.PRIVATE_CONFIG?.scriptUrl;
+            const authToken = window.PRIVATE_CONFIG?.authToken;
+            
+            if (!scriptUrl) {
+                console.warn('No script URL, simulating success');
+                setTimeout(() => {
+                    if(callback) callback({ success: true });
+                    showLoading(false);
+                }, 500);
+                return;
+            }
+
+            const callbackName = 'wsCallback_' + Math.round(100000 * Math.random());
+            
+            let url = `${scriptUrl}?function=workspace&action=${action}&user=${currentUser}&authToken=${authToken}&callback=${callbackName}`;
+            
+            if (params.data) {
+                url += `&data=${encodeURIComponent(JSON.stringify(params.data))}`;
+            }
+            
+            for (const key in params) {
+                if (key !== 'data') {
+                    url += `&${key}=${encodeURIComponent(params[key])}`;
+                }
+            }
+            
+            window[callbackName] = (response) => {
+                if (response.success) {
+                    if(callback) callback(response);
+                } else {
+                    alert('Errore: ' + response.error);
+                }
+                delete window[callbackName];
+                document.body.removeChild(scriptElem);
+                showLoading(false);
+            };
+
+            const scriptElem = document.createElement('script');
+            scriptElem.src = url;
+            scriptElem.onerror = () => {
+                alert('Errore di rete');
+                showLoading(false);
+            };
+            document.body.appendChild(scriptElem);
+        }
+
+        function handleTaskSubmit(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const task = Object.fromEntries(formData.entries());
+            
+            callApi('saveTask', { data: task }, () => {
+                closeModal('taskModal');
+                e.target.reset();
+                loadWorkspaceData();
+            });
+        }
+
+        function handleNoteSubmit(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const note = Object.fromEntries(formData.entries());
+            note.shared = note.shared === 'on';
+            
+            callApi('saveNote', { data: note }, () => {
+                closeModal('noteModal');
+                e.target.reset();
+                loadWorkspaceData();
+            });
+        }
+
+        function deleteNote(id) {
+            if(!confirm('Sei sicuro di voler eliminare questa nota?')) return;
+            callApi('deleteItem', { type: 'note', id: id }, () => {
+                loadWorkspaceData();
+            });
+        }
+
+        function toggleNoteShare(id) {
+            callApi('toggleNoteShare', { id: id }, () => {
+                loadWorkspaceData();
+            });
+        }
+
+
+    </script>
+</body>
+</html>
