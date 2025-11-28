@@ -1625,8 +1625,10 @@
                 return;
             }
 
+            const dateStr = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
             const prompt = `Ho registrato questo appunto vocale per un ${type}: "${text}". 
-            Per favore riassumilo in bullet points chiari e crea una nota condivisa nel workspace con il titolo "${type} - ${new Date().toLocaleDateString()}" e il contenuto riassunto.`;
+            Per favore riassumilo in bullet points chiari e crea una nota condivisa nel workspace.
+            IMPORTANTE: Il contenuto della nota DEVE iniziare con una riga in grassetto contenente il titolo e la data, ad esempio: "**${type} - ${dateStr}**", seguita dai punti elenco.`;
 
             // Reuse existing AI chat function logic but programmatically
             toggleAiChat();

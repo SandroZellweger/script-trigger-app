@@ -1,5 +1,5 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_VERSION = 'v2.0.3';
+const CACHE_VERSION = 'v2.0.4';
 const CACHE_NAME = `van-calendar-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `van-calendar-static-${CACHE_VERSION}`;
 const API_CACHE_NAME = `van-calendar-api-${CACHE_VERSION}`;
@@ -8,6 +8,7 @@ const API_CACHE_NAME = `van-calendar-api-${CACHE_VERSION}`;
 const STATIC_RESOURCES = [
     './',
     './calendar-production.html',
+    './workspace.html',
     './manifest.json',
     'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'
 ];
