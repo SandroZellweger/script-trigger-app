@@ -24,6 +24,8 @@ function handleWorkspaceRequest(params) {
         return toggleNoteShare(params.id, user);
       case 'markNoteSeen':
         return markNoteSeen(params.id, user);
+      case 'saveComment':
+        return saveComment(JSON.parse(params.data), user);
       default:
         return createErrorResponse('Unknown workspace action: ' + action);
     }
@@ -40,6 +42,7 @@ function getWorkspaceData(user) {
   const notes = getSheetData(ss, 'WS_Notes');
   const orders = getSheetData(ss, 'WS_Orders');
   const activity = getSheetData(ss, 'WS_Activity');
+  const comments = getSheetData(ss, 'WS_Comments');
   
   // Filter notes: Show own notes OR shared notes
   const filteredNotes = notes.filter(n => n.author === user || n.shared === true || n.shared === 'true');
@@ -60,7 +63,8 @@ function getWorkspaceData(user) {
     tasks: tasks,
     notes: processedNotes,
     orders: orders,
-    activity: sortedActivity
+    activity: sortedActivity,
+    comments: comments
   });
 }
 
@@ -225,6 +229,23 @@ function markNoteSeen(id, user) {
     }
   }
   return createErrorResponse('Note not found');
+}
+
+// Save Comment
+function saveComment(comment, user) {
+  const ss = getSpreadsheet();
+  const sheet = ensureSheet(ss, 'WS_Comments', ['id', 'parent_id', 'parent_type', 'user', 'content', 'timestamp']);
+  
+  const timestamp = new Date().toISOString();
+  const commentId = generateUniqueId();
+  
+  sheet.appendRow([commentId, comment.parentId, comment.parentType, user, comment.content, timestamp]);
+  
+  // Log activity
+  const itemType = comment.parentType === 'task' ? 'un task' : 'una nota';
+  logActivity(user, `Ha commentato su ${itemType}`, 'comment', '#34495e');
+  
+  return createSuccessResponse({ id: commentId, timestamp: timestamp });
 }
 
 // Helpers
