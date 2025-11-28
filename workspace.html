@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Team Hub - Workspace</title>
     
@@ -1038,8 +1038,10 @@
             showLoading(true);
             try {
                 // Try to fetch from API
-                const scriptUrl = window.PRIVATE_CONFIG?.scriptUrl;
-                const authToken = window.PRIVATE_CONFIG?.authToken;
+                // Use APP_CONFIG which merges public and private
+                const config = window.APP_CONFIG || window.PRIVATE_CONFIG || {};
+                const scriptUrl = config.scriptUrl;
+                const authToken = config.authToken;
                 
                 if (scriptUrl) {
                     // Using JSONP for GAS
@@ -1307,8 +1309,9 @@
             msgs.scrollTop = msgs.scrollHeight;
 
             // Call AI API
-            const scriptUrl = window.PRIVATE_CONFIG?.scriptUrl;
-            const authToken = window.PRIVATE_CONFIG?.authToken;
+            const config = window.APP_CONFIG || window.PRIVATE_CONFIG || {};
+            const scriptUrl = config.scriptUrl;
+            const authToken = config.authToken;
             
             if (!scriptUrl) {
                 document.getElementById(typingId).innerHTML = '<span style="background: #ffcdd2; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block;">Errore: Configurazione mancante</span>';
@@ -1367,8 +1370,9 @@
         // ===== API CALLS =====
         function callApi(action, params = {}, callback) {
             showLoading(true);
-            const scriptUrl = window.PRIVATE_CONFIG?.scriptUrl;
-            const authToken = window.PRIVATE_CONFIG?.authToken;
+            const config = window.APP_CONFIG || window.PRIVATE_CONFIG || {};
+            const scriptUrl = config.scriptUrl;
+            const authToken = config.authToken;
             
             if (!scriptUrl) {
                 console.warn('No script URL, simulating success');
