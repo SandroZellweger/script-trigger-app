@@ -1576,6 +1576,10 @@
         }
 
         function startRecording(type) {
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+
             currentVoiceType = type;
             document.getElementById('recordingUI').style.display = 'block';
             document.getElementById('transcriptionPreview').textContent = '';
@@ -1587,15 +1591,20 @@
             recognition.lang = 'it-IT';
 
             recognition.onresult = (event) => {
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                let interim = '';
+                let final = '';
+
+                // Rebuild full transcript from scratch to avoid duplication bugs on mobile
+                for (let i = 0; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
+                        final += event.results[i][0].transcript;
                     } else {
-                        interimTranscript += event.results[i][0].transcript;
+                        interim += event.results[i][0].transcript;
                     }
                 }
-                document.getElementById('transcriptionPreview').textContent = finalTranscript + interimTranscript;
+                
+                finalTranscript = final;
+                document.getElementById('transcriptionPreview').textContent = final + interim;
             };
 
             recognition.onerror = (event) => {
