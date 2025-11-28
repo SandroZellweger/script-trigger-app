@@ -696,6 +696,29 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Voice Animation */
+        .listening-animation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50px;
+            gap: 5px;
+        }
+        .circle {
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1s infinite ease-in-out;
+        }
+        .circle:nth-child(1) { animation-delay: 0s; }
+        .circle:nth-child(2) { animation-delay: 0.2s; }
+        .circle:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header {
@@ -987,6 +1010,33 @@
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Salva Nota</button>
             </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="voiceModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Nota Vocale</div>
+                <div class="close-modal" onclick="closeModal('voiceModal')">&times;</div>
+            </div>
+            <div style="text-align: center; padding: 20px;">
+                <p style="margin-bottom: 20px;">Cosa vuoi registrare?</p>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 30px;">
+                    <button class="btn" onclick="startRecording('Handover')" style="border: 1px solid var(--border);">🤝 Handover</button>
+                    <button class="btn" onclick="startRecording('Info Giornaliere')" style="border: 1px solid var(--border);">📅 Info Giornaliere</button>
+                </div>
+                
+                <div id="recordingUI" style="display: none;">
+                    <div class="listening-animation">
+                        <div class="circle"></div>
+                        <div class="circle"></div>
+                        <div class="circle"></div>
+                    </div>
+                    <p id="recordingStatus" style="margin-top: 15px; font-weight: 500;">In ascolto...</p>
+                    <p id="transcriptionPreview" style="margin-top: 10px; font-size: 12px; color: #666; font-style: italic; min-height: 40px; border: 1px dashed #ccc; padding: 10px; border-radius: 8px;"></p>
+                    <button class="btn btn-primary" onclick="stopRecording()" style="background: #e74c3c; margin-top: 10px;">Stop & Elabora</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1511,9 +1561,81 @@
         }
 
         // Voice Note
+        let recognition;
+        let currentVoiceType = '';
+        let finalTranscript = '';
+
         function startVoiceNote() {
-            alert('🎤 Registrazione vocale avviata... (Simulazione)');
-            // Here we would implement MediaRecorder API
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Il tuo browser non supporta la dettatura vocale. Usa Chrome o Edge.");
+                return;
+            }
+            document.getElementById('voiceModal').classList.add('active');
+            toggleFabMenu();
+            document.getElementById('recordingUI').style.display = 'none';
+        }
+
+        function startRecording(type) {
+            currentVoiceType = type;
+            document.getElementById('recordingUI').style.display = 'block';
+            document.getElementById('transcriptionPreview').textContent = '';
+            finalTranscript = '';
+
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'it-IT';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                document.getElementById('transcriptionPreview').textContent = finalTranscript + interimTranscript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error(event.error);
+                document.getElementById('recordingStatus').textContent = "Errore: " + event.error;
+            };
+
+            recognition.start();
+        }
+
+        function stopRecording() {
+            if (recognition) {
+                recognition.stop();
+                document.getElementById('recordingStatus').textContent = "Elaborazione con AI...";
+                
+                // Send to AI
+                setTimeout(() => {
+                    processVoiceNote(finalTranscript, currentVoiceType);
+                }, 1000);
+            }
+        }
+
+        function processVoiceNote(text, type) {
+            if (!text) {
+                alert("Nessun testo rilevato.");
+                closeModal('voiceModal');
+                return;
+            }
+
+            const prompt = `Ho registrato questo appunto vocale per un ${type}: "${text}". 
+            Per favore riassumilo in bullet points chiari e crea una nota condivisa nel workspace con il titolo "${type} - ${new Date().toLocaleDateString()}" e il contenuto riassunto.`;
+
+            // Reuse existing AI chat function logic but programmatically
+            toggleAiChat();
+            closeModal('voiceModal');
+            
+            // Inject into AI chat
+            const input = document.getElementById('aiInput');
+            input.value = prompt;
+            sendAiMessage(); 
         }
 
         // ===== API CALLS =====
