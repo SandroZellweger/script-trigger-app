@@ -26,6 +26,8 @@ function handleWorkspaceRequest(params) {
         return markNoteSeen(params.id, user);
       case 'saveComment':
         return saveComment(JSON.parse(params.data), user);
+      case 'markCommentsSeen':
+        return markCommentsSeen(params.parentId, user);
       default:
         return createErrorResponse('Unknown workspace action: ' + action);
     }
@@ -43,6 +45,15 @@ function getWorkspaceData(user) {
   const orders = getSheetData(ss, 'WS_Orders');
   const activity = getSheetData(ss, 'WS_Activity');
   const comments = getSheetData(ss, 'WS_Comments');
+  
+  // Process comments to add 'seen' boolean
+  const processedComments = comments.map(c => {
+    const seenBy = c.seen_by ? String(c.seen_by) : '';
+    return {
+      ...c,
+      seen: seenBy.includes(user)
+    };
+  });
   
   // Filter notes: Show own notes OR shared notes
   const filteredNotes = notes.filter(n => n.author === user || n.shared === true || n.shared === 'true');
@@ -64,7 +75,7 @@ function getWorkspaceData(user) {
     notes: processedNotes,
     orders: orders,
     activity: sortedActivity,
-    comments: comments
+    comments: processedComments
   });
 }
 
@@ -234,18 +245,54 @@ function markNoteSeen(id, user) {
 // Save Comment
 function saveComment(comment, user) {
   const ss = getSpreadsheet();
-  const sheet = ensureSheet(ss, 'WS_Comments', ['id', 'parent_id', 'parent_type', 'user', 'content', 'timestamp']);
+  let sheet = ss.getSheetByName('WS_Comments');
+  if (!sheet) {
+    sheet = ss.insertSheet('WS_Comments');
+    sheet.appendRow(['id', 'parent_id', 'parent_type', 'user', 'content', 'timestamp', 'seen_by']);
+  } else {
+    // Ensure header exists
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.indexOf('seen_by') === -1) {
+      sheet.getRange(1, headers.length + 1).setValue('seen_by');
+    }
+  }
   
   const timestamp = new Date().toISOString();
   const commentId = generateUniqueId();
   
-  sheet.appendRow([commentId, comment.parentId, comment.parentType, user, comment.content, timestamp]);
+  sheet.appendRow([commentId, comment.parentId, comment.parentType, user, comment.content, timestamp, user]);
   
   // Log activity
   const itemType = comment.parentType === 'task' ? 'un task' : 'una nota';
   logActivity(user, `Ha commentato su ${itemType}`, 'comment', '#34495e');
   
   return createSuccessResponse({ id: commentId, timestamp: timestamp });
+}
+
+function markCommentsSeen(parentId, user) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName('WS_Comments');
+  if (!sheet) return createSuccessResponse({ message: 'No sheet' });
+  
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const parentIdIndex = headers.indexOf('parent_id');
+  const seenByIndex = headers.indexOf('seen_by');
+  
+  if (parentIdIndex === -1 || seenByIndex === -1) return createErrorResponse('Columns missing');
+
+  let updated = false;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][parentIdIndex] == parentId) {
+      const currentSeen = data[i][seenByIndex] ? String(data[i][seenByIndex]) : '';
+      if (!currentSeen.includes(user)) {
+        const newSeen = currentSeen ? currentSeen + ',' + user : user;
+        sheet.getRange(i + 1, seenByIndex + 1).setValue(newSeen);
+        updated = true;
+      }
+    }
+  }
+  return createSuccessResponse({ updated: updated });
 }
 
 // Helpers

@@ -1302,7 +1302,10 @@
                                             <span>${t.assignee}</span>
                                         </div>
                                         <div style="display:flex; gap:5px; align-items:center;">
-                                            <i class="fas fa-comment" style="cursor: pointer; color: var(--text-light); font-size:12px;" onclick="openComments('${t.id}', 'task'); event.stopPropagation();"></i>
+                                            ${(() => {
+                                                const status = getCommentStatus(t.id);
+                                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color}; font-size:12px;" onclick="openComments('${t.id}', 'task'); event.stopPropagation();"></i>`;
+                                            })()}
                                             <div class="task-date" style="font-size:10px; color:#999;">${formatDate(t.created_at)}</div>
                                         </div>
                                     </div>
@@ -1335,7 +1338,10 @@
                             <i class="fas fa-eye"></i> ${n.shared ? 'Condivisa' : 'Privata'}
                         </div>
                         <div style="display:flex; gap:10px;">
-                            <i class="fas fa-comment" style="cursor: pointer; color: var(--text-light);" onclick="openComments('${n.id}', 'note')"></i>
+                            ${(() => {
+                                const status = getCommentStatus(n.id);
+                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color};" onclick="openComments('${n.id}', 'note')"></i>`;
+                            })()}
                             <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote('${n.id}')"></i>
                         </div>
                     </div>
@@ -1453,14 +1459,31 @@
             document.getElementById('taskModal').classList.add('active');
         }
 
-        // Comments Modal
-        let currentCommentParentId = null;
-        let currentCommentParentType = null;
+        function getCommentStatus(parentId) {
+            const comments = (workspaceData.comments || []).filter(c => c.parent_id == parentId);
+            if (comments.length === 0) return { color: 'var(--text-light)' };
+            
+            const hasUnread = comments.some(c => !c.seen);
+            if (hasUnread) return { color: '#e67e22' }; // Orange
+            
+            return { color: '#27ae60' }; // Green
+        }
 
         function openComments(id, type) {
             currentCommentParentId = id;
             currentCommentParentType = type;
             
+            // Mark as seen locally
+            if (workspaceData.comments) {
+                workspaceData.comments.forEach(c => {
+                    if (c.parent_id == id) c.seen = true;
+                });
+            }
+            renderAll(); // Refresh UI to update colors
+            
+            // Call API to mark as seen
+            callApi('markCommentsSeen', { parentId: id }, () => {});
+
             const modal = document.getElementById('commentsModal');
             const title = document.getElementById('commentsModalTitle');
             const list = document.getElementById('commentsList');
@@ -1969,7 +1992,10 @@
                             <i class="fas fa-eye"></i> ${n.shared ? 'Condivisa' : 'Privata'}
                         </div>
                         <div style="display:flex; gap:10px;">
-                            <i class="fas fa-comment" style="cursor: pointer; color: var(--text-light);" onclick="openComments('${n.id}', 'note')"></i>
+                            ${(() => {
+                                const status = getCommentStatus(n.id);
+                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color};" onclick="openComments('${n.id}', 'note')"></i>`;
+                            })()}
                             <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote('${n.id}')"></i>
                         </div>
                     </div>
