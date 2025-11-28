@@ -1208,12 +1208,20 @@
                         <div class="task-list">
                             ${tasks.map(t => `
                                 <div class="task-card priority-${t.priority}" draggable="true" ondragstart="drag(event, '${t.id}')">
-                                    <div class="task-title">${t.title}</div>
+                                    <div class="task-header" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                        <div class="task-title" style="margin:0;">${t.title}</div>
+                                        <div class="task-actions">
+                                            <i class="fas fa-pencil-alt" style="cursor:pointer; margin-right:8px; color:#7f8c8d;" onclick="openEditTaskModal('${t.id}')"></i>
+                                            <i class="fas fa-trash" style="cursor:pointer; color:#e74c3c;" onclick="deleteTask('${t.id}')"></i>
+                                        </div>
+                                    </div>
+                                    <div class="task-desc" style="font-size:12px; color:#666; margin-bottom:8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${t.description || ''}</div>
                                     <div class="task-meta">
                                         <div class="task-assignee">
                                             <div class="mini-avatar" style="background: var(--user-${t.assignee.toLowerCase()})">${t.assignee.charAt(0)}</div>
                                             <span>${t.assignee}</span>
                                         </div>
+                                        <div class="task-date" style="font-size:10px; color:#999;">${formatDate(t.created_at)}</div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -1221,6 +1229,12 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
         }
 
         function renderNotes() {
@@ -1304,8 +1318,64 @@
 
         // Modals
         function openNewTaskModal() {
+            const form = document.getElementById('taskForm');
+            form.reset();
+            
+            // Clear hidden ID if exists
+            const idInput = form.querySelector('[name="id"]');
+            if(idInput) idInput.value = '';
+            
+            document.querySelector('#taskModal .modal-title').textContent = 'Nuovo Task';
             document.getElementById('taskModal').classList.add('active');
             toggleFabMenu();
+        }
+
+        function openEditTaskModal(id) {
+            const task = workspaceData.tasks.find(t => t.id == id);
+            if(!task) return;
+
+            const form = document.getElementById('taskForm');
+            form.reset();
+            
+            // Populate fields
+            form.querySelector('[name="title"]').value = task.title;
+            form.querySelector('[name="description"]').value = task.description || '';
+            form.querySelector('[name="priority"]').value = task.priority;
+            form.querySelector('[name="assignee"]').value = task.assignee;
+            
+            // Add hidden ID field if not exists
+            let idInput = form.querySelector('[name="id"]');
+            if(!idInput) {
+                idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                form.appendChild(idInput);
+            }
+            idInput.value = task.id;
+
+            // Add hidden Status field to preserve status
+            let statusInput = form.querySelector('[name="status"]');
+            if(!statusInput) {
+                statusInput = document.createElement('input');
+                statusInput.type = 'hidden';
+                statusInput.name = 'status';
+                form.appendChild(statusInput);
+            }
+            statusInput.value = task.status;
+
+            document.querySelector('#taskModal .modal-title').textContent = 'Modifica Task';
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function deleteTask(id) {
+            const input = prompt('Per confermare l\'eliminazione, scrivi "Delete":');
+            if (input === 'Delete') {
+                callApi('deleteItem', { type: 'task', id: id }, () => {
+                    loadWorkspaceData();
+                });
+            } else if (input !== null) {
+                alert('Cancellazione annullata: testo non corretto.');
+            }
         }
 
         function openNewNoteModal() {
@@ -1337,9 +1407,28 @@
         function drop(ev, status) {
             ev.preventDefault();
             const id = ev.dataTransfer.getData("text");
-            // Update task status logic here
-            console.log(`Moved task ${id} to ${status}`);
-            // Refresh UI
+            
+            // Find task
+            const task = workspaceData.tasks.find(t => t.id == id);
+            if (task && task.status !== status) {
+                // Optimistic update
+                task.status = status;
+                renderKanban();
+                renderDashboard(); // Update counts
+                
+                console.log(`Moved task ${id} to ${status}`);
+                
+                // Save to backend
+                // We only need to send id and status, but saveTask expects a task object.
+                // The backend implementation of saveTask handles partial updates if ID exists.
+                callApi('saveTask', { data: { id: id, status: status } }, (response) => {
+                    if (!response.success) {
+                        alert('Errore nel salvataggio dello stato: ' + response.error);
+                        // Revert?
+                        loadWorkspaceData(); // Reload to sync
+                    }
+                });
+            }
         }
 
         // AI Chat
