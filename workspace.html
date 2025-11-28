@@ -1135,7 +1135,7 @@
             
             if (unseenNotes.length > 0) {
                 watchList.innerHTML = unseenNotes.map(n => `
-                    <div class="activity-item" onclick="viewNote(${n.id})">
+                    <div class="activity-item" onclick="viewNote('${n.id}')">
                         <div class="activity-icon" style="color: var(--primary);"><i class="fas fa-eye"></i></div>
                         <div class="activity-content">
                             <div class="activity-text">Nota da ${n.author}</div>
@@ -1166,7 +1166,7 @@
                         </div>
                         <div class="task-list">
                             ${tasks.map(t => `
-                                <div class="task-card priority-${t.priority}" draggable="true" ondragstart="drag(event, ${t.id})">
+                                <div class="task-card priority-${t.priority}" draggable="true" ondragstart="drag(event, '${t.id}')">
                                     <div class="task-title">${t.title}</div>
                                     <div class="task-meta">
                                         <div class="task-assignee">
@@ -1193,10 +1193,10 @@
                     </div>
                     <div class="note-content">${n.content}</div>
                     <div class="note-footer">
-                        <div class="visibility-toggle ${n.shared ? 'shared' : ''}" onclick="toggleNoteShare(${n.id})">
+                        <div class="visibility-toggle ${n.shared ? 'shared' : ''}" onclick="toggleNoteShare('${n.id}')">
                             <i class="fas fa-eye"></i> ${n.shared ? 'Condivisa' : 'Privata'}
                         </div>
-                        <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote(${n.id})"></i>
+                        <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote('${n.id}')"></i>
                     </div>
                 </div>
             `).join('');
