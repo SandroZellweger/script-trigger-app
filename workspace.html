@@ -1509,10 +1509,11 @@
             try {
                 const config = window.APP_CONFIG || window.PRIVATE_CONFIG || {};
                 const scriptUrl = config.scriptUrl;
+                const authToken = config.authToken;
                 
                 if (scriptUrl) {
                     const callbackName = 'wsCallback_' + Math.round(100000 * Math.random());
-                    const url = `${scriptUrl}?function=workspace&action=saveComment&user=${currentUser}&data=${encodeURIComponent(JSON.stringify(payload))}&callback=${callbackName}`;
+                    const url = `${scriptUrl}?function=workspace&action=saveComment&user=${currentUser}&authToken=${authToken}&data=${encodeURIComponent(JSON.stringify(payload))}&callback=${callbackName}`;
                     
                     window[callbackName] = (response) => {
                         if (response.success) {
