@@ -1340,7 +1340,7 @@
                         <div style="display:flex; gap:10px;">
                             ${(() => {
                                 const status = getCommentStatus(n.id);
-                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color};" onclick="openComments('${n.id}', 'note')"></i>`;
+                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color};" onclick="openComments('${n.id}', 'note'); event.stopPropagation();"></i>`;
                             })()}
                             <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote('${n.id}')"></i>
                         </div>
@@ -1994,7 +1994,7 @@
                         <div style="display:flex; gap:10px;">
                             ${(() => {
                                 const status = getCommentStatus(n.id);
-                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color};" onclick="openComments('${n.id}', 'note')"></i>`;
+                                return `<i class="fas fa-comment" style="cursor: pointer; color: ${status.color};" onclick="openComments('${n.id}', 'note'); event.stopPropagation();"></i>`;
                             })()}
                             <i class="fas fa-trash" style="cursor: pointer; color: #e74c3c;" onclick="deleteNote('${n.id}')"></i>
                         </div>
