@@ -11,17 +11,12 @@
     <meta name="theme-color" content="#7DBB35">
     <title>Script Trigger - Home</title>
     
-    <!-- Preconnect to critical origins (limit to 2 most important) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- Preconnect only to fonts.gstatic.com (actual font files) -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Preload critical font -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <!-- Non-blocking font load -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"></noscript>
-    
-    <!-- Preload LCP image for faster paint -->
-    <link rel="preload" as="image" href="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" fetchpriority="high">
     
     <style>
         /* Font fallback to reduce CLS */
@@ -247,11 +242,11 @@
             }
         }
 
-        /* Fade in animation - GPU composited */
+        /* Fade in animation - GPU composited, minimal delay */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translate3d(0, 30px, 0);
+                transform: translate3d(0, 20px, 0);
             }
             to {
                 opacity: 1;
@@ -260,20 +255,10 @@
         }
 
         .animate-in {
-            animation: fadeInUp 0.4s ease-out forwards;
-            will-change: transform, opacity;
+            animation: fadeInUp 0.3s ease-out forwards;
         }
         
-        /* Reduce animation delays to speed up perceived load */
-        .menu-card:nth-child(1) { animation-delay: 0.05s; }
-        .menu-card:nth-child(2) { animation-delay: 0.1s; }
-        .menu-card:nth-child(3) { animation-delay: 0.15s; }
-        .menu-card:nth-child(4) { animation-delay: 0.2s; }
-        .menu-card:nth-child(5) { animation-delay: 0.25s; }
-        .menu-card:nth-child(6) { animation-delay: 0.3s; }
-        .menu-card:nth-child(7) { animation-delay: 0.35s; }
-        .menu-card:nth-child(8) { animation-delay: 0.4s; }
-        .menu-card:nth-child(9) { animation-delay: 0.45s; }
+        /* No staggered delays - all animate together for faster perceived load */
         
         /* Reduce motion for users who prefer it */
         @media (prefers-reduced-motion: reduce) {
@@ -292,7 +277,7 @@
                 <span id="adminText">Admin</span>
             </button>
             <h1 class="visually-hidden">Script Trigger - Van Fleet Management</h1>
-            <img src="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" 
+            <img src="logo-small.jpg" 
                  alt="Noleggio Semplice - Van Rental Company Logo" 
                  class="logo" 
                  width="200" 
@@ -398,11 +383,11 @@
         </footer>
     </main>    
     
-    <!-- Centralized Configuration -->
+    <!-- Defer all scripts to not block rendering -->
     <script src="config.private.js" defer></script>
-    <script src="config.public.js"></script>
+    <script src="config.public.js" defer></script>
     
-    <script>
+    <script defer>
         // Update version badge once config loads
         function updateVersionBadge() {
             const versionEl = document.getElementById('app-version');
