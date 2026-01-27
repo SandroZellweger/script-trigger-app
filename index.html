@@ -3,19 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Script Trigger - Van rental management, reports, payments, and fleet calendar">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Script Trigger">
+    <meta name="theme-color" content="#7DBB35">
     <title>Script Trigger - Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Preconnect to critical origins (limit to 2 most important) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload critical font -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"></noscript>
+    
+    <!-- Preload LCP image for faster paint -->
+    <link rel="preload" as="image" href="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" fetchpriority="high">
+    
     <style>
+        /* Font fallback to reduce CLS */
+        @font-face {
+            font-family: 'Roboto-Fallback';
+            src: local('Arial');
+            ascent-override: 92.77%;
+            descent-override: 24.41%;
+            size-adjust: 100.16%;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }        body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Roboto-Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #7DBB35 0%, #5a8827 100%);
             color: #333;
             min-height: 100vh;
@@ -57,10 +82,12 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;  /* Optimized transition */
             display: flex;
             align-items: center;
             gap: 5px;
+            border: none;  /* Reset button border */
+            font-family: inherit;
         }
 
         .admin-badge:hover {
@@ -136,9 +163,24 @@
 
         .menu-description {
             font-size: 14px;
-            color: #666;
+            color: #444;  /* Improved contrast from #666 to #444 (4.5:1 ratio) */
             line-height: 1.4;
-        }        .status-bar {
+        }
+        
+        /* Visually hidden but accessible to screen readers */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        .status-bar {
             background: #FFFFFF;
             border-radius: 12px;
             padding: 15px 20px;
@@ -153,7 +195,7 @@
             display: inline-block;
             margin: 0 15px;
             font-size: 14px;
-            color: #555;
+            color: #333;  /* Improved contrast from #555 to #333 */
         }
 
         .status-indicator {
@@ -169,7 +211,7 @@
         }
 
         .version {
-            color: #888;
+            color: #555;  /* Improved contrast from #888 to #555 */
             font-size: 12px;
         }
 
@@ -205,132 +247,156 @@
             }
         }
 
-        /* Fade in animation */
+        /* Fade in animation - GPU composited */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translate3d(0, 30px, 0);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translate3d(0, 0, 0);
             }
         }
 
         .animate-in {
-            animation: fadeInUp 0.6s ease-out forwards;
-        }        .menu-card:nth-child(1) { animation-delay: 0.1s; }
-        .menu-card:nth-child(2) { animation-delay: 0.2s; }
-        .menu-card:nth-child(3) { animation-delay: 0.3s; }
-        .menu-card:nth-child(4) { animation-delay: 0.4s; }
-        .menu-card:nth-child(5) { animation-delay: 0.5s; }
-        .menu-card:nth-child(6) { animation-delay: 0.6s; }
-        .menu-card:nth-child(7) { animation-delay: 0.7s; }
-        .menu-card:nth-child(8) { animation-delay: 0.8s; }
-        .menu-card:nth-child(9) { animation-delay: 0.9s; }
+            animation: fadeInUp 0.4s ease-out forwards;
+            will-change: transform, opacity;
+        }
+        
+        /* Reduce animation delays to speed up perceived load */
+        .menu-card:nth-child(1) { animation-delay: 0.05s; }
+        .menu-card:nth-child(2) { animation-delay: 0.1s; }
+        .menu-card:nth-child(3) { animation-delay: 0.15s; }
+        .menu-card:nth-child(4) { animation-delay: 0.2s; }
+        .menu-card:nth-child(5) { animation-delay: 0.25s; }
+        .menu-card:nth-child(6) { animation-delay: 0.3s; }
+        .menu-card:nth-child(7) { animation-delay: 0.35s; }
+        .menu-card:nth-child(8) { animation-delay: 0.4s; }
+        .menu-card:nth-child(9) { animation-delay: 0.45s; }
+        
+        /* Reduce motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+            .animate-in {
+                animation: none;
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">        <div class="header animate-in">
-            <div class="admin-badge" id="adminBadge" onclick="handleAdminClick()">
-                <span id="adminIcon">🔐</span>
+    <main class="container" role="main">
+        <header class="header animate-in">
+            <button class="admin-badge" id="adminBadge" onclick="handleAdminClick()" aria-label="Admin login" type="button">
+                <span id="adminIcon" aria-hidden="true">🔐</span>
                 <span id="adminText">Admin</span>
-            </div>
-            <img src="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" alt="Company Logo" class="logo">
-        </div>
+            </button>
+            <h1 class="visually-hidden">Script Trigger - Van Fleet Management</h1>
+            <img src="NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg" 
+                 alt="Noleggio Semplice - Van Rental Company Logo" 
+                 class="logo" 
+                 width="200" 
+                 height="60"
+                 fetchpriority="high"
+                 decoding="async">
+        </header>
 
-        <div class="menu-grid">
+        <nav class="menu-grid" aria-label="Main navigation">
             <a href="reports.html" class="menu-card animate-in">
-                <div class="menu-icon">📊</div>
-                <div class="menu-title">Reports</div>
-                <div class="menu-description">Generate daily reports, custom date reports, and analytics</div>
+                <span class="menu-icon" aria-hidden="true">📊</span>
+                <span class="menu-title">Reports</span>
+                <span class="menu-description">Generate daily reports, custom date reports, and analytics</span>
             </a>
 
             <a href="payments.html" class="menu-card animate-in">
-                <div class="menu-icon">💳</div>
-                <div class="menu-title">Payments</div>
-                <div class="menu-description">Create Stripe payment links and manage transactions</div>
+                <span class="menu-icon" aria-hidden="true">💳</span>
+                <span class="menu-title">Payments</span>
+                <span class="menu-description">Create Stripe payment links and manage transactions</span>
             </a>
 
             <a href="expenses.html" class="menu-card animate-in">
-                <div class="menu-icon">💰</div>
-                <div class="menu-title">Expenses</div>
-                <div class="menu-description">Track business expenses and upload receipts</div>
+                <span class="menu-icon" aria-hidden="true">💰</span>
+                <span class="menu-title">Expenses</span>
+                <span class="menu-description">Track business expenses and upload receipts</span>
             </a>
-<a href="calendar-production.html" class="menu-card animate-in">
-                <div class="menu-icon">📅</div>
-                <div class="menu-title">Calendar & CRM</div>
-                <div class="menu-description">View van rental bookings and customer management</div>
-</a><a href="zoko.html" class="menu-card animate-in">
-                <div class="menu-icon">💬</div>
-                <div class="menu-title">Zoko</div>
-                <div class="menu-description">Send messages and communicate with customers</div>
+
+            <a href="calendar-production.html" class="menu-card animate-in">
+                <span class="menu-icon" aria-hidden="true">📅</span>
+                <span class="menu-title">Calendar & CRM</span>
+                <span class="menu-description">View van rental bookings and customer management</span>
+            </a>
+
+            <a href="zoko.html" class="menu-card animate-in">
+                <span class="menu-icon" aria-hidden="true">💬</span>
+                <span class="menu-title">Zoko</span>
+                <span class="menu-description">Send messages and communicate with customers</span>
             </a>
             
             <a href="maintenance.html" class="menu-card animate-in">
-                <div class="menu-icon">🔧</div>
-                <div class="menu-title">Maintenance</div>
-                <div class="menu-description">Track vehicle maintenance and service records</div>
+                <span class="menu-icon" aria-hidden="true">🔧</span>
+                <span class="menu-title">Maintenance</span>
+                <span class="menu-description">Track vehicle maintenance and service records</span>
             </a>
             
             <a href="maintenance-new.html#cleaning" class="menu-card animate-in">
-                <div class="menu-icon">🧹</div>
-                <div class="menu-title">Van Cleaning</div>
-                <div class="menu-description">Schedule and track van cleaning activities</div>
+                <span class="menu-icon" aria-hidden="true">🧹</span>
+                <span class="menu-title">Van Cleaning</span>
+                <span class="menu-description">Schedule and track van cleaning activities</span>
             </a>
             
             <a href="foto.html" class="menu-card animate-in">
-                <div class="menu-icon">📸</div>
-                <div class="menu-title">Foto</div>
-                <div class="menu-description">Upload photos to Google Drive</div>
+                <span class="menu-icon" aria-hidden="true">📸</span>
+                <span class="menu-title">Foto</span>
+                <span class="menu-description">Upload photos to Google Drive</span>
             </a>
             
             <a href="settings.html" class="menu-card animate-in">
-                <div class="menu-icon">⚙️</div>
-                <div class="menu-title">Settings</div>
-                <div class="menu-description">App configuration and script management</div>
+                <span class="menu-icon" aria-hidden="true">⚙️</span>
+                <span class="menu-title">Settings</span>
+                <span class="menu-description">App configuration and script management</span>
             </a>
-        </div>
+        </nav>
 
         <!-- Admin Section - Solo visibile se loggato -->
-        <div id="adminSection" style="display: none; width: 100%; max-width: 800px; margin-top: 20px;">
+        <section id="adminSection" style="display: none; width: 100%; max-width: 800px; margin-top: 20px;" aria-label="Admin area">
             <h2 style="color: white; text-align: center; margin-bottom: 20px; font-size: 24px;">
-                🔐 Area Admin
+                <span aria-hidden="true">🔐</span> Area Admin
             </h2>
-            <div class="menu-grid">
+            <nav class="menu-grid" aria-label="Admin navigation">
                 <a href="maintenance-new.html#damage-ai" class="menu-card animate-in" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <div class="menu-icon">🤖</div>
-                    <div class="menu-title">AI Damage Recognition</div>
-                    <div class="menu-description">Analyze damage photos with AI</div>
+                    <span class="menu-icon" aria-hidden="true">🤖</span>
+                    <span class="menu-title">AI Damage Recognition</span>
+                    <span class="menu-description">Analyze damage photos with AI</span>
                 </a>
 
                 <a href="maintenance-new.html" class="menu-card animate-in" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <div class="menu-icon">🔧</div>
-                    <div class="menu-title">Manutenzione Veicoli</div>
-                    <div class="menu-description">Sistema di tracciamento difetti e riparazioni</div>
+                    <span class="menu-icon" aria-hidden="true">🔧</span>
+                    <span class="menu-title">Manutenzione Veicoli</span>
+                    <span class="menu-description">Sistema di tracciamento difetti e riparazioni</span>
                 </a>
 
                 <a href="admin.html" class="menu-card animate-in" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <div class="menu-icon">📊</div>
-                    <div class="menu-title">Admin Dashboard</div>
-                    <div class="menu-description">Full admin control panel</div>
+                    <span class="menu-icon" aria-hidden="true">📊</span>
+                    <span class="menu-title">Admin Dashboard</span>
+                    <span class="menu-description">Full admin control panel</span>
                 </a>
-            </div>
-        </div>
+            </nav>
+        </section>
 
-        <div class="status-bar animate-in">
-            <div class="status-item">
-                <span class="status-indicator online"></span>
-                Online
+        <footer class="status-bar animate-in" role="contentinfo">
+            <div class="status-item" role="status">
+                <span class="status-indicator online" aria-hidden="true"></span>
+                <span>Online</span>
             </div>
-            <div class="status-item">
-                <span class="status-indicator online"></span>
-                Scripts Ready
+            <div class="status-item" role="status">
+                <span class="status-indicator online" aria-hidden="true"></span>
+                <span>Scripts Ready</span>
             </div>
-            <div class="status-item version" id="app-version">
+            <div class="status-item version" id="app-version" aria-label="App version">
                 Loading version…
             </div>
-        </div>    </div>    
+        </footer>
+    </main>    
     
     <!-- Centralized Configuration -->
     <script src="config.private.js" defer></script>
@@ -438,41 +504,73 @@
             }
         }
 
-        // Check script status on load
-        document.addEventListener('DOMContentLoaded', async () => {
+        // Check script status on load - optimized for performance
+        document.addEventListener('DOMContentLoaded', () => {
+            // Update version badge immediately
             updateVersionBadge();
-            setTimeout(updateVersionBadge, 250);
+            requestAnimationFrame(() => {
+                setTimeout(updateVersionBadge, 100);
+            });
             
-            // Controlla admin status
+            // Check admin status (fast, local operation)
             checkAdminStatus();
             
-            try {
-                // Get current settings
-                const settings = getSettings();
-                
-                // Ping the Google Apps Script to check if it's online
-                const response = await fetch(`${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`);
-                const data = await response.json();
-                
-                if (data.result) {
-                    console.log('✅ Google Apps Script is online');
-                } else {
-                    console.log('⚠️ Google Apps Script might be offline');
-                }
-            } catch (error) {
-                console.log('⚠️ Could not reach Google Apps Script');
+            // Defer non-critical network check to after page is interactive
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => pingScript(), { timeout: 3000 });
+            } else {
+                setTimeout(pingScript, 1500);
             }
         });
+        
+        // Separated ping function to reduce main thread blocking
+        async function pingScript() {
+            try {
+                const settings = getSettings();
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(
+                    `${settings.scriptUrl}?function=ping&authToken=${settings.authToken}`,
+                    { signal: controller.signal }
+                );
+                clearTimeout(timeoutId);
+                
+                const data = await response.json();
+                console.log(data.result ? '✅ Google Apps Script is online' : '⚠️ Google Apps Script might be offline');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.log('⚠️ Could not reach Google Apps Script');
+                }
+            }
+        }
 
-        // Add ripple effect to cards
-        document.querySelectorAll('.menu-card').forEach(card => {
-            card.addEventListener('click', function(e) {
+        // Add ripple effect to cards - deferred and optimized
+        requestAnimationFrame(() => {
+            // Add ripple animation CSS once
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes ripple {
+                    to {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Use event delegation instead of individual listeners
+            document.querySelector('.menu-grid')?.addEventListener('click', function(e) {
+                const card = e.target.closest('.menu-card');
+                if (!card) return;
+                
                 const ripple = document.createElement('div');
-                const rect = this.getBoundingClientRect();
+                const rect = card.getBoundingClientRect();
                 const size = Math.max(rect.width, rect.height);
                 const x = e.clientX - rect.left - size / 2;
                 const y = e.clientY - rect.top - size / 2;
-                  ripple.style.cssText = `
+                
+                ripple.style.cssText = `
                     position: absolute;
                     border-radius: 50%;
                     background: rgba(125, 187, 53, 0.3);
@@ -485,27 +583,13 @@
                     pointer-events: none;
                 `;
                 
-                this.style.position = 'relative';
-                this.style.overflow = 'hidden';
-                this.appendChild(ripple);
+                card.style.position = 'relative';
+                card.style.overflow = 'hidden';
+                card.appendChild(ripple);
                 
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
+                setTimeout(() => ripple.remove(), 600);
             });
         });
-
-        // Add ripple animation CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>

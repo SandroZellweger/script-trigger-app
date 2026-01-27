@@ -1,15 +1,22 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_VERSION = 'v2.0.4';
+const CACHE_VERSION = 'v2.0.5';
 const CACHE_NAME = `van-calendar-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `van-calendar-static-${CACHE_VERSION}`;
 const API_CACHE_NAME = `van-calendar-api-${CACHE_VERSION}`;
 
-// Resources to cache immediately
+// Resources to cache immediately - optimized list
 const STATIC_RESOURCES = [
     './',
+    './index.html',
     './calendar-production.html',
     './workspace.html',
     './manifest.json',
+    './config.public.js',
+    './NOL_Noleggio-semplice_Noleggiami_RGB_1500px.jpg'
+];
+
+// Long-cache resources (fonts, external CDN)
+const LONG_CACHE_RESOURCES = [
     'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'
 ];
 
@@ -18,7 +25,7 @@ const API_ENDPOINTS = [
     'https://script.google.com/macros/s/AKfycbxJMHOfCcqnKKoGNNAeiBaV25VHTBoivE06MtjEgGpeCOFR_S2lAATZ-MR3VKz-ivPK/exec'
 ];
 
-// Install event - cache static resources
+// Install event - cache static resources with optimized strategy
 self.addEventListener('install', event => {
     console.log('Service Worker: Installing...');
 
@@ -32,16 +39,45 @@ self.addEventListener('install', event => {
                         fetch(url, { cache: 'no-cache' })
                             .then(response => {
                                 if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                                return cache.put(url, response);
+                                // Add cache headers for better performance
+                                const headers = new Headers(response.headers);
+                                headers.set('Cache-Control', 'max-age=86400'); // 1 day for static
+                                const cachedResponse = new Response(response.body, {
+                                    status: response.status,
+                                    statusText: response.statusText,
+                                    headers: headers
+                                });
+                                return cache.put(url, cachedResponse);
                             })
                             .catch(error => {
                                 console.warn(`Service Worker: Failed to cache ${url}:`, error);
-                                // Don't fail the entire operation for one resource
                             })
                     )
                 );
             }),
-            // Cache API endpoint
+            // Cache long-term resources (fonts) with longer TTL
+            caches.open(STATIC_CACHE_NAME).then(cache => {
+                return Promise.allSettled(
+                    LONG_CACHE_RESOURCES.map(url =>
+                        fetch(url, { cache: 'no-cache' })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                const headers = new Headers(response.headers);
+                                headers.set('Cache-Control', 'max-age=31536000'); // 1 year for fonts
+                                const cachedResponse = new Response(response.body, {
+                                    status: response.status,
+                                    statusText: response.statusText,
+                                    headers: headers
+                                });
+                                return cache.put(url, cachedResponse);
+                            })
+                            .catch(error => {
+                                console.warn(`Service Worker: Failed to cache font ${url}:`, error);
+                            })
+                    )
+                );
+            }),
+            // Prepare API cache
             caches.open(API_CACHE_NAME).then(cache => {
                 console.log('Service Worker: Preparing API cache');
                 return Promise.resolve();

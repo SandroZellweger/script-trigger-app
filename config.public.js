@@ -6,7 +6,7 @@
 window.APP_CONFIG = {
     // Frontend Configuration Only
     environment: 'production',
-    version: '2.0.2',
+    version: '2.0.3',
     
     // Feature Flags
     enableAnalytics: true,
@@ -23,7 +23,7 @@ window.APP_CONFIG = {
     
     // PWA Settings
     enableServiceWorker: true,
-    cacheVersion: 'v2.0.1',
+    cacheVersion: 'v2.0.5',
     
     // Production defaults (overridden by config.private.js if present)
     scriptUrl: 'https://script.google.com/macros/s/AKfycbzUtXeqja87wTaEEq8Q5Su1utBJnm3z4kj7ub3OCx1RB95Yh0wwVbwLmdSGpTPy08hY/exec',
