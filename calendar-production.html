@@ -1428,7 +1428,7 @@
                     try {
                         // Get VAPID key from Firebase Console -> Project Settings -> Cloud Messaging
                         token = await messaging.getToken({
-                            vapidKey: 'BLBx-hf2WrL2qEa0qKb-aCJbcxEvyn62GDYcSHpsxbfPw3z9MYwlL-Wt9kJWM1hXYSTfIgFKgLHKK0dGa2YRfPA',
+                            vapidKey: 'BIwVuSsf3p852ex8YYQKng5aAoO0fwfHFkNeV13rWRiXBemlwemMeSYT1kc0t1pOukcyYS3FMtzCDT5u1ZwpLDs',
                             serviceWorkerRegistration: registration
                         });
                         console.log('📱 FCM Token obtained:', token?.substring(0, 20) + '...');
@@ -1439,7 +1439,7 @@
                 
                 // Fallback to Web Push if FCM fails
                 if (!token) {
-                    const vapidKey = 'BLBx-hf2WrL2qEa0qKb-aCJbcxEvyn62GDYcSHpsxbfPw3z9MYwlL-Wt9kJWM1hXYSTfIgFKgLHKK0dGa2YRfPA';
+                    const vapidKey = 'BIwVuSsf3p852ex8YYQKng5aAoO0fwfHFkNeV13rWRiXBemlwemMeSYT1kc0t1pOukcyYS3FMtzCDT5u1ZwpLDs';
                     
                     let subscription = await registration.pushManager.getSubscription();
                     
