@@ -99,8 +99,6 @@ function doGet(e) {
         return uploadInvoiceChunkJsonp(e.parameter);
       case "finalizeInvoiceUploadJsonp":
         return finalizeInvoiceUploadJsonp(e.parameter);
-      case "deleteMaintenanceReportJsonp":
-        return deleteMaintenanceReportJsonp(e.parameter);
         
       // --- Messaging ---
       case "sendHowToBookMessageApp":
