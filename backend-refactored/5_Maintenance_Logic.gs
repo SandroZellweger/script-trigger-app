@@ -219,6 +219,80 @@ function getActiveMaintenanceReportsJsonp(params) {
   return handleJsonpRequest({ parameter: params }, getActiveMaintenanceReports);
 }
 
+// Delete Maintenance Report
+function deleteMaintenanceReportJsonp(params) {
+  return handleJsonpRequest({ parameter: params }, (p) => deleteMaintenanceReport(p.reportId, p.deletePhotos === 'true'));
+}
+
+function deleteMaintenanceReport(reportId, deletePhotos) {
+  try {
+    if (!reportId) {
+      return { success: false, error: 'Report ID is required' };
+    }
+
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const sheetId = scriptProperties.getProperty('MAINTENANCE_SHEET_ID');
+
+    if (!sheetId) {
+      return { success: false, error: 'Maintenance sheet ID not configured' };
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName('Difetti e Riparazioni');
+
+    if (!sheet) {
+      return { success: false, error: 'Sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const rowsToDelete = [];
+    const photoIdsToDelete = [];
+
+    // Find all rows with this reportId (could be multiple issues)
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][0] == reportId) {
+        rowsToDelete.push(i + 1); // +1 because sheet rows are 1-indexed
+        
+        // Collect photo IDs if we need to delete them
+        if (deletePhotos && data[i][16]) {
+          const ids = data[i][16].toString().split('\n').map(id => id.trim()).filter(id => id);
+          photoIdsToDelete.push(...ids);
+        }
+      }
+    }
+
+    if (rowsToDelete.length === 0) {
+      return { success: false, error: 'Report not found' };
+    }
+
+    // Delete photos from Drive if requested
+    if (deletePhotos && photoIdsToDelete.length > 0) {
+      for (const fileId of photoIdsToDelete) {
+        try {
+          DriveApp.getFileById(fileId).setTrashed(true);
+        } catch (e) {
+          Logger.log('Could not delete file: ' + fileId + ' - ' + e.toString());
+        }
+      }
+    }
+
+    // Delete rows from bottom to top to maintain correct indices
+    for (const rowNum of rowsToDelete) {
+      sheet.deleteRow(rowNum);
+    }
+
+    return {
+      success: true,
+      message: `Report ${reportId} deleted successfully`,
+      issuesDeleted: rowsToDelete.length,
+      photosDeleted: deletePhotos ? photoIdsToDelete.length : 0
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 function getActiveMaintenanceReports() {
   try {
     const scriptProperties = PropertiesService.getScriptProperties();

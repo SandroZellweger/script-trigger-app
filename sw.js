@@ -1,8 +1,53 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_VERSION = 'v2.1.0';
+const CACHE_VERSION = 'v2.1.1';
 const CACHE_NAME = `van-calendar-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `van-calendar-static-${CACHE_VERSION}`;
 const API_CACHE_NAME = `van-calendar-api-${CACHE_VERSION}`;
+
+// Import Firebase Messaging for push notifications
+try {
+    importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+    importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+    
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyC5gJx0AxA_pEkJVr7Bm7GsqP_h4FqR4Lc",
+        authDomain: "van-booking-3bf10.firebaseapp.com",
+        projectId: "van-booking-3bf10",
+        storageBucket: "van-booking-3bf10.firebasestorage.app",
+        messagingSenderId: "618584843462",
+        appId: "1:618584843462:web:a1b2c3d4e5f6g7h8i9j0"
+    };
+    
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const messaging = firebase.messaging();
+    
+    // Handle background messages
+    messaging.onBackgroundMessage((payload) => {
+        console.log('📱 Background message received:', payload);
+        
+        const { title, body } = payload.notification || {};
+        const data = payload.data || {};
+        
+        const notificationOptions = {
+            body: body || '',
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" fill="%237DBB35" rx="20"/><text x="96" y="120" font-size="120" text-anchor="middle" fill="white">🚐</text></svg>',
+            vibrate: [200, 100, 200],
+            tag: data.type || 'general',
+            renotify: true,
+            requireInteraction: true,
+            data: data
+        };
+        
+        return self.registration.showNotification(title || 'Van Fleet', notificationOptions);
+    });
+    
+    console.log('📱 Firebase Messaging initialized in SW');
+} catch (e) {
+    console.log('📱 Firebase import skipped:', e.message);
+}
 
 // Resources to cache immediately - optimized list
 const STATIC_RESOURCES = [
