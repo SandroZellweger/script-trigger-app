@@ -1,5 +1,5 @@
 // Service Worker for Van Fleet Calendar
-const CACHE_VERSION = 'v2.0.6';
+const CACHE_VERSION = 'v2.1.0';
 const CACHE_NAME = `van-calendar-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `van-calendar-static-${CACHE_VERSION}`;
 const API_CACHE_NAME = `van-calendar-api-${CACHE_VERSION}`;
@@ -308,31 +308,78 @@ async function doBackgroundSync() {
     // For example, queued calendar updates, analytics events, etc.
 }
 
-// Push notifications (for future use)
+// Push notifications - FCM integration
 self.addEventListener('push', event => {
+    console.log('📱 Push received:', event);
+    
+    let data = { title: 'Nuova Notifica', body: 'Hai una nuova notifica' };
+    
     if (event.data) {
-        const data = event.data.json();
-        
-        const options = {
-            body: data.body,
-            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" fill="%237DBB35" rx="20"/><text x="96" y="120" font-size="120" text-anchor="middle" fill="white">🚐</text></svg>',
-            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="%237DBB35" rx="10"/><text x="48" y="60" font-size="60" text-anchor="middle" fill="white">🚐</text></svg>',
-            vibrate: [200, 100, 200],
-            data: data
-        };
-        
-        event.waitUntil(
-            self.registration.showNotification(data.title, options)
-        );
+        try {
+            data = event.data.json();
+            // FCM wraps notification data
+            if (data.notification) {
+                data = {
+                    title: data.notification.title || data.title,
+                    body: data.notification.body || data.body,
+                    ...data.data
+                };
+            }
+        } catch (e) {
+            data.body = event.data.text();
+        }
     }
+    
+    const options = {
+        body: data.body || '',
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" fill="%237DBB35" rx="20"/><text x="96" y="120" font-size="120" text-anchor="middle" fill="white">🚐</text></svg>',
+        badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="%237DBB35" rx="10"/><text x="48" y="60" font-size="60" text-anchor="middle" fill="white">🚐</text></svg>',
+        vibrate: [200, 100, 200],
+        tag: data.type || 'general',
+        renotify: true,
+        requireInteraction: true,
+        data: data,
+        actions: [
+            { action: 'open', title: '📅 Apri Calendario' },
+            { action: 'dismiss', title: '✕ Chiudi' }
+        ]
+    };
+    
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'Van Fleet', options)
+    );
 });
 
 // Notification click handler
 self.addEventListener('notificationclick', event => {
     event.notification.close();
     
+    const data = event.notification.data || {};
+    let url = '/calendar-production.html';
+    
+    // Open specific view based on notification type
+    if (data.type === 'new_booking' && data.bookingId) {
+        url = `/calendar-production.html?highlight=${data.bookingId}`;
+    } else if (data.type === 'new_request' && data.requestId) {
+        url = `/calendar-production.html?tab=requests&id=${data.requestId}`;
+    }
+    
+    if (event.action === 'dismiss') {
+        return; // Just close
+    }
+    
     event.waitUntil(
-        clients.openWindow('/calendar-production.html')
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then(clientList => {
+                // Focus existing window if open
+                for (const client of clientList) {
+                    if (client.url.includes('calendar-production') && 'focus' in client) {
+                        return client.focus();
+                    }
+                }
+                // Open new window
+                return clients.openWindow(url);
+            })
     );
 });
 

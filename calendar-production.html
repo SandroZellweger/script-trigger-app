@@ -1267,12 +1267,212 @@
                 await app.loadCalendarData();
                 UIManager.showLoadingOverlay(false);
                 console.log('✅ App initialized successfully');
+                
+                // Initialize push notifications after app is ready
+                initPushNotifications();
             } catch (error) {
                 console.error('❌ Initialization failed:', error);
                 UIManager.updateConnectionStatus('error', 'Initialization failed');
                 UIManager.showLoadingOverlay(false);
             }
         });
+
+        // ============================================================================
+        // PUSH NOTIFICATIONS
+        // ============================================================================
+        
+        const BACKEND_URL = 'https://noleggio-app-production.up.railway.app';
+        
+        async function initPushNotifications() {
+            // Check if notifications are supported
+            if (!('Notification' in window)) {
+                console.log('📱 Notifications not supported');
+                return;
+            }
+            
+            // Check if already granted
+            if (Notification.permission === 'granted') {
+                console.log('📱 Notifications already granted');
+                await registerPushToken();
+                return;
+            }
+            
+            // Show a subtle prompt after 3 seconds
+            if (Notification.permission !== 'denied') {
+                setTimeout(showNotificationPrompt, 3000);
+            }
+        }
+        
+        function showNotificationPrompt() {
+            // Check if we've already shown the prompt recently
+            const lastPrompt = localStorage.getItem('pushPromptTime');
+            if (lastPrompt && Date.now() - parseInt(lastPrompt) < 7 * 24 * 60 * 60 * 1000) {
+                return; // Don't show again for 7 days
+            }
+            
+            const banner = document.createElement('div');
+            banner.id = 'push-notification-banner';
+            banner.innerHTML = `
+                <div style="
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, #7DBB35 0%, #5a9a20 100%);
+                    color: white;
+                    padding: 16px 24px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    max-width: 90%;
+                    width: 400px;
+                    animation: slideUp 0.3s ease;
+                ">
+                    <div style="font-size: 28px;">🔔</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">Attiva le notifiche?</div>
+                        <div style="font-size: 13px; opacity: 0.9;">Ricevi avvisi per nuove prenotazioni</div>
+                    </div>
+                    <button onclick="requestPushPermission()" style="
+                        background: white;
+                        color: #5a9a20;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">Attiva</button>
+                    <button onclick="dismissPushPrompt()" style="
+                        background: transparent;
+                        color: white;
+                        border: none;
+                        padding: 8px;
+                        cursor: pointer;
+                        opacity: 0.8;
+                        font-size: 18px;
+                    ">✕</button>
+                </div>
+                <style>
+                    @keyframes slideUp {
+                        from { transform: translate(-50%, 100px); opacity: 0; }
+                        to { transform: translate(-50%, 0); opacity: 1; }
+                    }
+                </style>
+            `;
+            document.body.appendChild(banner);
+        }
+        
+        function dismissPushPrompt() {
+            const banner = document.getElementById('push-notification-banner');
+            if (banner) banner.remove();
+            localStorage.setItem('pushPromptTime', Date.now().toString());
+        }
+        
+        async function requestPushPermission() {
+            dismissPushPrompt();
+            
+            try {
+                const permission = await Notification.requestPermission();
+                console.log('📱 Notification permission:', permission);
+                
+                if (permission === 'granted') {
+                    await registerPushToken();
+                    // Show success feedback
+                    showToast('✅ Notifiche attivate!', 'success');
+                }
+            } catch (error) {
+                console.error('Error requesting permission:', error);
+            }
+        }
+        
+        async function registerPushToken() {
+            try {
+                // Wait for service worker to be ready
+                const registration = await navigator.serviceWorker.ready;
+                console.log('📱 SW ready for push');
+                
+                // Get the push subscription using VAPID key
+                // We'll use FCM's VAPID key
+                const vapidKey = 'BLBx-hf2WrL2qEa0qKb-aCJbcxEvyn62GDYcSHpsxbfPw3z9MYwlL-Wt9kJWM1hXYSTfIgFKgLHKK0dGa2YRfPA';
+                
+                let subscription = await registration.pushManager.getSubscription();
+                
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                    });
+                }
+                
+                console.log('📱 Push subscription:', subscription);
+                
+                // For FCM, we need to get the token differently
+                // Since we're using Firebase Admin SDK on backend, we'll use the endpoint as token
+                const token = subscription.endpoint;
+                
+                // Register with backend
+                const response = await fetch(`${BACKEND_URL}/api/admin/push/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: token,
+                        deviceName: getDeviceName(),
+                        userAgent: navigator.userAgent
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('📱 Token registered:', result);
+                
+            } catch (error) {
+                console.error('Error registering push token:', error);
+            }
+        }
+        
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        function getDeviceName() {
+            const ua = navigator.userAgent;
+            if (/iPhone/.test(ua)) return 'iPhone';
+            if (/iPad/.test(ua)) return 'iPad';
+            if (/Android/.test(ua)) return 'Android';
+            if (/Windows/.test(ua)) return 'Windows PC';
+            if (/Mac/.test(ua)) return 'Mac';
+            return 'Unknown Device';
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${type === 'success' ? '#059669' : '#3b82f6'};
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                z-index: 10001;
+                animation: fadeInOut 3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
 
         // ============================================================================
         // SERVICE WORKER REGISTRATION
